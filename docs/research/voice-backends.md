@@ -3,6 +3,8 @@
 - **Researched:** 2026-10-06 (subagent web research; some pages read via a summarizing fetch, so check items marked **[unverified]**)
 - **Problem we're solving:** Meta AI cuts the user off (aggressive end-of-turn detection) and forgets what was said (no memory).
 
+> **Decision (2026-10-06):** user chose **Gemini Live** as the app backend. OpenAI notes below are kept for reference only; OpenAI credits are for dev tooling (codex).
+
 ## TL;DR
 - **Primary: OpenAI** (lots of credits). Start with `gpt-realtime-2.1` + `semantic_vad` eagerness `low`. Evaluate **`gpt-live-1`** (full-duplex, no separate turn detector) as the real fix for being cut off.
 - **Secondary: Gemini Live**, switchable behind a provider interface. Much cheaper per minute, native video, free tier.
