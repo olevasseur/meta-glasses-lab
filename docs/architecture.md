@@ -1,0 +1,51 @@
+# Architecture & milestones
+
+App name: **the glasses app** (Android package `com.olevasseur.glassesapp`). Target phone: Pixel 10 Pro.
+
+```
+Meta glasses (mic/speaker over BT HFP, camera + buttons via DAT SDK)
+   ⇅ Bluetooth (via Meta AI app)
+Android app  ──WebSocket──►  Gemini Live API   (audio in/out, tool calls)
+   │  ▲
+   │  └─ ephemeral token
+   ▼
+backend (Python/FastAPI on the Mac; phone reaches it via `adb reverse tcp:8787 tcp:8787`)
+   ├─ POST /token            → Gemini ephemeral token (session config locked in)
+   ├─ POST /tools/{name}     → executes tool calls (append_to_doc, later remember/recall)
+   └─ POST /transcripts      → (M3) store transcripts for memory
+```
+
+## Milestones
+- **M1 — Conversation that doesn't cut you off.** Glasses mic → Gemini Live → glasses speaker. Patient VAD + push-to-talk (capture-button hold / on-screen button). Works with the DAT mock device and real glasses.
+- **M2 — Notes.** `append_to_doc` tool: "add this note to <doc>" → Google Doc (Inbox doc + alias map v0, fuzzy match later).
+- **M3 — Memory.** Transcripts → summaries/facts → injected at session start; `remember`/`recall` tools.
+- **M4 — Vision + triggers.** "What am I looking at?" (camera frame on demand), "Hey Meta, start …" voice invocation.
+
+## Contract between app and backend (v0)
+
+### `POST /token`
+Request: `{}` (header `X-App-Secret: <shared secret from .env APP_SHARED_SECRET>`)
+Response:
+```json
+{"token": "<gemini ephemeral token name>", "model": "gemini-3.8-live", "expires_at": "<ISO8601>"}
+```
+The backend locks the session config into the token (`liveConnectConstraints`): model, system instruction, voice, VAD, tool declarations. The app connects to the Live API WebSocket with this token and sends a minimal setup message.
+
+Session config (backend-owned):
+- `realtimeInputConfig.automaticActivityDetection`: `startOfSpeechSensitivity=START_SENSITIVITY_LOW`, `endOfSpeechSensitivity=END_SENSITIVITY_LOW`, `prefixPaddingMs=300`, `silenceDurationMs=1200`
+- `contextWindowCompression.slidingWindow: {}`, `sessionResumption: {}`
+- `responseModalities: ["AUDIO"]`, input + output audio transcription enabled
+- Tools: function declarations (see below)
+
+Push-to-talk mode: app may request `{"mode":"ptt"}` → backend returns a token whose config has `automaticActivityDetection.disabled=true`; app sends `activityStart`/`activityEnd`.
+
+### `POST /tools/{name}`
+Header `X-App-Secret`. Body = the Gemini function call `args` object. Response = JSON object the app sends back as the `functionResponse.response`.
+
+`append_to_doc`:
+- args: `{"doc_name": string (optional, default "Inbox"), "text": string, "confirmed_doc_id": string (optional)}`
+- response: `{"status":"ok","doc_title":...}` | `{"status":"needs_confirmation","candidates":[{"id":...,"title":...}]}` | `{"status":"not_found","suggestion":"create_or_inbox"}`
+
+### Audio formats (Gemini Live)
+- Input: 16-bit PCM, 16 kHz, mono (`audio/pcm;rate=16000`). The glasses' HFP mic is 8 kHz, so resample to 16 kHz.
+- Output: 16-bit PCM, 24 kHz, mono.

@@ -10,3 +10,6 @@ Proposed 2026-10-06 from the research in `docs/research/`. Status is "proposed" 
 | 4 | Small personal backend for tokens, memory, tools | proposed | Keeps keys/refresh tokens off the phone; memory shared across providers |
 | 5 | Notes v0 = Inbox doc + alias map; fuzzy match later | proposed | Simplest working path |
 | 6 | Triggers: capture-button hold / touchpad double-tap; later Voice Invocation "Hey Meta, start {app}" | proposed | Single tap reserved by glasses; Voice Invocation is experimental + needs approval |
+| 7 | App name "the glasses app", package `com.olevasseur.glassesapp`; target Pixel 10 Pro | confirmed 2026-10-06 | User choice |
+| 8 | Build order: M1 conversation + M2 notes backend in parallel, then M3 memory, M4 vision/triggers | proposed 2026-10-06 | Notes is a tool inside the conversation; backend part doesn't need glasses |
+| 9 | Phone reaches backend via `adb reverse` during dev; app holds no long-lived keys (shared secret + ephemeral Gemini tokens) | proposed | Keeps keys off the phone |
