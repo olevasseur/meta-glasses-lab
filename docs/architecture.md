@@ -33,7 +33,8 @@ The backend locks the session config into the token (`liveConnectConstraints`): 
 
 Session config (backend-owned):
 - `realtimeInputConfig.automaticActivityDetection`: `startOfSpeechSensitivity=START_SENSITIVITY_LOW`, `endOfSpeechSensitivity=END_SENSITIVITY_LOW`, `prefixPaddingMs=300`, `silenceDurationMs=1200`
-- `contextWindowCompression.slidingWindow: {}`, `sessionResumption: {}`
+- `contextWindowCompression.slidingWindow: {}`
+- **Locking:** the token uses `lock_additional_fields=[]`, so only the fields above are locked (sent as `fieldMask`). `sessionResumption` is intentionally **not** locked: the app sends `sessionResumption: {}` on first connect and `{"handle": "<latest>"}` on reconnect. A global lock makes Gemini ignore the client's handle, so every ~10-minute connection rollover would silently start a fresh conversation.
 - `responseModalities: ["AUDIO"]`, input + output audio transcription enabled
 - Tools: function declarations (see below)
 

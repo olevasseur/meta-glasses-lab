@@ -1,0 +1,99 @@
+# the glasses app — M1 Android
+
+Kotlin / Compose, `com.olevasseur.glassesapp`, Android 10+ (minSdk 29), compile/target SDK 36, JDK 17. Gradle 8.13 + AGP 8.13.2; DAT core, camera, inputs and mockdevice 1.0.0 resolve from Maven Central without a GitHub token. Gemini is the only runtime AI provider.
+
+## Build
+
+From the repository root:
+
+```sh
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export PATH="$ANDROID_HOME/platform-tools:$JAVA_HOME/bin:$PATH"
+cd android
+```
+
+Create or edit **android/local.properties** (gitignored; no quotes around values):
+
+```properties
+sdk.dir=/Users/aiagent/Library/Android/sdk
+BACKEND_URL=http://127.0.0.1:8787
+APP_SHARED_SECRET=replace-with-the-backend-shared-secret
+```
+
+Use your own SDK path on another machine. `BACKEND_URL` defaults to the value above. `APP_SHARED_SECRET` must match the backend `.env`; it is compiled into **debug only**, with an empty value in release. Never put a Gemini API key or Google credentials in this file/app. Start shows a configuration error if the debug shared secret is missing. Changing either build value requires rebuilding/reinstalling.
+
+```sh
+./gradlew assembleDebug
+./gradlew testDebugUnitTest
+./gradlew lintDebug
+```
+
+APK: `app/build/outputs/apk/debug/app-debug.apk`. Unit-test report: `app/build/reports/tests/testDebugUnitTest/index.html`. Twenty JVM tests cover streaming resampling, message encoding/decoding, both token modes, and tool forwarding. The wrapper distribution is SHA-256 pinned.
+
+In a restricted build sandbox, writable caches can be selected without changing the project:
+
+```sh
+export GRADLE_USER_HOME=/tmp/m1-gradle-home
+export ANDROID_USER_HOME=/tmp/m1-android-home
+```
+
+## Install on the Pixel
+
+Enable Android Developer options and USB debugging; connect USB and accept the computer authorization prompt. Start the personal backend on the Mac on port 8787, then run from `android/`:
+
+```sh
+adb devices
+adb reverse tcp:8787 tcp:8787
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n com.olevasseur.glassesapp/.MainActivity
+```
+
+If multiple devices are attached, add `-s <serial>` to each adb command. Reapply `adb reverse` after reconnecting/rebooting. The debug network policy permits HTTP only to loopback/Android emulator hosts (`127.0.0.1`, `localhost`, `10.0.2.2`); use HTTPS for a remote backend. Release builds disallow cleartext traffic and cannot run with the debug shared-secret authentication scheme.
+
+## Real glasses and Developer Mode
+
+1. Pair the glasses with the phone in Meta AI and enable their Bluetooth calls/audio route. Update Meta AI and glasses firmware to versions supported by DAT 1.0.0.
+2. In Meta AI: **Settings → App Info → tap App version five times → Developer Mode → Enable**. Follow any DAT installation/update prompt while wearing the glasses. Only one Developer Mode app can be registered at once.
+3. Open this app and allow Android microphone and Nearby devices permissions. Tap **Connect glasses** and complete registration in Meta AI. Developer Mode uses application ID/client token `0`, following CameraAccess. The status shows registration, link and SDK/firmware compatibility.
+4. **Grant DAT microphone permission** exercises CameraAccess's permission-check/Meta AI consent contract. HFP microphone capture uses Android `RECORD_AUDIO`; it does not depend on DAT camera/microphone streaming permission. Camera streaming is not started in M1.
+5. Select **Auto** or **Push-to-talk**, then **Start**. Auto receives the backend's patient VAD configuration. PTT requests `{"mode":"ptt"}` and requires automatic activity detection disabled in that token.
+6. Keep the app screen open. M1 keeps the display awake during a conversation and stops on backgrounding; it does not implement a foreground service. Stop before changing mode, permissions or mock-device provider.
+
+The app selects an HFP/SCO communication device on API 31+ with `setCommunicationDevice`, waiting up to three seconds for selection. Android 29–30 uses SCO broadcasts. If Bluetooth permission, a route or the connection is unavailable, audio uses the phone. Disconnecting the selected Bluetooth device switches to the phone; reconnect Bluetooth and restart the conversation to select it again. Disconnect unrelated Bluetooth headsets when testing glasses routing.
+
+Capture is signed little-endian PCM16 mono at 8 kHz for HFP or 16 kHz for the phone. Streaming interpolation converts 8→16 kHz, preserving chunk continuity. Playback uses a 24 kHz mono PCM AudioTrack with voice-communication usage; Android performs physical HFP output conversion. Transcripts and the selected route appear on screen.
+
+### Push-to-talk and interruption
+
+- Hold the on-screen button to speak; release/cancel ends the activity. Accessibility activation toggles speaking, with **Finish speaking** available.
+- **Capture HOLD is a gesture, not a key-down event. DAT 1.0.0 has no capture-release event.** Holding capture once therefore toggles speaking on; another hold toggles it off. This is explicitly labeled in the UI. It requires an active DAT Inputs capability; capability/permission errors leave on-screen PTT available. Inputs is experimental and may require app enablement in Wearables Developer Center.
+- A 60-second safeguard ends a latched PTT activity. Stop, lost connection and lost Inputs also release the relevant talk source.
+- A Gemini interruption pauses/flushes AudioTrack immediately on the WebSocket callback, clears its queue and invalidates older pending audio events.
+
+## Mock-device test
+
+No physical glasses are needed for the SDK control path:
+
+1. Allow Android microphone permission. If Nearby devices permission was declined, grant it and reopen the app so DAT can initialize.
+2. With the conversation stopped, enable **Mock glasses (phone audio)**. The app enables `MockDeviceKit`, pairs `RAYBAN_META`, powers it on, unfolds and dons it. Registration and DAT permissions begin granted.
+3. Choose PTT and Start. When **Capture button: ACTIVE** appears, tap **Simulate capture hold** once to start and once to end an utterance. This injects `services.input.capture(CapturePressType.HOLD)` through the SDK, rather than directly calling the conversation controller. The on-screen hold button works too.
+4. Repeat in Auto, then Stop and disable Mock glasses before using real glasses.
+
+MockDeviceKit does not emulate an OS Bluetooth HFP microphone/speaker. Mock mode deliberately routes microphone and speaker to the phone; Gemini still needs a running backend and valid ephemeral token. This separates testing the DAT control path from the physical radio/audio path.
+
+## Backend/session integration
+
+`POST /token` sends `{}` or `{"mode":"ptt"}` with `X-App-Secret`. The response must contain `token`, `model`, `expires_at`. OkHttp connects to the v1beta constrained Live endpoint using `Authorization: Token <token>`, sends model plus `sessionResumption` (empty initially, then containing the handle), and gates audio until `setupComplete`.
+
+**Resumption integration requirement:** the backend must lock model, tools, VAD, voice, transcriptions and other policy fields while leaving `sessionResumption.handle` overridable. Google documents that an empty field mask with a supplied token setup replaces/ignores the client's entire setup. Locking all of `sessionResumption` to `{}` prevents the client handle from taking effect. Review the backend's token field mask before live testing; this Android milestone does not modify the backend.
+
+The newest resumable handle and token stay in memory. `goAway` or disconnection reconnects using the handle, reusing an unexpired token for resumption; an expired token is refreshed. Stop/process death clears the handle. Retry delays grow from 1 to 15 seconds, with eight attempts. A reconnect without a handle starts a new session; the UI reports that. Audio during a reconnect is dropped, not replayed. A handle is a server snapshot: the most recent in-flight words can be lost, especially during generation/tool work.
+
+For each tool call, the app sends its args object to `/tools/{name}` with `X-App-Secret` and returns the response object under the matching function ID/name. IDs are deduplicated in memory; completed responses can be resent without repeating the backend POST. Cancellations cancel pending HTTP work but cannot undo already executed backend side effects. An uncertain HTTP failure is returned as an error asking the model to consult the user before retrying. The UI displays the last result.
+
+## Verification still needed
+
+Build/JVM tests do not verify Pixel audio routing, real DAT registration or Inputs entitlement, real Gemini credentials, token field-mask compatibility, microphone echo/latency, or interruption/reconnection under live traffic. Test these on the Pixel with actual glasses; exercise a long pause in Auto, screen PTT, both capture holds, interruption mid-answer, Bluetooth loss, and network loss. Confirm that a tool appears once on the backend across a reconnect.
+
+Verified APIs and source links are recorded in [M1 research notes](../docs/research/m1-android-notes.md).
