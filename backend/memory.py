@@ -6,6 +6,7 @@ import secrets
 import sqlite3
 from contextlib import contextmanager
 from datetime import UTC, datetime
+from itertools import groupby
 from pathlib import Path
 from threading import RLock
 from time import time
@@ -29,7 +30,8 @@ def score(query: str, text: str) -> float:
         return 0
     words = set(query.split())
     overlap = len(words & set(text.split())) / len(words)
-    return max(overlap * 100, fuzz.WRatio(query, text))
+    # Every caller rejects scores below 65; skip costly fuzzy work that cannot qualify.
+    return max(overlap * 100, fuzz.WRatio(query, text, score_cutoff=65))
 
 
 class MemoryConflict(ValueError):
@@ -216,14 +218,10 @@ class Memory:
             rows += [dict(r) for r in db.execute("SELECT 'journal' AS kind,day AS id,text FROM journal_entries")]
             # Join adjacent chunks by speaker for search; individual Live chunks can be single words.
             turns = db.execute("SELECT session_id,seq,speaker,text FROM turns ORDER BY session_id,seq")
-            previous = None
-            for turn in turns:
-                group = (turn["session_id"], turn["speaker"])
-                if group == previous:
-                    rows[-1]["text"] += turn["text"]
-                else:
-                    rows.append({"kind": "transcript", "id": turn["session_id"], "speaker": turn["speaker"], "text": turn["text"]})
-                previous = group
+            # Joining once avoids repeatedly copying a multi-hour transcript.
+            for (session_id, speaker), chunks in groupby(turns, lambda t: (t["session_id"], t["speaker"])):
+                rows.append({"kind": "transcript", "id": session_id, "speaker": speaker,
+                             "text": "".join(t["text"] for t in chunks)})
             # ponytail: linear search suits a personal DB; add FTS when history grows.
             matches = []
             for row in rows:

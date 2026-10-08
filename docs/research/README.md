@@ -80,3 +80,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   restricted print-mode policy and macOS Bash sandbox settings, offline coding tests,
   private temp/shared Git boundaries, subscription-safe CLI options, both-agent
   comparison, agent-bound approval and external enforcement smoke script.
+
+- [Long-session soak](long-session-soak.md) — **2026-10-08**: opt-in sequential
+  meeting/Auto Live runner, transcript persistence checks, backend load and
+  visual/log retention measurements; see the linked evaluation for outcomes.
