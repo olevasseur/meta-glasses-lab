@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from gesture_tools import AWAIT_GESTURE_CONFIRMATION
 from vision import CLIENT_TOOLS
+from visual_tools import CLIENT_TOOLS as VISUAL_CLIENT_TOOLS, SEARCH_TOOLS
 
 
 class Arguments(BaseModel):
@@ -94,5 +95,7 @@ REGISTRY = {
     "await_gesture_confirmation": (None, "client", None, AWAIT_GESTURE_CONFIRMATION),
 }
 REGISTRY.update({tool.name: (None, "client", None, tool) for tool in CLIENT_TOOLS})
+REGISTRY.update({tool.name: (None, "client", None, tool) for tool in VISUAL_CLIENT_TOOLS})
+REGISTRY.update({tool.name: (RecallRequest, "visual", "find", tool) for tool in SEARCH_TOOLS})
 CLIENT_TOOL_NAMES = [name for name, entry in REGISTRY.items() if entry[1] == "client"]
 DECLARATIONS = [entry[3] for entry in REGISTRY.values()]

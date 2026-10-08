@@ -61,7 +61,9 @@ class VisionController(
         else -> ToolResult(toolError("Client tool is not supported by this app version"))
     }
 
-    private suspend fun sendFrame(): ByteArray {
+    suspend fun captureForMemory(): ByteArray = sendFrame(sendToLive = false)
+
+    private suspend fun sendFrame(sendToLive: Boolean = true): ByteArray {
         val current = generation
         return captureLock.withLock {
             cooldown?.join() // The 1 fps limit also applies across look calls and watch frames.
@@ -71,7 +73,7 @@ class VisionController(
                 frame = currentCoroutineContext().job
                 try {
                     val jpeg = withTimeoutOrNull(15_000) { capture() } ?: error("Camera capture timed out")
-                    check(current == generation && send(jpeg)) { "Frame not sent; Gemini disconnected or busy" }
+                    check(current == generation && (!sendToLive || send(jpeg))) { "Frame not sent; Gemini disconnected or busy" }
                     cooldown = scope.launch { delay(FRAME_MS) }
                     jpeg
                 } finally {
@@ -127,7 +129,7 @@ suspend fun routeTool(
     local: suspend (FunctionCall) -> ToolResult,
     backend: suspend (FunctionCall) -> JSONObject,
 ): ToolResult = when {
-    call.name == GestureConfirmation.TOOL || call.name in VisionController.TOOL_NAMES -> local(call)
+    call.name == GestureConfirmation.TOOL || call.name in VisionController.TOOL_NAMES || call.name in VisualMemoryController.TOOL_NAMES -> local(call)
     call.name in clientTools -> ToolResult(toolError("Client tool is not supported by this app version"))
     else -> ToolResult(backend(call))
 }

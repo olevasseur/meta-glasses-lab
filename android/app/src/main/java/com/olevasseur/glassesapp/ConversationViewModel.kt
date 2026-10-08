@@ -38,6 +38,8 @@ data class ConversationState(
     val mock: Boolean = false,
     val camera: String = "Camera off",
     val watchMode: Boolean = false,
+    val visualMemory: Boolean = false,
+    val visualCapturing: Boolean = false,
     val transcript: List<TranscriptLine> = emptyList(),
     val lastTool: String = "None",
     val error: String? = null,
@@ -56,7 +58,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         while (isActive) { memory.flush(); delay(5_000) }
     }
     private val audio = ConversationAudio(application, viewModelScope)
-    val gestures = HeadGestures(application, viewModelScope)
+    val gestures = HeadGestures(application, viewModelScope) { visualMemory.motion(it) }
     private var transcriptBoundary = true
     private var screenTalking = false
     private var glassesTalking = false
@@ -80,7 +82,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val gemini: GeminiSession = GeminiSession(
         scope = viewModelScope, backend = backend, audio = audio,
         onState = { label, connected ->
-            if (!connected) { screenTalking = false; glassesTalking = false; gestures.disconnected(); vision.stop() }
+            if (!connected) { screenTalking = false; glassesTalking = false; gestures.disconnected(); visualMemory.stop(); vision.stop() }
             mutableState.update { it.copy(gemini = label, connected = connected) }
             if (state.value.settings.mode == ConversationMode.OVER) {
                 if (connected) beginOverTurn() else { overResumeJob?.cancel(); over.stop() }
@@ -100,7 +102,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             mutableState.update { it.copy(talking = value) }
         },
         onFatal = { message -> error(message); stop() },
-        localTool = { call -> gestures.localTool(call)?.let { ToolResult(it) } ?: vision.tool(call) },
+        localTool = { call -> gestures.localTool(call)?.let { ToolResult(it) } ?: if (call.name in VisualMemoryController.TOOL_NAMES) visualMemory.tool(call) else vision.tool(call) },
         onEvent = gestures::onEvent,
     )
     private val camera: GlassesCamera by lazy {
@@ -110,6 +112,30 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         VisionController(viewModelScope, camera::capture, gemini::sendImage, camera::stop,
             onWatch = { enabled -> mutableState.update { it.copy(watchMode = enabled) } }, onError = ::error)
     }
+    private var visualLocation: String? = null
+    private val visualMemory: VisualMemoryController by lazy {
+        VisualMemoryController(viewModelScope, vision::captureForMemory, ::visualImageHash,
+            upload = { jpeg, label, pinned -> backend.visualFrame(jpeg, label, pinned, visualLocation) },
+            delete = backend::deleteVisual, now = android.os.SystemClock::elapsedRealtime,
+            onActive = { capturing ->
+                mutableState.update { it.copy(visualMemory = visualMemory.active, visualCapturing = capturing) }
+                gestures.requestMotion(capturing)
+                if (capturing) glasses.startInputs()
+            }, chime = { visualCaptureChime(viewModelScope) }, onError = ::error)
+    }
+    fun setVisualMemory(enabled: Boolean) {
+        if (!enabled || state.value.connected) visualMemory.setEnabled(enabled)
+    }
+    fun setVisualLocation(label: String?) { visualLocation = label?.trim()?.takeIf { it.isNotEmpty() }?.take(100) }
+    fun rememberVisual() { if (state.value.connected) runVisualTool("remember_this") }
+    fun deleteVisualHour() { runVisualTool("delete_visual_memory") }
+    private fun runVisualTool(name: String) {
+        viewModelScope.launch {
+            val result = visualMemory.tool(FunctionCall("screen", name, org.json.JSONObject()))
+            mutableState.update { it.copy(lastTool = result.response.toString()) }
+        }
+    }
+
     val glasses = GlassesController(application, viewModelScope,
         onGlasses = { label -> mutableState.update { it.copy(glasses = label) } },
         onInputs = { label -> mutableState.update { it.copy(inputs = label) } },
@@ -225,6 +251,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         if (state.value.stopping || !state.value.running) return
         mutableState.update { it.copy(stopping = true, connected = false, talking = false) }
         overResumeJob?.cancel(); over.stop()
+        visualMemory.stop()
         vision.stop()
         gemini.stop()
         memory.stop()
@@ -253,6 +280,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
 
     override fun onCleared() {
         overResumeJob?.cancel(); over.stop()
+        visualMemory.stop()
         vision.stop()
         gemini.close(); glasses.close()
         memory.stop()

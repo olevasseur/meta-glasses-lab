@@ -1,8 +1,10 @@
 """Run from backend/: uv run uvicorn app:app --port 8787."""
 
+import asyncio
 import hmac
 import os
 import sqlite3
+from contextlib import asynccontextmanager, suppress
 from typing import Literal
 
 import httpx
@@ -17,14 +19,29 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 import gemini
 import memory_api
+import visual_api
 from memory import MemoryConflict
 from notes import BACKEND_DIR, Notes
 from tools import REGISTRY
 
 load_dotenv(BACKEND_DIR.parent / ".env")  # Explicit environment values take precedence.
-app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+
+
+@asynccontextmanager
+async def lifespan(app):
+    retention = asyncio.create_task(visual_api.retention_loop())
+    try:
+        yield
+    finally:
+        retention.cancel()
+        with suppress(asyncio.CancelledError):
+            await retention
+
+
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 notes = Notes()
 app.include_router(memory_api.router)
+app.include_router(visual_api.router)
 
 
 @app.exception_handler(sqlite3.Error)
@@ -85,15 +102,15 @@ def dispatch_tool(name: str, args: dict | None = None):
     except ValidationError as exc:
         raise RequestValidationError(exc.errors()) from exc
     try:
-        service = notes if owner == "notes" else memory_api.memory
+        service = {"notes": notes, "memory": memory_api.memory, "visual": visual_api.memory}[owner]
         return getattr(service, method)(**request.model_dump())
     except MemoryConflict as exc:
         raise HTTPException(409, str(exc)) from exc
     except (FileNotFoundError, ValueError, GoogleAuthError) as exc:
-        if owner == "memory":
+        if owner in ("memory", "visual"):
             raise HTTPException(503, "Memory storage unavailable") from exc
         raise HTTPException(503, "Check Google credentials and doc_aliases.json; run scripts/google_auth.py if needed") from exc
     except (HttpError, OSError, RuntimeError) as exc:
-        if owner == "memory":
+        if owner in ("memory", "visual"):
             raise HTTPException(503, "Memory storage unavailable") from exc
         raise HTTPException(502, "Google Docs operation failed; check the document before retrying") from exc

@@ -28,7 +28,8 @@ data class HeadGesturesState(
 )
 
 /** Main-thread coordinator; foreground/session lifecycle is owned by the view model. */
-class HeadGestures(context: Context, private val scope: CoroutineScope) {
+class HeadGestures(context: Context, private val scope: CoroutineScope,
+    private val onMotion: (HeadMotionSample) -> Unit = {}) {
     private val preferences = context.getSharedPreferences("head_gestures", Context.MODE_PRIVATE)
     private val mutableState = MutableStateFlow(HeadGesturesState(
         enabled = preferences.getBoolean("enabled", false),
@@ -39,15 +40,20 @@ class HeadGestures(context: Context, private val scope: CoroutineScope) {
     private val confirmation = GestureConfirmation()
     private var lastSampleAt = 0L
 
+    private val motionRequested = MutableStateFlow(false)
+    fun requestMotion(enabled: Boolean) { motionRequested.value = enabled }
+
     fun observe(sessions: StateFlow<DeviceSession?>, send: (String) -> Boolean) {
         scope.launch {
-            combine(sessions, state.map { it.enabled }.distinctUntilChanged()) { session, enabled ->
-                session.takeIf { enabled }
+            combine(sessions, state.map { it.enabled }.distinctUntilChanged(), motionRequested) { session, enabled, requested ->
+                session.takeIf { enabled || requested }
             }.collectLatest { session ->
                 unavailable(if (!state.value.enabled) "Off" else "Start a conversation with connected glasses")
                 if (session == null) return@collectLatest
                 try {
                     collectGlassesMotion(session, onSample = { sample ->
+                        onMotion(sample)
+                        if (!state.value.enabled) return@collectGlassesMotion
                         lastSampleAt = SystemClock.elapsedRealtime()
                         mutableState.update { it.copy(live = true, status = "Live · nod yes / shake no") }
                         val gesture = detector.add(sample)

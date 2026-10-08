@@ -192,4 +192,14 @@ class VisionControllerTest {
         assertEquals(0, inFlight)
         controller.stop()
     }
+    @Test fun memoryCaptureSharesCameraWithoutSendingToLive() = runTest {
+        var sent = 0
+        val controller = VisionController(this, { byteArrayOf(9) }, { sent++; true }, {}, {}, {})
+        assertArrayEquals(byteArrayOf(9), controller.captureForMemory())
+        assertEquals(0, sent)
+        assertEquals("frame_sent", controller.tool(look()).response.getString("status"))
+        assertEquals(1, sent)
+        controller.stop()
+    }
+
 }

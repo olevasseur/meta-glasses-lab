@@ -19,7 +19,8 @@ def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
 
     monkeypatch.setattr(httpx.Client, "send", send)
     result = gemini.create_token("fake-key", gemini.DEFAULT_MODEL, mode)
-    assert result["client_tools"] == ["await_gesture_confirmation", "look", "set_watch_mode"]
+    assert result["client_tools"] == ["await_gesture_confirmation", "look", "set_watch_mode",
+        "set_visual_memory", "remember_this", "delete_visual_memory"]
     body, = captured
     assert "tools" in body["fieldMask"]
     assert "sessionResumption" not in body["fieldMask"]
@@ -29,8 +30,9 @@ def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
     assert set(declarations) == set(REGISTRY) == {
         "append_to_doc", "remember", "recall", "forget",
         "await_gesture_confirmation", "look", "set_watch_mode",
+        "set_visual_memory", "remember_this", "delete_visual_memory", "find_object", "when_did_i_see",
     }
-    assert len(setup["tools"][0]["functionDeclarations"]) == 7
+    assert len(setup["tools"][0]["functionDeclarations"]) == 12
     for name, field, kind in [("look", "question", "STRING"), ("set_watch_mode", "on", "BOOLEAN")]:
         tool = declarations[name]
         assert "Client-executed" in tool["description"]

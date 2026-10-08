@@ -46,6 +46,17 @@ class BackendClient(
         listOf("sessions", sessionId, "end"), JSONObject(),
     )
 
+    suspend fun visualFrame(jpeg: ByteArray, label: String?, pinned: Boolean, location: String?): JSONObject = post(
+        listOf("visual", "frames"), JSONObject()
+            .put("jpeg", java.util.Base64.getEncoder().encodeToString(jpeg))
+            .put("captured_at", java.time.OffsetDateTime.now().toString())
+            .put("label", label).put("pinned", pinned).put("location_label", location),
+    )
+
+    suspend fun deleteVisual(minutes: Int): JSONObject = post(
+        listOf("visual", "delete"), JSONObject().put("minutes", minutes),
+    )
+
     private suspend fun post(path: List<String>, body: JSONObject): JSONObject {
         val url = base.newBuilder().apply { path.forEach { addPathSegment(it) } }.build()
         val request = Request.Builder().url(url).header("X-App-Secret", secret)

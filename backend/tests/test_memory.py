@@ -203,6 +203,7 @@ def test_token_locks_memory_and_registry_but_not_resumption(client, store, monke
         assert detection.silence_duration_ms == 3250
     assert {t.name for t in live.tools[0].function_declarations} == {
         "append_to_doc", "remember", "recall", "forget", "await_gesture_confirmation", "look", "set_watch_mode",
+        "set_visual_memory", "remember_this", "delete_visual_memory", "find_object", "when_did_i_see",
     }
     assert config.lock_additional_fields == [] and live.session_resumption is None
 

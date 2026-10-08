@@ -112,7 +112,11 @@ private fun ConversationScreen(
     requestCameraPermission: () -> Unit,
 ) {
     Surface(Modifier.fillMaxSize()) {
-        Column(Modifier.safeDrawingPadding().padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.safeDrawingPadding()) {
+            if (state.visualCapturing) Surface(color = MaterialTheme.colorScheme.errorContainer) {
+                Text("● Visual memory capturing · say ‘pause visual memory’", Modifier.fillMaxWidth().padding(12.dp))
+            }
+        Column(Modifier.padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("the glasses app", style = MaterialTheme.typography.headlineMedium)
             Text("Glasses: ${state.glasses}")
             Text("Gemini: ${state.gemini}")
@@ -144,6 +148,7 @@ private fun ConversationScreen(
                 Switch(checked = state.watchMode, onCheckedChange = model::setWatchMode, enabled = state.connected)
                 Text("Watch mode · 2 minute limit", modifier = Modifier.padding(start = 8.dp))
             }
+            VisualMemoryControls(state, model)
             Text("${state.camera}. Ask: What am I looking at?", style = MaterialTheme.typography.bodySmall)
             if (BuildConfig.DEBUG) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -159,6 +164,7 @@ private fun ConversationScreen(
             Text("Last tool result", style = MaterialTheme.typography.titleMedium)
             Text(state.lastTool)
             Text("Keep this screen open during M1 conversations.", style = MaterialTheme.typography.bodySmall)
+        }
         }
     }
 }
