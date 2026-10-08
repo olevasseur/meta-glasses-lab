@@ -86,7 +86,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val memoryUploads = viewModelScope.launch {
         while (isActive) { memory.flush(); speakPendingRecap(); delay(5_000) }
     }
-    private val audio = ConversationAudio(application, viewModelScope)
+    internal val audio = ConversationAudio(application, viewModelScope)
     val gestures = HeadGestures(application, viewModelScope) { visualMemory.motion(it) }
     val workout = WorkoutCoach(application, viewModelScope, backend, ::error)
     private var pendingRecap: String? = null
@@ -283,6 +283,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     init {
+        observeDiagnostics(viewModelScope, state, backend)
         workout.bind { text ->
             gestures.state.value.question == null && gemini.sendWorkoutCue(text)
         }
@@ -308,6 +309,11 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                 error("Could not load conversation settings; using defaults.")
             }
         }
+    }
+
+    suspend fun diagnosticCamera(): ByteArray {
+        check(state.value.canCaptureVisual) { "Start an Assistant conversation before testing the camera" }
+        return vision.captureForMemory()
     }
 
     fun permissionsGranted(granted: Boolean) {

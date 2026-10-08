@@ -35,7 +35,11 @@ suspend fun collectGlassesMotion(
             motion.samples.collect { sample ->
                 if (sample.source != MotionSource.GLASSES || motion.state.value != MotionState.STARTED) return@collect
                 val converted = sample.toHeadMotionSample()
-                if (converted == null) onStatus("Glasses gyro/accelerometer unavailable") else onSample(converted)
+                if (converted == null) onStatus("Glasses gyro/accelerometer unavailable") else {
+                    DiagnosticMetrics.gyro = "x=%.3f y=%.3f z=%.3f rad/s".format(converted.pitchRate, converted.yawRate, converted.rollRate)
+                    DiagnosticMetrics.gyroUpdatedMs = android.os.SystemClock.elapsedRealtime()
+                    onSample(converted)
+                }
             }
         },
     )

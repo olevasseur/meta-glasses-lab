@@ -99,3 +99,11 @@ Gesture confirmation and vision tools run locally. For each backend tool call, t
 Build/JVM tests do not verify Pixel audio routing, real DAT registration or Inputs entitlement, real Gemini credentials, token field-mask compatibility, microphone echo/latency, or interruption/reconnection under live traffic. Test these on the Pixel with actual glasses; exercise a long pause in Auto, screen PTT, capture start/stop, double-tap talk/mute, interruption mid-answer, Bluetooth loss, and network loss. Confirm that a tool appears once on the backend across a reconnect.
 
 Verified APIs and source links are recorded in [M1 research notes](../docs/research/m1-android-notes.md).
+
+## First hardware session
+
+From the repo root, run `./scripts/dev_up.sh` to check prerequisites, configure
+ignored debug properties, start/reuse the backend, reverse port 8787, build/install,
+launch, and tail structured logs. Open **Diagnostics** on the phone and follow
+[the consolidated hardware test plan](../docs/hardware-test-plan.md).
+See [Diagnostics](../docs/features/diagnostics.md) for probes, measurements and limits.

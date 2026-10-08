@@ -41,6 +41,13 @@ import kotlinx.coroutines.sync.withLock
 class ConversationAudio(private val context: Context, private val scope: CoroutineScope) : LiveAudio {
     override val translationSpeaker = PhoneTranslationPlayer(context, scope)
     private val manager = context.getSystemService(AudioManager::class.java)
+    @Volatile var micLevel = 0f; private set
+    fun diagnosticRoute(): String = synchronized(playbackLock) {
+        fun device(value: AudioDeviceInfo?) = value?.let { "${it.productName} (type=${it.type}, id=${it.id}; advertised rates=${it.sampleRates.joinToString()})" } ?: "inactive / unknown"
+        "Input: ${device(recorder?.routedDevice)}\nOutput: ${device(track?.routedDevice)}\n" +
+            "${translationSpeaker.diagnosticOutput()}\nConfigured PCM: input=${recorder?.sampleRate ?: 0} Hz → Gemini=16000 Hz; output=${track?.sampleRate ?: 0} Hz\n" +
+            "SCO=${manager.isBluetoothScoOn}; communication=${if (Build.VERSION.SDK_INT >= 31) device(manager.communicationDevice) else "legacy SCO"}"
+    }
     private var recorder: AudioRecord? = null
     private var track: AudioTrack? = null
     private var echoCanceler: AcousticEchoCanceler? = null
@@ -115,7 +122,10 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
                     while (isActive) {
                         val count = record.read(samples, 0, samples.size, AudioRecord.READ_BLOCKING)
                         if (count < 0) error("Microphone read failed ($count)")
-                        if (count > 0 && isActive) onAudio(resampler.process(samples, count))
+                        if (count > 0 && isActive) {
+                            micLevel = kotlin.math.sqrt((0 until count).sumOf { samples[it].toDouble() * samples[it] } / count).toFloat() / 32768f
+                            onAudio(resampler.process(samples, count))
+                        }
                     }
                 } catch (e: Exception) {
                     if (isActive) onError(e.message ?: "Microphone failed")
@@ -250,6 +260,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
         echoCanceler = null
         release { recorder?.release() }
         recorder = null
+        micLevel = 0f
         synchronized(playbackLock) {
             track?.let { release { it.pause(); it.flush() }; release { it.release() } }
             track = null

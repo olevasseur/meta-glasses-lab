@@ -67,7 +67,7 @@ class GlassesController(
                     if (id == null) onGlasses("$registration · no glasses connected")
                     else Wearables.devicesMetadata[id]?.collect { device ->
                         val link = if (device.linkState == LinkState.CONNECTED) "connected" else device.linkState.toString()
-                        onGlasses("$registration · ${device.name.ifBlank { "Meta glasses" }} · $link · ${device.compatibility}")
+                        onGlasses("$registration · ${device.name.ifBlank { "Meta glasses" }} · $link · ${device.compatibility} · battery=${device.batteryLevel}% · worn=${device.donState}")
                     }
                 }
             }

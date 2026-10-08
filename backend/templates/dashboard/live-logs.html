@@ -1,0 +1,16 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<h1>Live logs</h1>
+<p>Latest 200 matching events. Polls every 2 seconds. Android uploads every 5 seconds while the service exists. No transcripts or images.</p>
+<form id="log-filters" method="get">
+  <label>Feature <input name="feature" value="{{ feature }}" placeholder="audio, gemini, vision, over…" maxlength="40"></label>
+  <label>Level <select name="level">
+    {% for value in ['', 'DEBUG', 'INFO', 'WARN', 'ERROR'] %}<option value="{{ value }}" {% if level == value %}selected{% endif %}>{{ value or 'All' }}</option>{% endfor %}
+  </select></label>
+  <button>Filter / refresh</button>
+</form>
+<div id="log-rows" hx-get="/dashboard/live-logs" hx-trigger="every 2s" hx-include="#log-filters" hx-select="#log-rows" hx-swap="outerHTML">
+<table><thead><tr><th>Time (device)</th><th>Source / feature</th><th>Level</th><th>Event</th></tr></thead>
+<tbody>{% for row in entries|reverse %}<tr><td>{{ row.timestamp }}</td><td>{{ row.source }} / {{ row.feature }}</td><td>{{ row.level }}</td><td>{{ row.event }}</td></tr>{% else %}<tr><td colspan="4">No matching logs yet. Open Diagnostics on the phone.</td></tr>{% endfor %}</tbody></table>
+</div>
+{% endblock %}

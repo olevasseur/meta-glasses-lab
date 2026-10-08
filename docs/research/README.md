@@ -42,3 +42,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 - [android-review-notes.md](android-review-notes.md) — **2026-10-08**: target-36
   foreground/audio review, coroutine cleanup, real five-mode constrained setup
   and same-token resumption acceptance; hardware behavior remains unverified.
+
+- [Diagnostics](diagnostics.md) — **2026-10-08**: actual DAT metadata/audio routing,
+  bounded remote logs, dashboard polling, credential-safe Live setup smoke, and
+  current Google OAuth Console paths for the consolidated hardware session.

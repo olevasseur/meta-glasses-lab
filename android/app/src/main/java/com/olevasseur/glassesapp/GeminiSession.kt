@@ -163,7 +163,11 @@ class GeminiSession(
         if (!event.inputText.isNullOrEmpty() || !event.outputText.isNullOrEmpty() || event.audio.isNotEmpty() || event.calls.isNotEmpty()) replyPending = true
         if (event.turnComplete || event.interrupted) replyPending = false
         onEvent(event)
-        if (event.resumable == true && event.handle != null) handle = event.handle
+        if (event.resumable == true && event.handle != null) {
+            handle = event.handle
+            DiagnosticMetrics.handleUpdatedMs = android.os.SystemClock.elapsedRealtime()
+        } else if (event.resumable == false) DiagnosticMetrics.handleUpdatedMs = null
+        if (!audioSuspended && !event.interrupted && event.audio.isNotEmpty()) DiagnosticMetrics.response()
         if (event.setupComplete) {
             setupTimeout?.cancel()
             attempts = 0
@@ -227,7 +231,7 @@ class GeminiSession(
             }
         }
         event.outputText?.takeIf { it.isNotEmpty() && meetingGate.mayRespond }?.let { onTranscript("Gemini", it) }
-        if (event.turnComplete || event.interrupted) onTurnEnd()
+        if (event.turnComplete || event.interrupted) { DiagnosticMetrics.latency.reset(); onTurnEnd() }
         event.cancelledIds.forEach { id ->
             cancelledCalls += id
             toolJobs.remove(id)?.cancel()
@@ -251,6 +255,7 @@ class GeminiSession(
         if (call.id in cancelledCalls) return
         responses[call.id]?.let { deliver(it.first, it.second); return }
         if (toolJobs.containsKey(call.id)) return
+        logDiagnosticTool(call.name, finished = false)
         onTool("${call.name}: running…")
         // Register before execution: local tools can complete or switch sessions without suspending.
         val job = scope.launch(start = CoroutineStart.LAZY) {
@@ -271,6 +276,7 @@ class GeminiSession(
                 // response needs a fresh look, not a cached success describing an old frame.
                 responses[call.id] = call to if (result.jpeg == null) result.response
                     else toolError("This visual response cannot be replayed; request a fresh look if needed.")
+                logDiagnosticTool(call.name, finished = true, failed = result.response.has("error") || result.response.optString("status") == "error")
                 onTool("${call.name}: ${result.response}")
                 deliver(call, result.response, result.jpeg)
                 if (result.response.optString("status") == "ok" && result.response.has("client_action")) {
@@ -345,6 +351,7 @@ class GeminiSession(
     fun sendAudio(pcm: ByteArray) = synchronized(sendLock) {
         if (active && !ready && !audioSuspended && meetingGate.active) meetingAudio.add(pcm)
         if (active && ready && !audioSuspended && !audio.translationSpeaker.playing && (!ptt || talking)) {
+            DiagnosticMetrics.latency.input(pcm)
             val ws = socket ?: return@synchronized
             // Don't accumulate stale microphone data behind a stalled connection.
             if (ws.queueSize() > (if (meetingGate.active) 2_000_000 else 1_000_000) || !ws.send(LiveProtocol.audio(pcm))) {
@@ -368,6 +375,7 @@ class GeminiSession(
         synchronized(sendLock) {
             if (audioSuspended == suspended) return
             audioSuspended = suspended
+            DiagnosticMetrics.latency.reset()
             audioGeneration.incrementAndGet()
             if (suspended) {
                 wakeFallback?.cancel(); replayingWake = false
@@ -435,6 +443,9 @@ class GeminiSession(
         toolJobs.values.forEach { it.cancel() }; toolJobs.clear()
         responses.clear(); pendingResponses.clear(); cancelledCalls.clear()
         token = null; handle = null; attempts = 0
+        DiagnosticMetrics.handleUpdatedMs = null
+        DiagnosticMetrics.latency.reset()
+        DiagnosticMetrics.latencyMs = null
         audioGeneration.incrementAndGet()
         translationBuffer.clear()
         // Native playback may be broken; the owner must still reach AudioRecord/Track release.

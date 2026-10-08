@@ -19,6 +19,9 @@ class PhoneTranslationPlayer(context: Context, private val scope: CoroutineScope
     private val manager = context.getSystemService(AudioManager::class.java)
     private var job: Job? = null
     private var track: AudioTrack? = null
+    fun diagnosticOutput(): String = track?.let {
+        "Phone translation output: ${it.routedDevice?.productName ?: "unknown"} type=${it.routedDevice?.type} id=${it.routedDevice?.id}; PCM=${it.sampleRate} Hz"
+    } ?: "Phone translation output: inactive"
     private var previous: AudioDeviceInfo? = null
     private var routeSelected = false
     private var generation = 0
