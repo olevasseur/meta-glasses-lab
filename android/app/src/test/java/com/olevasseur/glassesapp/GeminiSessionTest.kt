@@ -272,4 +272,46 @@ class GeminiSessionTest {
         }
     }
 
+    @Test fun warmSetupStaysMutedUntilAudioReadyAndKeepsSessionBetweenTurns() = runBlocking {
+        Fixture(this).use { f ->
+            f.session.start(ConversationSettings())
+            f.session.suspendAudio(true)
+            val socket = f.nextSocket()
+            f.session.sendAudio(byteArrayOf(1, 2))
+            assertFalse(f.session.sendRecap("saved offline"))
+            socket.receive(audioMessage); yield()
+            assertTrue(f.audio.chunks.isEmpty())
+            assertFalse(socket.sent.any { it.contains("audio/pcm;rate=16000") })
+            f.session.suspendAudio(false)
+            repeat(2) {
+                f.session.sendAudio(byteArrayOf(1, 2))
+                socket.receive(audioMessage); yield()
+                assertTrue(f.audio.chunks.isNotEmpty()) // No turnComplete needed to start playback.
+                socket.receive("""{"serverContent":{"turnComplete":true}}"""); yield()
+            }
+            assertEquals(1, f.tokenRequests.size)
+            assertFalse(socket.cancelled)
+            f.audio.flush()
+            assertTrue(f.session.sendRecap("saved offline"))
+        }
+    }
+
+    @Test fun independentToolsStartBeforeEitherFinishes() = runBlocking {
+        val started = Channel<String>(Channel.UNLIMITED)
+        val release = Channel<Unit>()
+        Fixture(this, { call ->
+            started.send(call.id)
+            release.receive()
+            ToolResult(JSONObject().put("status", "ok"))
+        }).use { f ->
+            val socket = f.connected()
+            socket.receive(tool("a", "look"))
+            socket.receive(tool("b", "look"))
+            withTimeout(1000) { assertEquals(setOf("a", "b"), setOf(started.receive(), started.receive())) }
+            repeat(2) { release.send(Unit) }
+            yield()
+            assertEquals(2, socket.sent.count { it.contains("functionResponses") })
+        }
+    }
+
 }

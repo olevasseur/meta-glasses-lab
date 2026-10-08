@@ -57,7 +57,9 @@ async def evaluate(case, pcm, http, secret, timeout=45, settle_seconds=5):
     request={'mode':case['mode'],'silence_ms':2000}
     if case.get('persona'):
         request.update(persona=case['persona'],language=case['language'])
+    token_started=time.monotonic()
     response=await asyncio.to_thread(http.post,'/token',json=request,headers={'X-App-Secret':secret})
+    token_seconds=time.monotonic()-token_started
     if response.status_code!=200:
         raise RuntimeError(f'Token HTTP {response.status_code}')
     token=response.json()
@@ -65,9 +67,13 @@ async def evaluate(case, pcm, http, secret, timeout=45, settle_seconds=5):
             'calls':[],'input_transcript':'','output_transcript':'','audio_bytes':0,
             'response_times':[],'first_audio_s':None,'speech_end_s':len(pcm)/32000,
             'activity_end_s':None,'complete':False,'error':None,'cancelled_calls':[],
-            'resumption_updates':0,'usage':[],'max_send_lag_s':0}
+            'resumption_updates':0,'usage':[],'max_send_lag_s':0,
+            'token_s':token_seconds}
+    connect_started=time.monotonic()
     async with connect(ENDPOINT,additional_headers={'Authorization':'Token '+token['token']},
                        open_timeout=20,max_size=8*1024*1024) as ws:
+        result['websocket_s']=time.monotonic()-connect_started
+        setup_started=time.monotonic()
         await ws.send(json.dumps(setup(token['model'])))
         async with asyncio.timeout(20):
             while True:
@@ -76,6 +82,7 @@ async def evaluate(case, pcm, http, secret, timeout=45, settle_seconds=5):
                     raise RuntimeError('Live setup rejected')
                 if 'setupComplete' in event:
                     break
+        result['setup_s']=time.monotonic()-setup_started
         if case.get('context'):
             await ws.send(json.dumps(text_turn(case['context'],False)))
         started=time.monotonic()

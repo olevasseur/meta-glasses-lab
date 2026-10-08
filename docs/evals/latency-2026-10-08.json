@@ -1,0 +1,539 @@
+{
+  "runs": [
+    {
+      "label": "before",
+      "pcm_sha256": "542458cf4ff34e3888ae5a5804e9fffb0d15c6589ce92f0ab8bcc8b7b18323fd",
+      "speech_seconds": 3.38,
+      "results": [
+        {
+          "mode": "auto",
+          "token_s": 0.3340520829660818,
+          "websocket_s": 0.12283445801585913,
+          "setup_s": 0.22855749994050711,
+          "end_wait_s": 2.0,
+          "end_wait_estimated": true,
+          "after_end_to_audio_s": 0.8257844999898225,
+          "speech_end_to_audio_s": 2.8257844999898225,
+          "tool_round_trips_s": [
+            0.008272625040262938
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 144482,
+          "max_send_lag_s": 0.0015215829480439425,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.24645316693931818
+        },
+        {
+          "mode": "ptt",
+          "token_s": 0.2369374589761719,
+          "websocket_s": 0.1279333750717342,
+          "setup_s": 0.2928819580702111,
+          "end_wait_s": 6.541959010064602e-06,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 1.929345790995285,
+          "speech_end_to_audio_s": 1.929352332954295,
+          "tool_round_trips_s": [
+            0.007434417027980089
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 91680,
+          "max_send_lag_s": 0.002469124970957637,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.2143886659760028
+        },
+        {
+          "mode": "over",
+          "token_s": 0.27678191696759313,
+          "websocket_s": 0.12750100006815046,
+          "setup_s": 0.2936847920063883,
+          "end_wait_s": 1.2017386250663549,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 1.6512403750093654,
+          "speech_end_to_audio_s": 2.8529790000757203,
+          "tool_round_trips_s": [
+            0.008639999898150563
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 90242,
+          "max_send_lag_s": 0.0021067908965051174,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.25503654207568616
+        },
+        {
+          "mode": "auto",
+          "token_s": 0.23327145900111645,
+          "websocket_s": 0.11717937502544373,
+          "setup_s": 0.32543599989730865,
+          "end_wait_s": 2.0,
+          "end_wait_estimated": true,
+          "after_end_to_audio_s": 1.1167018340202048,
+          "speech_end_to_audio_s": 3.116701834020205,
+          "tool_round_trips_s": [
+            0.007991250022314489
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 136802,
+          "max_send_lag_s": 0.006380084087140858,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.20830675004981458
+        },
+        {
+          "mode": "ptt",
+          "token_s": 0.27654333401005715,
+          "websocket_s": 0.11307858291547745,
+          "setup_s": 0.21611458307597786,
+          "end_wait_s": 4.334026016294956e-06,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 1.8623793749138713,
+          "speech_end_to_audio_s": 1.8623837089398876,
+          "tool_round_trips_s": [
+            0.008255750057287514
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 82560,
+          "max_send_lag_s": 0.0016373330727219582,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.25435708300210536
+        },
+        {
+          "mode": "over",
+          "token_s": 0.2600812920136377,
+          "websocket_s": 0.1295488339383155,
+          "setup_s": 0.2696219580247998,
+          "end_wait_s": 1.2010522920172662,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": null,
+          "speech_end_to_audio_s": null,
+          "tool_round_trips_s": [
+            0.0026072500040754676
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 0,
+          "max_send_lag_s": 0.0016246249433606863,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.23876354203093797
+        }
+      ]
+    },
+    {
+      "label": "before-cold",
+      "pcm_sha256": "542458cf4ff34e3888ae5a5804e9fffb0d15c6589ce92f0ab8bcc8b7b18323fd",
+      "speech_seconds": 3.38,
+      "cold_transport": true,
+      "results": [
+        {
+          "mode": "auto",
+          "token_s": 0.2501154999481514,
+          "websocket_s": 0.10204075009096414,
+          "setup_s": 0.2556409169919789,
+          "end_wait_s": 2.0,
+          "end_wait_estimated": true,
+          "after_end_to_audio_s": 0.7805410000728443,
+          "speech_end_to_audio_s": 2.7805410000728443,
+          "tool_round_trips_s": [
+            0.008050416014157236
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 119040,
+          "max_send_lag_s": 0.0013206670992076397,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.20324549998622388
+        },
+        {
+          "mode": "ptt",
+          "token_s": 0.20792266598436981,
+          "websocket_s": 0.12541199999395758,
+          "setup_s": 0.22673300001770258,
+          "end_wait_s": 8.584000170230865e-06,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 1.524276457959786,
+          "speech_end_to_audio_s": 1.5242850419599563,
+          "tool_round_trips_s": [
+            0.008445249986834824
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 81120,
+          "max_send_lag_s": 0.0016330840298905969,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.19301366701256484
+        },
+        {
+          "mode": "over",
+          "token_s": 0.22829545906279236,
+          "websocket_s": 0.13184874993748963,
+          "setup_s": 0.29480195802170783,
+          "end_wait_s": 1.2013155000749975,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 2.718394457944669,
+          "speech_end_to_audio_s": 3.9197099580196664,
+          "tool_round_trips_s": [
+            0.007699708919972181
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 80162,
+          "max_send_lag_s": 0.0017257080180570483,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.20926687493920326
+        },
+        {
+          "mode": "auto",
+          "token_s": 0.21599987498484552,
+          "websocket_s": 0.11782216606661677,
+          "setup_s": 0.2037536249263212,
+          "end_wait_s": 2.0,
+          "end_wait_estimated": true,
+          "after_end_to_audio_s": 1.0866165830520913,
+          "speech_end_to_audio_s": 3.0866165830520913,
+          "tool_round_trips_s": [
+            0.006460250006057322
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 93122,
+          "max_send_lag_s": 0.003135541919618845,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.19907816592603922
+        },
+        {
+          "mode": "ptt",
+          "token_s": 0.30056695791427046,
+          "websocket_s": 0.18095950002316386,
+          "setup_s": 0.23166970803868026,
+          "end_wait_s": 1.2080417945981026e-06,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 1.5461662920424715,
+          "speech_end_to_audio_s": 1.546167500084266,
+          "tool_round_trips_s": [
+            0.002264666953124106
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 84962,
+          "max_send_lag_s": 0.001115625025704503,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.2881722090533003
+        },
+        {
+          "mode": "over",
+          "token_s": 0.28974341694265604,
+          "websocket_s": 0.15624558296985924,
+          "setup_s": 0.28655425005126745,
+          "end_wait_s": 1.2010555419838056,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 1.7965005829464644,
+          "speech_end_to_audio_s": 2.99755612493027,
+          "tool_round_trips_s": [
+            0.0025972920702770352
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 95520,
+          "max_send_lag_s": 0.0011281251208856702,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.2801576249767095
+        }
+      ]
+    },
+    {
+      "label": "after-reuse",
+      "pcm_sha256": "542458cf4ff34e3888ae5a5804e9fffb0d15c6589ce92f0ab8bcc8b7b18323fd",
+      "speech_seconds": 3.38,
+      "cold_transport": false,
+      "results": [
+        {
+          "mode": "auto",
+          "token_s": 0.2847051250282675,
+          "websocket_s": 0.10772562492638826,
+          "setup_s": 0.22329108300618827,
+          "end_wait_s": 2.0,
+          "end_wait_estimated": true,
+          "after_end_to_audio_s": 0.8853300829650834,
+          "speech_end_to_audio_s": 2.8853300829650834,
+          "tool_round_trips_s": [
+            0.005191082949750125
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 84002,
+          "max_send_lag_s": 0.0022092920262366533,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.23022520809900016
+        },
+        {
+          "mode": "ptt",
+          "token_s": 0.21603695896919817,
+          "websocket_s": 0.120004125055857,
+          "setup_s": 0.3244935410330072,
+          "end_wait_s": 1.459033228456974e-06,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 1.5504179160343483,
+          "speech_end_to_audio_s": 1.5504193750675768,
+          "tool_round_trips_s": [
+            0.009644416975788772
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 90720,
+          "max_send_lag_s": 0.003780290950089693,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.21147745801135898
+        },
+        {
+          "mode": "over",
+          "token_s": 0.21414741699118167,
+          "websocket_s": 0.13563995901495218,
+          "setup_s": 0.23151345900259912,
+          "end_wait_s": 1.2021580419968814,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 1.2965012500062585,
+          "speech_end_to_audio_s": 2.49865929200314,
+          "tool_round_trips_s": [
+            0.0033347499556839466
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 144960,
+          "max_send_lag_s": 0.002215250045992434,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.2085243749897927
+        },
+        {
+          "mode": "auto",
+          "token_s": 0.20299716689623892,
+          "websocket_s": 0.14720879204105586,
+          "setup_s": 0.23907316708937287,
+          "end_wait_s": 2.0,
+          "end_wait_estimated": true,
+          "after_end_to_audio_s": 0.8649282089900225,
+          "speech_end_to_audio_s": 2.8649282089900225,
+          "tool_round_trips_s": [
+            0.006783333024941385
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 171362,
+          "max_send_lag_s": 0.002464582910761237,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.1982531250687316
+        },
+        {
+          "mode": "ptt",
+          "token_s": 0.26781695801764727,
+          "websocket_s": 0.12884849996771663,
+          "setup_s": 0.18951049994211644,
+          "end_wait_s": 2.040993422269821e-06,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 1.396890375064686,
+          "speech_end_to_audio_s": 1.3968924160581082,
+          "tool_round_trips_s": [
+            0.006587042007595301
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 144482,
+          "max_send_lag_s": 0.0032067910069599748,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.2581703329924494
+        },
+        {
+          "mode": "over",
+          "token_s": 0.2899776669219136,
+          "websocket_s": 0.24587637500371784,
+          "setup_s": 0.3068621250567958,
+          "end_wait_s": 1.201168500003405,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 1.9169827500591055,
+          "speech_end_to_audio_s": 3.1181512500625104,
+          "tool_round_trips_s": [
+            0.005729791009798646
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 145920,
+          "max_send_lag_s": 0.002862042048946023,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.28406845789868385
+        }
+      ]
+    },
+    {
+      "label": "after-keepalive",
+      "pcm_sha256": "542458cf4ff34e3888ae5a5804e9fffb0d15c6589ce92f0ab8bcc8b7b18323fd",
+      "speech_seconds": 3.38,
+      "cold_transport": false,
+      "results": [
+        {
+          "mode": "auto",
+          "token_s": 0.41368741705082357,
+          "websocket_s": 0.16637262504082173,
+          "setup_s": 0.26148991694208235,
+          "end_wait_s": 2.0,
+          "end_wait_estimated": true,
+          "after_end_to_audio_s": 5.578496000031009,
+          "speech_end_to_audio_s": 7.578496000031009,
+          "tool_round_trips_s": [
+            0.005209084018133581
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 91682,
+          "max_send_lag_s": 0.00284229195676744,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.3660917090019211
+        },
+        {
+          "mode": "ptt",
+          "token_s": 0.1509724169736728,
+          "websocket_s": 0.12421624991111457,
+          "setup_s": 0.25426341604907066,
+          "end_wait_s": 3.6669662222266197e-06,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 2.2363195000216365,
+          "speech_end_to_audio_s": 2.2363231669878587,
+          "tool_round_trips_s": [
+            0.005301250028423965
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 94082,
+          "max_send_lag_s": 0.015684832935221493,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.14166045910678804
+        },
+        {
+          "mode": "over",
+          "token_s": 0.14557533408515155,
+          "websocket_s": 0.12219329201616347,
+          "setup_s": 0.27703091700095683,
+          "end_wait_s": 1.200477582984604,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 2.0160674169892445,
+          "speech_end_to_audio_s": 3.2165449999738485,
+          "tool_round_trips_s": [
+            0.0038131249602884054
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 103680,
+          "max_send_lag_s": 0.0013088331324979663,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.13633862498681992
+        },
+        {
+          "mode": "auto",
+          "token_s": 0.4334364590467885,
+          "websocket_s": 0.1918620829237625,
+          "setup_s": 0.2502613749820739,
+          "end_wait_s": 2.0,
+          "end_wait_estimated": true,
+          "after_end_to_audio_s": 0.9617773329373449,
+          "speech_end_to_audio_s": 2.961777332937345,
+          "tool_round_trips_s": [
+            0.002866291906684637
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 81120,
+          "max_send_lag_s": 0.0011247079819440842,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.4265978749608621
+        },
+        {
+          "mode": "ptt",
+          "token_s": 0.12194295797962695,
+          "websocket_s": 0.13949025003239512,
+          "setup_s": 0.19884995894972235,
+          "end_wait_s": 9.170034900307655e-07,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 1.7704044170677662,
+          "speech_end_to_audio_s": 1.7704053340712562,
+          "tool_round_trips_s": [
+            0.0028210829477757215
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 90240,
+          "max_send_lag_s": 0.0011398339411243796,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.11807870806660503
+        },
+        {
+          "mode": "over",
+          "token_s": 0.156259624985978,
+          "websocket_s": 0.12407458294183016,
+          "setup_s": 0.25871270801872015,
+          "end_wait_s": 1.2012289999984205,
+          "end_wait_estimated": false,
+          "after_end_to_audio_s": 4.132606207975186,
+          "speech_end_to_audio_s": 5.333835207973607,
+          "tool_round_trips_s": [
+            0.002264791983179748
+          ],
+          "tool_names": [
+            "append_to_doc"
+          ],
+          "audio_bytes": 88802,
+          "max_send_lag_s": 0.0017222499009221792,
+          "complete": true,
+          "error": null,
+          "auth_tokens_create_s": 0.1458193330327049
+        }
+      ]
+    }
+  ]
+}

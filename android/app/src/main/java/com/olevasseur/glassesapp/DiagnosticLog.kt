@@ -71,15 +71,19 @@ class ResponseLatency(private val clock: () -> Long) {
     private var energy = SpeechEnergyDetector()
     private var lastSpeech: Long? = null
     private var responseStarted = false
+    private var activityEnd: Long? = null
+    var endWaitMs: Long? = null; private set
+    @Synchronized fun activityEnd() { activityEnd = clock() }
     @Synchronized fun input(pcm: ByteArray) { if (!responseStarted && energy.accept(pcm)) lastSpeech = clock() }
     @Synchronized fun firstAudio(): Long? {
         if (responseStarted) return null
         responseStarted = true
         val start = lastSpeech ?: return null
         lastSpeech = null
+        endWaitMs = activityEnd?.let { (it - start).coerceAtLeast(0) }
         return (clock() - start).coerceAtLeast(0)
     }
-    @Synchronized fun reset() { lastSpeech = null; responseStarted = false; energy = SpeechEnergyDetector() }
+    @Synchronized fun reset() { lastSpeech = null; responseStarted = false; activityEnd = null; endWaitMs = null; energy = SpeechEnergyDetector() }
 }
 
 object DiagnosticMetrics {
@@ -88,7 +92,11 @@ object DiagnosticMetrics {
     @Volatile var handleUpdatedMs: Long? = null
     @Volatile var gyro = "No samples"
     @Volatile var gyroUpdatedMs = 0L
-    fun response() { latency.firstAudio()?.let { latencyMs = it; DiagnosticLog.add("gemini", "speech_end_to_first_audio_ms=$it estimated=true") } }
+    fun response(vadSilenceMs: Int? = null) { latency.firstAudio()?.let {
+        latencyMs = it
+        val wait = latency.endWaitMs ?: vadSilenceMs?.toLong()
+        DiagnosticLog.add("latency", "speech_end_to_first_audio_ms=$it end_wait_ms=$wait end_wait_estimated=${latency.endWaitMs == null} after_end_ms=${wait?.let { w -> it - w }} speech_end_estimated=true")
+    } }
 }
 
 internal fun diagnosticFeature(tool: String): String = when {

@@ -8,6 +8,7 @@ from google.genai import types
 
 from tools import CLIENT_TOOL_NAMES, DECLARATIONS, TRANSLATION_DECLARATIONS
 from translation import translator_instruction
+from token_transport import token_transport
 
 SCRIBE_INSTRUCTION = """
 Meeting capture is active. Answer directly addressed requests normally and briefly,
@@ -77,12 +78,8 @@ def create_token(
     api_key: str, model: str, mode: str, system_instruction: str | None = None, *, silence_ms: int = 2000,
     persona: str = "assistant", language: str | None = None, timeout_ms: int = 30_000,
 ) -> dict:
-    config = token_config(model, mode, system_instruction, silence_ms=silence_ms, persona=persona, language=language)
-    with genai.Client(
-        api_key=api_key,
-        vertexai=False,
-        http_options=types.HttpOptions(api_version="v1beta", timeout=timeout_ms, retry_options=types.HttpRetryOptions(attempts=1)),
-    ) as client:
+    with token_transport.client(api_key, timeout_ms) as client:
+        config = token_config(model, mode, system_instruction, silence_ms=silence_ms, persona=persona, language=language)
         token = client.auth_tokens.create(config=config)
     if not token.name:
         raise RuntimeError("Gemini returned no ephemeral token")

@@ -53,3 +53,11 @@ def disable_ai_background_replay(monkeypatch):
     async def idle():
         await asyncio.Event().wait()
     monkeypatch.setattr(resilience_work, "retry_loop", idle)
+
+
+@pytest.fixture(autouse=True)
+def isolated_token_transport():
+    from token_transport import token_transport
+    token_transport.close()
+    yield
+    token_transport.close()

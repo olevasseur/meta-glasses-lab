@@ -89,7 +89,10 @@ async def lifespan(app):
             if task:
                 await task
         finally:
-            await app.state.jobs.close()
+            try:
+                await app.state.jobs.close()
+            finally:
+                await asyncio.to_thread(gemini.token_transport.close)
 
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)

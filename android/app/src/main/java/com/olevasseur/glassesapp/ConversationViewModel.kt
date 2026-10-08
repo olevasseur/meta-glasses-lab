@@ -146,6 +146,10 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     suspend fun geminiHealth() = backend.geminiHealth()
     fun offlineCaptures() = offline.review()
 
+    @Volatile private var thinkingUntilNs = 0L
+    @Volatile private var lastVoicedNs = 0L
+    private var lastThinkingCueNs = 0L
+
     private val gemini: GeminiSession = GeminiSession(
         scope = viewModelScope, backend = backend, audio = audio,
         onState = { label, connected ->
@@ -190,6 +194,15 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             if (!state.value.meeting && state.value.handsFree.shouldRun && audioReady) gestures.onEvent(event)
         },
         onApproval = { approvals.offer(it) },
+        onSlowTool = {
+            val now = System.nanoTime()
+            if (audioReady && state.value.handsFree.shouldRun && !offline.speaking &&
+                now - lastVoicedNs >= 500_000_000L && now - lastThinkingCueNs >= 1_500_000_000L) {
+                lastThinkingCueNs = now
+                thinkingUntilNs = now + 200_000_000L
+                service?.thinkingCue()
+            }
+        },
         canAnnounce = { approvals.state.value == null && gestures.state.value.question == null },
         onClientTool = { name, result ->
             if (state.value.handsFree.shouldRun && audioReady && !state.value.stopping) when (name) {
@@ -452,13 +465,25 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             state.map { it.handsFree.shouldRun }.distinctUntilChanged().collectLatest { allowed ->
                 if (!allowed) return@collectLatest
                 try {
+                    // Warm token + Live setup while Android negotiates the communication route.
+                    if (!sessionStarted) {
+                        val metadata = if (state.value.meeting) JSONObject().put("title", state.value.meetingTitle.ifBlank { "Untitled" })
+                            .apply { if (state.value.meetingDoc.isNotBlank()) put("doc_name", state.value.meetingDoc) } else null
+                        memory.begin(metadata)
+                        transcriptBoundary = true
+                        gemini.start(state.value.settings, meeting = state.value.meeting)
+                        sessionStarted = true
+                        gemini.suspendAudio(true)
+                    }
                     val speechActivity = SpeechEnergyDetector()
                     var voicedSamples = 0
                     audio.start(forcePhone = state.value.mock || (state.value.meeting && state.value.meetingPhone), onAudio = { pcm ->
-                        gemini.sendAudio(if (muted || offline.speaking) ByteArray(pcm.size) else pcm)
-                        if (!muted && !offline.speaking) { over.audio(pcm); offline.audio(pcm) }
+                        val localSound = offline.speaking || System.nanoTime() < thinkingUntilNs
+                        gemini.sendAudio(if (muted || localSound) ByteArray(pcm.size) else pcm)
+                        if (!muted && !localSound) { over.audio(pcm); offline.audio(pcm) }
                         // Over may have no transcript until sign-off; sustained speech is not idle.
-                        if (!muted && speechActivity.accept(pcm)) {
+                        if (!muted && !localSound && speechActivity.accept(pcm)) {
+                            lastVoicedNs = System.nanoTime()
                             voicedSamples += pcm.size / 2
                             if (voicedSamples >= 16_000) {
                                 voicedSamples = 0
@@ -478,14 +503,10 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                     updateOffline()
                     gemini.suspendAudio(false)
                     service?.audioStarted()
-                    if (!sessionStarted) {
-                        val metadata = if (state.value.meeting) JSONObject().put("title", state.value.meetingTitle.ifBlank { "Untitled" })
-                            .apply { if (state.value.meetingDoc.isNotBlank()) put("doc_name", state.value.meetingDoc) } else null
-                        memory.begin(metadata)
-                        transcriptBoundary = true
-                        gemini.start(state.value.settings, meeting = state.value.meeting)
-                        sessionStarted = true
-                    } else beginOverTurn()
+                    // Setup can finish before routing; replay work gated by audio readiness now.
+                    sendApprovalResults()
+                    speakPendingRecap()
+                    beginOverTurn()
                     awaitCancellation()
                 } catch (e: CancellationException) { throw e }
                 catch (e: Exception) { error(e.message ?: "Cannot start audio"); stop() }

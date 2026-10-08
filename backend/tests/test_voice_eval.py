@@ -264,3 +264,20 @@ def test_tts_cache_avoids_regeneration_and_records_pcm_hash(tmp_path):
     assert audio.synthesize(client,'Hello','Kore',cache=tmp_path)==path
     assert generator.call_count==1
     assert json.loads(path.with_suffix('.json').read_text())['pcm_sha256']==hashlib.sha256(audio.read(path)).hexdigest()
+
+
+def test_latency_waterfall_separates_manual_boundary_from_estimated_vad():
+    from voice_eval.latency import waterfall
+    result = dict(mode='auto', activity_end_s=None, speech_end_s=4.0,
+                  first_audio_latency_s=2.9, token_s=.2, websocket_s=.1, setup_s=.3,
+                  calls=[dict(name='append_to_doc', time_s=6.1, response_sent_s=6.2)],
+                  audio_bytes=200, max_send_lag_s=.001, complete=True, error=None)
+    auto = waterfall(result)
+    assert auto['end_wait_estimated'] and auto['end_wait_s'] == 2
+    assert auto['after_end_to_audio_s'] == pytest.approx(.9)
+    assert auto['tool_round_trips_s'] == pytest.approx([.1])
+    over = waterfall({**result, 'mode': 'over', 'activity_end_s': 5.2})
+    assert not over['end_wait_estimated']
+    assert over['end_wait_s'] == pytest.approx(1.2)
+    assert over['after_end_to_audio_s'] == pytest.approx(1.7)
+    assert waterfall({**result, 'first_audio_latency_s': None})['after_end_to_audio_s'] is None
