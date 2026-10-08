@@ -40,6 +40,7 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private var boundService by mutableStateOf<ConversationService?>(null)
+    internal val smokeModel get() = boundService?.model
     private var binding = false
     private var pendingStart = false
     private val connection = object : ServiceConnection {
@@ -119,6 +120,7 @@ class MainActivity : ComponentActivity() {
         launchWhenReady()
     }
     private fun launchWhenReady() {
+        boundService?.model?.let { SmokeHooks.configure(intent, it) }
         if (pendingStart && lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) && boundService?.model?.state?.value?.permissions == true && boundService?.model?.state?.value?.settingsLoaded == true) {
             pendingStart = false
             boundService?.startConversation()

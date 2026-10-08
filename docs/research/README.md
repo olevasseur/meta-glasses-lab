@@ -38,3 +38,6 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   pricing/privacy boundaries, local visual storage, real sample search/deletion and
   Auto/PTT/Over constrained Live setup checks. **2026-10-08**: merged dashboard
   browsing/retention/status and shared camera/Motion lifecycle regression checks.
+
+- [emulator-smoke.md](emulator-smoke.md) — **2026-10-08**: API 36 headless emulator,
+  DAT camera/Inputs/Motion/Speech simulation, WAV capture and real-Gemini test boundaries.

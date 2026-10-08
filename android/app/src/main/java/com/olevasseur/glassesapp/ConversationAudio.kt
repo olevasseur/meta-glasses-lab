@@ -66,16 +66,18 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
             val rate = if (bluetooth) 8000 else 16000
             val buffer = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
             check(buffer > 0) { "Microphone does not support $rate Hz PCM" }
-            val record = AudioRecord.Builder()
+            val record = if (SmokeHooks.wavEnabled) null else AudioRecord.Builder()
                 .setAudioSource(if (roomCapture && !bluetooth) MediaRecorder.AudioSource.MIC else MediaRecorder.AudioSource.VOICE_COMMUNICATION)
                 .setAudioFormat(AudioFormat.Builder().setSampleRate(rate)
                     .setChannelMask(AudioFormat.CHANNEL_IN_MONO).setEncoding(AudioFormat.ENCODING_PCM_16BIT).build())
                 .setBufferSizeInBytes(maxOf(buffer, rate / 5 * 2)).build()
             recorder = record
-            check(record.state == AudioRecord.STATE_INITIALIZED) { "Microphone initialization failed" }
-            if (!bluetooth) preferPhoneMic(record)
-            if (AcousticEchoCanceler.isAvailable()) {
-                echoCanceler = AcousticEchoCanceler.create(record.audioSessionId)?.apply { enabled = true }
+            if (record != null) {
+                check(record.state == AudioRecord.STATE_INITIALIZED) { "Microphone initialization failed" }
+                if (!bluetooth) preferPhoneMic(record)
+                if (AcousticEchoCanceler.isAvailable()) {
+                    echoCanceler = AcousticEchoCanceler.create(record.audioSessionId)?.apply { enabled = true }
+                }
             }
             val minimum = AudioTrack.getMinBufferSize(24000, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
             check(minimum > 0) { "24 kHz playback unavailable" }
@@ -90,9 +92,11 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
             check(output.state == AudioTrack.STATE_INITIALIZED) { "Speaker initialization failed" }
             routeDevice?.let { output.setPreferredDevice(it) }
             output.play()
-            record.startRecording()
-            check(record.recordingState == AudioRecord.RECORDSTATE_RECORDING) { "Microphone did not start" }
-            onRoute(if (bluetooth) "Bluetooth HFP · $rate → 16000 Hz" else "Phone microphone · 16000 Hz")
+            if (record != null) {
+                record.startRecording()
+                check(record.recordingState == AudioRecord.RECORDSTATE_RECORDING) { "Microphone did not start" }
+            }
+            onRoute(if (SmokeHooks.wavEnabled) "Debug WAV · 16000 Hz" else if (bluetooth) "Bluetooth HFP · $rate → 16000 Hz" else "Phone microphone · 16000 Hz")
             deviceCallback = object : AudioDeviceCallback() {
                 override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
                     if (bluetooth && removedDevices.any { it.id == routeDevice?.id }) {
@@ -103,11 +107,16 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
                 }
             }.also { manager.registerAudioDeviceCallback(it, Handler(Looper.getMainLooper())) }
             captureJob = scope.launch(Dispatchers.IO) {
+                if (SmokeHooks.wavEnabled) {
+                    SmokeHooks.capture(onAudio)
+                    return@launch
+                }
+                val input = checkNotNull(record)
                 val samples = ShortArray(rate / 50) // 20 ms; bounded latency and WebSocket traffic.
                 val resampler = PcmResampler(rate)
                 try {
                     while (isActive) {
-                        val count = record.read(samples, 0, samples.size, AudioRecord.READ_BLOCKING)
+                        val count = input.read(samples, 0, samples.size, AudioRecord.READ_BLOCKING)
                         if (count < 0) error("Microphone read failed ($count)")
                         if (count > 0 && isActive) onAudio(resampler.process(samples, count))
                     }
@@ -125,6 +134,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
                                 val count = output.write(chunk, headOffset, minOf(960, chunk.size - headOffset), AudioTrack.WRITE_NON_BLOCKING)
                                 check(count >= 0) { "Speaker write failed ($count)" }
                                 writtenFrames += count / 2
+                                SmokeHooks.played(count)
                                 headOffset += count
                                 queueBytes -= count
                                 if (headOffset == chunk.size) { queue.removeFirst(); headOffset = 0 }

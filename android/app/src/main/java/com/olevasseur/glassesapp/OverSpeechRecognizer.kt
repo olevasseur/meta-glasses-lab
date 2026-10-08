@@ -52,7 +52,7 @@ class OverSpeechRecognizer(
         val epoch = generation
         job = scope.launch {
             previous?.join() // Finish removing the previous turn's shared Speech capability.
-            if (!forcePhone) {
+            if (!forcePhone || SmokeHooks.wavEnabled) {
                 try {
                     listenOnGlasses()
                 } catch (e: CancellationException) {

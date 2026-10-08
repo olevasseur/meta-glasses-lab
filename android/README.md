@@ -99,3 +99,11 @@ Gesture confirmation and vision tools run locally. For each backend tool call, t
 Build/JVM tests do not verify Pixel audio routing, real DAT registration or Inputs entitlement, real Gemini credentials, token field-mask compatibility, microphone echo/latency, or interruption/reconnection under live traffic. Test these on the Pixel with actual glasses; exercise a long pause in Auto, screen PTT, capture start/stop, double-tap talk/mute, interruption mid-answer, Bluetooth loss, and network loss. Confirm that a tool appears once on the backend across a reconnect.
 
 Verified APIs and source links are recorded in [M1 research notes](../docs/research/m1-android-notes.md).
+
+## Automated API 36 smoke (real Gemini)
+
+Run `scripts/emulator_smoke.sh` from the repository root. It builds and installs
+the real debug APK and instrumentation APK, uses DAT mock camera/Inputs/Motion,
+injects WAV speech, verifies live replies/vision/Over/Stop, and shuts down its
+headless emulator. See [results and rerun configuration](../docs/evals/emulator-smoke.md)
+and [debug fixture controls](../docs/features/emulator-smoke.md).
