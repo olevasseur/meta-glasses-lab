@@ -16,7 +16,7 @@ from time import time
 from urllib.parse import parse_qs, quote
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
 import memory_api
@@ -75,7 +75,8 @@ def new_session(secret, authenticated=False):
             if sessions[key]["expires"] <= current:
                 del sessions[key]
         while len(sessions) >= 256:
-            del sessions[next(iter(sessions))]
+            victim = next((key for key, value in sessions.items() if not value["authenticated"]), next(iter(sessions)))
+            del sessions[victim]
         sid = secrets.token_urlsafe(32)
         sessions[sid] = {"csrf": secrets.token_urlsafe(32), "authenticated": authenticated,
                          "secret_hash": hashlib.sha256(secret.encode()).digest(),
@@ -150,7 +151,9 @@ def install(app, notes_service, token_test):
             route = request.scope.get("route")
             if not dashboard_request:
                 record_error(getattr(route, "path", "request"), 500)
-                raise
+                response = JSONResponse(status_code=500, content={"detail": "Backend operation failed"})
+                response.headers["Cache-Control"] = "no-store"
+                return response
             response = HTMLResponse("Dashboard unavailable. Check storage and configuration, then reload.", status_code=503)
         if response.status_code >= 500:
             route = request.scope.get("route")

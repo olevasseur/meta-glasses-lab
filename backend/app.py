@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 import gemini
 import dashboard
+import approvals
 import memory_api
 import translation
 import workouts
@@ -57,6 +58,7 @@ projects = Projects()
 
 @asynccontextmanager
 async def lifespan(app):
+    approvals.pending.clear()
     stop = asyncio.Event()
     task = None
     app.state.jobs = Jobs(notes)
@@ -160,6 +162,13 @@ async def dispatch_tool(name: str, args: dict | None = None):
         request = request_type.model_validate(args if args is not None else {})
     except ValidationError as exc:
         raise RequestValidationError(exc.errors()) from exc
+    if name in approvals.SENSITIVE:
+        return approvals.propose(name, request.model_dump())
+    return await execute_tool(name, request)
+
+
+async def execute_tool(name, request):
+    _, owner, method, _ = REGISTRY[name]
     if owner == "meeting_control":
         return {"status": "ok", "client_action": name, **request.model_dump()}
     if owner == "translation":
@@ -210,4 +219,16 @@ async def events(after: int = Query(0, ge=0), wait: float = Query(20, ge=0, le=2
     return await app.state.jobs.events(after, wait)
 
 
+import approval_actions
+approvals.install(app, approval_actions.prepare, approval_actions.execute)
 dashboard.install(app, notes_service=lambda: notes, token_test=lambda: token(TokenRequest()))
+
+# Outermost: limits also cover login and malformed/unvalidated API requests.
+from security_boundary import SecurityBoundary
+app.add_middleware(SecurityBoundary)
+
+
+@app.exception_handler(RequestValidationError)
+async def invalid_request(request, exc):
+    # Pydantic's default response echoes input (including credentials and huge values).
+    return JSONResponse(status_code=422, content={"detail": "Invalid request arguments"})

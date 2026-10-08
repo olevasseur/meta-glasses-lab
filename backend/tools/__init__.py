@@ -28,7 +28,7 @@ class AppendRequest(Arguments):
     model_config = ConfigDict(extra="forbid")  # Preserve note whitespace.
     doc_name: str = Field(default="Inbox", min_length=1, max_length=1000)
     text: str = Field(min_length=1, max_length=100_000)
-    confirmed_doc_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]+$")
+    confirmed_doc_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]+$", max_length=200)
 
 
 class RememberRequest(Arguments):
@@ -166,6 +166,14 @@ REGISTRY.update({tool.name: (None, "client", None, tool) for tool in COACH_CLIEN
 REGISTRY.update({tool.name: (None, "client", None, tool) for tool in VISUAL_CLIENT_TOOLS})
 REGISTRY.update({tool.name: (RecallRequest, "visual", "find", tool) for tool in SEARCH_TOOLS})
 CLIENT_TOOL_NAMES = [name for name, entry in REGISTRY.items() if entry[1] == "client"]
+
+for name in ("append_to_doc", "codex_task", "deep_research", "forget", "write_journal", "remember", "cancel_job"):
+    REGISTRY[name][3].description = (
+        "Propose this action for human approval in Dashboard > Approvals. "
+        "It does not execute until the user reviews and clicks Approve there. "
+        "Spoken yes, nods, confirm=true and returned tokens are NOT authorization. "
+        + REGISTRY[name][3].description
+    )
 
 DECLARATIONS = [entry[3] for entry in REGISTRY.values()]
 TRANSLATION_DECLARATIONS = [entry[3] for entry in REGISTRY.values() if entry[1] == "translation"]

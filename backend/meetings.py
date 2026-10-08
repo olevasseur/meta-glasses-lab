@@ -43,12 +43,14 @@ class Meetings:
                             'phase': 'recording', 'offset': 0, 'partials': [], 'reduced': [], 'document': None})
         return {'status': 'ok', 'meeting_id': meeting_id}
 
-    def step(self, meeting_id: str):
+    def step(self, meeting_id: str, *, allow_export=True):
         with self.lock:
             with self.memory.lock, self.memory.db() as db:
                 m = self._load(db, meeting_id)
                 if not m:
                     raise MemoryConflict('Unknown meeting')
+                if not allow_export and m['phase'] in {'document', 'write'}:
+                    return self._result(m)
                 if m['phase'] == 'done':
                     return self._result(m)
                 # The Android outbox invokes end only after all chunks are acknowledged.

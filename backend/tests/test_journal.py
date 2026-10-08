@@ -1,3 +1,4 @@
+from approval_helpers import approved_post
 import asyncio
 import json
 import sqlite3
@@ -344,23 +345,23 @@ def test_routes_auth_validation_dispatch_sanitization_and_note_capture(service, 
         for name in ("write_journal", "read_journal", "morning_brief"):
             assert client.post(f"/tools/{name}", json={}, headers={"X-App-Secret": "bad"}).status_code == 401
         assert client.post("/tools/read_journal", json={}).status_code == 422
-        assert client.post("/tools/write_journal", json={"date": "tomorrow"}).status_code == 422
+        assert approved_post(client, "/tools/write_journal", json={"date": "tomorrow"}).status_code == 422
         assert client.post("/tools/morning_brief", json={"date": "today"}).status_code == 422
         ingest(service)
-        assert client.post("/tools/write_journal", json={"date": "yesterday"}).json()["doc_status"] == "synced"
+        assert approved_post(client, "/tools/write_journal", json={"date": "yesterday"}).json()["doc_status"] == "synced"
         assert client.post("/tools/read_journal", json={"date": "yesterday"}).json()["status"] == "ok"
         assert client.post("/tools/morning_brief", json={}).status_code == 200
-        assert client.post("/tools/append_to_doc", json={"text": "Buy milk"}).status_code == 200
+        assert approved_post(client, "/tools/append_to_doc", json={"text": "Buy milk"}).status_code == 200
         with service.memory.db() as db:
             row = db.execute("SELECT payload FROM journal_events WHERE kind='note_appended'").fetchone()
             assert json.loads(row[0]) == {"text": "Buy milk", "doc_title": "Inbox"}
             assert db.execute("SELECT count(*) FROM journal_events WHERE kind='note_appended'").fetchone()[0] == 1
             assert db.execute("SELECT text FROM note_history").fetchone()[0] == "Buy milk"
         monkeypatch.setattr(service, "record_note", Mock(side_effect=sqlite3.OperationalError("private")))
-        response = client.post("/tools/append_to_doc", json={"text": "Already saved"})
+        response = approved_post(client, "/tools/append_to_doc", json={"text": "Already saved"})
         assert response.json() == {"status": "ok", "doc_title": "Inbox", "journal_tracking": "failed"}
         journal.generate_entry.side_effect = RuntimeError("secret private content")
-        response = client.post("/tools/write_journal", json={"date": "yesterday"})
+        response = approved_post(client, "/tools/write_journal", json={"date": "yesterday"})
         assert response.status_code == 502 and "secret private" not in response.text
 
 

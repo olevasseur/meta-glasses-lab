@@ -29,11 +29,23 @@ class PageText(HTMLParser):
 
 
 def public_address(url: str):
+    if len(url) > 4096 or any(ord(c) <= 32 or ord(c) == 127 for c in url):
+        raise ValueError("Invalid URL")
     parsed = urlsplit(url)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.port not in (None, 443):
+    if parsed.scheme != "https" or not parsed.hostname or "%" in parsed.hostname or parsed.username or parsed.password or parsed.port not in (None, 443):
         raise ValueError("Use a public HTTPS URL without credentials or a custom port")
     addresses = socket.getaddrinfo(parsed.hostname, 443, type=socket.SOCK_STREAM)
-    if not addresses or any(not ipaddress.ip_address(item[4][0]).is_global for item in addresses):
+    def permitted(value):
+        address = ipaddress.ip_address(value)
+        # Global classification alone permits multicast and some translation/tunnel ranges.
+        if not address.is_global or address.is_multicast or address.is_reserved or address.is_unspecified:
+            return False
+        if address.version == 6 and (address.ipv4_mapped or address.sixtofour or address.teredo or
+                                    address in ipaddress.ip_network("64:ff9b::/96") or
+                                    address in ipaddress.ip_network("64:ff9b:1::/48")):
+            return False
+        return True
+    if not addresses or any(not permitted(item[4][0]) for item in addresses):
         raise ValueError("URL must resolve only to public addresses")
     return parsed, addresses[0][4][0]
 

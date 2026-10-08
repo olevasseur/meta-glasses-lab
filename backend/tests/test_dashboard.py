@@ -1,3 +1,4 @@
+from approval_helpers import approved_post, field
 import json
 import re
 import sqlite3
@@ -219,21 +220,21 @@ def test_notes_success_only_history_and_local_failure(client, monkeypatch):
     resolve = Mock(return_value={"status": "matched", "document": {"id": "doc-123", "title": "Work <log>"}})
     monkeypatch.setattr(app.notes, "_resolve", resolve)
     app.notes.docs = Mock()
-    response = client.post("/tools/append_to_doc", json={"text": "My note"}, headers={"X-App-Secret": SECRET})
+    response = approved_post(client, "/tools/append_to_doc", json={"text": "My note"}, headers={"X-App-Secret": SECRET})
     assert response.json() == {"status": "ok", "doc_title": "Work <log>"}
     page = client.get("/dashboard/notes")
     assert "https://docs.google.com/document/d/doc-123/edit" in page.text and "My note" in page.text
     resolve.return_value = {"status": "needs_confirmation", "candidates": []}
-    client.post("/tools/append_to_doc", json={"text": "Unconfirmed"}, headers={"X-App-Secret": SECRET})
+    approved_post(client, "/tools/append_to_doc", json={"text": "Unconfirmed"}, headers={"X-App-Secret": SECRET})
     assert "Unconfirmed" not in client.get("/dashboard/notes").text
     resolve.return_value = {"status": "matched", "document": {"id": "doc-123", "title": "Work"}}
     app.notes.docs.documents().batchUpdate().execute.side_effect = RuntimeError("private upstream error")
-    response = client.post("/tools/append_to_doc", json={"text": "Failed write"}, headers={"X-App-Secret": SECRET})
+    response = approved_post(client, "/tools/append_to_doc", json={"text": "Failed write"}, headers={"X-App-Secret": SECRET})
     assert response.status_code == 502
     assert "Failed write" not in client.get("/dashboard/notes").text
     app.notes.docs.documents().batchUpdate().execute.side_effect = None
     monkeypatch.setattr(dashboard, "history_table", Mock(side_effect=sqlite3.OperationalError("private data")))
-    response = client.post("/tools/append_to_doc", json={"text": "Saved remotely"}, headers={"X-App-Secret": SECRET})
+    response = approved_post(client, "/tools/append_to_doc", json={"text": "Saved remotely"}, headers={"X-App-Secret": SECRET})
     assert response.json()["status"] == "ok"
     assert "Google append succeeded" in str(dashboard.recent_errors)
     assert "private data" not in str(dashboard.recent_errors)
@@ -306,11 +307,13 @@ def test_dashboard_allowlist_updates_running_jobs_and_keeps_api_auth(client, mon
     assert preview.json()["status"] == "needs_confirmation"
     assert client.post("/tools/job_status", json={}).status_code == 401
     assert client.get("/events?wait=0").status_code == 401
-    status = client.post("/tools/job_status", json={"job_id": preview.json()["job_id"]}, headers=headers)
-    assert status.json()["status"] == "needs_confirmation"
+    page = client.get(preview.json()["approval_url"])
+    assert page.status_code == 200
+    status = client.post("/tools/job_status", json={}, headers=headers)
+    assert status.json()["jobs"][0]["status"] == "needs_confirmation"
     assert client.get("/events?wait=0", headers=headers).json() == {"events": [], "cursor": 0}
     assert post(client, "/settings/repos", token, json="{}").status_code == 303
-    revoked = client.post("/tools/codex_task", json={**request, "confirm": True, "job_id": preview.json()["job_id"]}, headers=headers)
+    revoked = client.post(preview.json()["approval_url"], data={"csrf": token, "nonce": field(page, "nonce"), "decision": "approve"}, headers={"Accept": "application/json"})
     assert revoked.json()["status"] == "choose_repo"
     assert app.app.state.jobs.tasks == {}
 

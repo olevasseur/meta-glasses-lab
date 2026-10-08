@@ -1,3 +1,4 @@
+from approval_helpers import approved_post, browser_login, field
 import asyncio
 import json
 import signal
@@ -36,9 +37,10 @@ def processes(monkeypatch):
 
     async def spawn(*command, **kwargs):
         calls.append((command, kwargs))
+        output = b""
         if command[0] == "git":
             if "rev-parse" in command:
-                kwargs["stdout"].write((str(kwargs["cwd"]) + "\n").encode())
+                output = (str(kwargs["cwd"]) + "\n").encode()
             elif "worktree" in command:
                 Path(command[-2]).mkdir(parents=True)
         else:
@@ -46,7 +48,10 @@ def processes(monkeypatch):
                 "summary": "Ottawa is Canada's capital. The Government of Canada confirms this.",
                 "report": "# Canada\nOttawa is the capital.\nSource: https://www.canada.ca/",
             }))
-        proc = SimpleNamespace(pid=10000 + len(calls), returncode=None)
+        reader = asyncio.StreamReader()
+        reader.feed_data(output)
+        reader.feed_eof()
+        proc = SimpleNamespace(pid=10000 + len(calls), returncode=None, stdout=reader)
 
         async def wait():
             if command[0] == "codex":
@@ -250,8 +255,12 @@ def test_job_endpoints_validation_auth_and_declarations(monkeypatch, service):
         assert client.post("/tools/codex_task", json={"repo": "valiant", "instruction": "edit", "confirm": "true"}).status_code == 422
         preview = client.post("/tools/codex_task", json={"repo": "valiant", "instruction": "edit"}).json()
         assert preview["status"] == "needs_confirmation"
-        assert client.post("/tools/job_status", json={}).json()["jobs"][0]["job_id"] == preview["job_id"]
-        assert client.post("/tools/cancel_job", json={"job_id": preview["job_id"]}).json()["status"] == "cancelled"
+        assert client.post("/tools/job_status", json={}).json()["jobs"] == []
+        browser_login(client)
+        assert client.get(preview["approval_url"]).status_code == 200
+        job = client.post("/tools/job_status", json={}).json()["jobs"][0]
+        assert job["status"] == "needs_confirmation"
+        assert approved_post(client, "/tools/cancel_job", json={"job_id": job["job_id"]}).json()["status"] == "cancelled"
     config = gemini.token_config(gemini.DEFAULT_MODEL, "auto")
     assert config.lock_additional_fields == [] and config.live_connect_constraints.config.session_resumption is None
     names = {t.name for t in config.live_connect_constraints.config.tools[0].function_declarations}
@@ -311,7 +320,9 @@ async def test_confirmation_bound_to_original_path_and_root(service, processes):
         async def wrong_root(*command, **kwargs):
             proc = await original(*command, **kwargs)
             if "rev-parse" in command:
-                kwargs["stdout"].write(b"/different-root\n")
+                proc.stdout = asyncio.StreamReader()
+                proc.stdout.feed_data(b"/different-root\n")
+                proc.stdout.feed_eof()
             return proc
         asyncio.create_subprocess_exec.side_effect = wrong_root
         service.codex_task("valiant", "edit", True, preview["job_id"])
@@ -360,7 +371,9 @@ def test_blocking_tools_do_not_block_job_events(monkeypatch, service, name, args
         monkeypatch.setattr(app, "journal_service", lambda: target)
     monkeypatch.setattr(target, method, blocking_tool)
     with TestClient(app.app, headers={"X-App-Secret": "test"}) as client, ThreadPoolExecutor() as pool:
-        tool = pool.submit(client.post, f"/tools/{name}", json=args)
+        if name == "append_to_doc":
+            monkeypatch.setattr(app.notes, "preview", Mock(return_value={"status": "matched", "document": {"id": "doc", "title": "Notes"}}))
+        tool = pool.submit(approved_post, client, f"/tools/{name}", json=args)
         try:
             assert entered.wait(2)
             response = client.get("/events?wait=0")

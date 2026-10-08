@@ -1,3 +1,4 @@
+from approval_helpers import approve
 import json
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import Mock
@@ -141,9 +142,12 @@ def test_forget_requires_bound_unexpired_confirmation_and_blocks_reextraction(cl
     preview = client.post("/tools/forget", json={"query": "Maple"}).json()
     assert preview["status"] == "needs_confirmation"
     assert store.recall("Maple")["matches"]
-    token = preview["confirmation_token"]
-    assert client.post("/tools/forget", json={"query": "dog", "confirmation_token": token}).status_code == 409
-    confirmed = client.post("/tools/forget", json={"query": "Maple", "confirmation_token": token})
+    assert "confirmation_token" not in preview
+    # Model-supplied tokens create proposals; they never delete facts.
+    spoofed = client.post("/tools/forget", json={"query": "dog", "confirmation_token": "invented"})
+    assert spoofed.json()["status"] == "needs_confirmation"
+    assert store.recall("Maple")["matches"]
+    confirmed = approve(client, client.post("/tools/forget", json={"query": "Maple"}))
     assert confirmed.json() == {"status": "ok", "deleted": 1}
     assert not store.recall("Maple")["matches"]
     assert "Maple" not in store.context("base")

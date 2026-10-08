@@ -23,3 +23,16 @@ def disable_journal_schedule(monkeypatch):
 @pytest.fixture(autouse=True)
 def isolated_visual_archive(monkeypatch, tmp_path):
     monkeypatch.setattr(visual_api, "memory", VisualMemory(tmp_path / "visual"))
+
+
+@pytest.fixture(autouse=True)
+def isolated_security_state(monkeypatch):
+    import approvals
+    from security_boundary import SecurityBoundary
+    monkeypatch.setenv("BACKEND_ALLOWED_HOSTS", "localhost,127.0.0.1,::1,testserver")
+    approvals.pending.clear()
+    middleware = app.app.middleware_stack
+    while middleware is not None:
+        if isinstance(middleware, SecurityBoundary):
+            middleware.windows.clear()
+        middleware = getattr(middleware, "app", None)

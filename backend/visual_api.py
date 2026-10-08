@@ -3,6 +3,7 @@
 import asyncio
 import logging
 
+import approvals
 import httpx
 from fastapi import APIRouter, HTTPException
 from google.genai.errors import APIError
@@ -45,11 +46,9 @@ def capture(frame: Frame):
 
 
 @router.post("/visual/delete")
-def delete(request: DeleteRecent):
-    try:
-        return memory.delete_recent(request.minutes)
-    except OSError as exc:
-        raise HTTPException(503, "Visual deletion failed; retry") from exc
+async def delete(request: DeleteRecent):
+    now = memory.clock()
+    return approvals.propose("visual_delete", {"since": now - request.minutes * 60, "through": now + 60})
 
 
 async def retention_loop():

@@ -1,3 +1,4 @@
+from approval_helpers import approved_post
 import base64
 import io
 from datetime import UTC, datetime
@@ -115,7 +116,7 @@ def test_routes_auth_search_validation_and_safe_errors(store, monkeypatch):
             assert result.status_code == 200 and result.json()["matches"]
         assert client.post("/visual/delete", json={"minutes": -1}).status_code == 422
         assert client.post("/visual/delete", json={"minutes": True}).status_code == 422
-        assert client.post("/visual/delete", json={}).json()["deleted"] == 1
+        assert approved_post(client, "/visual/delete", json={}).json()["deleted"] == 1
         assert client.post("/tools/find_object", json={"query": " "}).status_code == 422
         broken = frame().model_dump(mode="json") | {"jpeg": "bad"}
         assert client.post("/visual/frames", json=broken).status_code == 422

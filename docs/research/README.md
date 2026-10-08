@@ -38,3 +38,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   pricing/privacy boundaries, local visual storage, real sample search/deletion and
   Auto/PTT/Over constrained Live setup checks. **2026-10-08**: merged dashboard
   browsing/retention/status and shared camera/Motion lifecycle regression checks.
+
+- [Backend security](backend-security.md) — **2026-10-08**: independent browser
+  approvals, SSRF edge cases, bounded requests/jobs/logs, disclosure and retention
+  regressions; real Auto/PTT/Over constrained Gemini setup passed.
