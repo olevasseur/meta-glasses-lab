@@ -13,6 +13,7 @@ from time import time
 from rapidfuzz import fuzz
 
 from memory_summary import summarize
+from journal_data import SCHEMA as JOURNAL_SCHEMA, record_event
 
 DEFAULT_DB = Path(__file__).parent / "data" / "memory.db"
 
@@ -67,6 +68,7 @@ class Memory:
                     token TEXT PRIMARY KEY, query TEXT NOT NULL, candidates TEXT NOT NULL,
                     expires_at REAL NOT NULL);
             """)
+            connection.executescript(JOURNAL_SCHEMA)
             with connection:
                 yield connection
         finally:
@@ -118,6 +120,7 @@ class Memory:
                       ON CONFLICT(key) DO UPDATE SET text=excluded.text,
                       normalized=excluded.normalized,updated_at=excluded.updated_at""",
                    (key, text, norm, datetime.now(UTC).isoformat()))
+        record_event(db, "fact_learned", {"key": key, "text": text})
         return dict(db.execute("SELECT id,key,text FROM facts WHERE key=?", (key,)).fetchone())
 
     def remember(self, fact: str, key: str | None = None) -> dict:
@@ -159,6 +162,7 @@ class Memory:
             forgotten = self._forgotten(db)
             rows = [{"kind": "fact", "id": r["id"], "text": r["text"]} for r in self._facts(db)]
             rows += [dict(r) for r in db.execute("SELECT 'summary' AS kind,session_id AS id,text FROM summaries")]
+            rows += [dict(r) for r in db.execute("SELECT 'journal' AS kind,day AS id,text FROM journal_entries")]
             # Join adjacent chunks by speaker for search; individual Live chunks can be single words.
             turns = db.execute("SELECT session_id,seq,speaker,text FROM turns ORDER BY session_id,seq")
             previous = None

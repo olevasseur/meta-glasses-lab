@@ -194,7 +194,9 @@ def test_token_locks_memory_and_registry_but_not_resumption(client, store, monke
     config = gemini.token_config(gemini.DEFAULT_MODEL, "auto", factory.call_args.args[3])
     live = config.live_connect_constraints.config
     assert "kayaking" in live.system_instruction
-    assert {t.name for t in live.tools[0].function_declarations} == {"append_to_doc", "remember", "recall", "forget"}
+    assert {t.name for t in live.tools[0].function_declarations} == {
+        "append_to_doc", "remember", "recall", "forget", "write_journal", "read_journal", "morning_brief",
+    }
     assert config.lock_additional_fields == [] and live.session_resumption is None
 
 
