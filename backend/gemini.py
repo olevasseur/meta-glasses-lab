@@ -33,17 +33,17 @@ APPEND_TO_DOC = types.FunctionDeclaration(
 )
 
 
-def token_config(model: str, mode: str) -> types.CreateAuthTokenConfig:
+def token_config(model: str, mode: str, silence_ms: int = 2000) -> types.CreateAuthTokenConfig:
     now = datetime.now(UTC)
     detection = (
         {"disabled": True}
-        if mode == "ptt"
+        if mode in ("ptt", "over")
         else {
             "disabled": False,
             "start_of_speech_sensitivity": "START_SENSITIVITY_LOW",
             "end_of_speech_sensitivity": "END_SENSITIVITY_LOW",
             "prefix_padding_ms": 300,
-            "silence_duration_ms": 1200,
+            "silence_duration_ms": max(500, min(5000, silence_ms)),
         }
     )
     return types.CreateAuthTokenConfig(
@@ -72,8 +72,8 @@ def token_config(model: str, mode: str) -> types.CreateAuthTokenConfig:
     )
 
 
-def create_token(api_key: str, model: str, mode: str) -> dict:
-    config = token_config(model, mode)
+def create_token(api_key: str, model: str, mode: str, silence_ms: int = 2000) -> dict:
+    config = token_config(model, mode, silence_ms)
     with genai.Client(
         api_key=api_key,
         vertexai=False,

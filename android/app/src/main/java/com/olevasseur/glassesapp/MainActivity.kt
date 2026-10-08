@@ -109,14 +109,13 @@ private fun ConversationScreen(
             }
             TextButton(onClick = requestGlassesPermission, enabled = !state.running) { Text("Grant DAT microphone permission") }
             Text("Meta AI → Settings → App Info → tap version 5× → Developer Mode", style = MaterialTheme.typography.bodySmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = !state.ptt, onClick = { model.setMode(false) }, label = { Text("Auto") }, enabled = !state.running)
-                FilterChip(selected = state.ptt, onClick = { model.setMode(true) }, label = { Text("Push-to-talk") }, enabled = !state.running)
-            }
-            Text(if (state.ptt) "Hold on screen to speak. On glasses, hold capture once to start, again to finish."
-                else "Speak naturally. Gemini uses the backend’s patient voice detection.", style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = { if (state.running) model.stop() else model.start() }, enabled = !state.stopping && state.permissions, modifier = Modifier.fillMaxWidth()) {
+            ConversationSettingsControls(state.settings, !state.running && !state.stopping && state.settingsLoaded, model::setSettings)
+            Button(onClick = { if (state.running) model.stop() else model.start() }, enabled = !state.stopping && state.permissions && state.settingsLoaded, modifier = Modifier.fillMaxWidth()) {
                 Text(if (state.stopping) "Stopping…" else if (state.running) "Stop" else "Start")
+            }
+            if (state.settings.mode == ConversationMode.OVER && state.running) {
+                Text(state.overStatus)
+                OutlinedButton(onClick = model::finishTalking, enabled = state.connected && state.talking) { Text("Finish turn") }
             }
             if (state.ptt) {
                 HoldToTalk(state.connected, state.talking, model::talk, model::finishTalking)

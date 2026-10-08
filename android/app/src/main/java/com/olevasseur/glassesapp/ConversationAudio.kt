@@ -50,6 +50,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
     private val queue = ArrayDeque<ByteArray>()
     private var queueBytes = 0
     private var headOffset = 0
+    private var writtenFrames = 0L
 
     @SuppressLint("MissingPermission") // Activity requests RECORD_AUDIO / BLUETOOTH_CONNECT first.
     suspend fun start(forcePhone: Boolean, onAudio: (ByteArray) -> Unit, onRoute: (String) -> Unit, onError: (String) -> Unit) {
@@ -122,6 +123,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
                                 // Nonblocking writes mean flush() never waits behind buffered speech.
                                 val count = output.write(chunk, headOffset, minOf(960, chunk.size - headOffset), AudioTrack.WRITE_NON_BLOCKING)
                                 check(count >= 0) { "Speaker write failed ($count)" }
+                                writtenFrames += count / 2
                                 headOffset += count
                                 queueBytes -= count
                                 if (headOffset == chunk.size) { queue.removeFirst(); headOffset = 0 }
@@ -208,7 +210,16 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
         queue.clear()
         queueBytes = 0
         headOffset = 0
+        writtenFrames = 0
         track?.let { output -> output.pause(); output.flush(); output.play() }
+    }
+
+    /** turnComplete means generation finished; wait for queued AND device-buffered speech. */
+    suspend fun awaitPlaybackIdle() {
+        while (synchronized(playbackLock) {
+            val output = track
+            output != null && (queueBytes > 0 || (output.playbackHeadPosition.toLong() and 0xffffffffL) < writtenFrames)
+        }) delay(20)
     }
 
     suspend fun stop() {
@@ -228,7 +239,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
         synchronized(playbackLock) {
             track?.let { runCatching { it.pause(); it.flush() }; it.release() }
             track = null
-            queue.clear(); queueBytes = 0; headOffset = 0
+            queue.clear(); queueBytes = 0; headOffset = 0; writtenFrames = 0
         }
         if (Build.VERSION.SDK_INT >= 31) manager.clearCommunicationDevice()
         else { manager.stopBluetoothSco(); manager.isBluetoothScoOn = false }

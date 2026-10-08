@@ -37,7 +37,13 @@ async def authenticate(request: Request, call_next):
 
 class TokenRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    mode: Literal["auto", "ptt"] = "auto"
+    mode: Literal["auto", "ptt", "over"] = "auto"
+    silence_ms: int = Field(default=2000, strict=True)
+
+    @field_validator("silence_ms")
+    @classmethod
+    def clamp_silence(cls, value: int) -> int:
+        return max(500, min(5000, value))
 
 
 class AppendRequest(BaseModel):
@@ -61,7 +67,7 @@ def token(request: TokenRequest):
         raise HTTPException(503, "GEMINI_API_KEY is not configured")
     model = os.getenv("GEMINI_LIVE_MODEL") or gemini.DEFAULT_MODEL
     try:
-        return gemini.create_token(api_key, model, request.mode)
+        return gemini.create_token(api_key, model, request.mode, request.silence_ms)
     except (APIError, httpx.HTTPError, RuntimeError) as exc:
         # Upstream exception text can contain credentials or request contents.
         raise HTTPException(502, "Gemini token creation failed") from exc

@@ -74,7 +74,7 @@ def test_auth_unconfigured_fails_closed(client, monkeypatch):
     assert client.post("/token", json={}).status_code == 503
 
 
-@pytest.mark.parametrize("mode", ["auto", "ptt"])
+@pytest.mark.parametrize("mode", ["auto", "ptt", "over"])
 def test_token_config_and_response(client, gemini_client, mode):
     before = datetime.now(UTC)
     response = client.post("/token", json={} if mode == "auto" else {"mode": mode})
@@ -109,7 +109,7 @@ def test_token_config_and_response(client, gemini_client, mode):
     assert declaration.parameters.required == ["text"]
     assert set(declaration.parameters.properties) == {"text", "doc_name", "confirmed_doc_id"}
     detection = live.realtime_input_config.automatic_activity_detection.model_dump(exclude_none=True)
-    if mode == "ptt":
+    if mode in ("ptt", "over"):
         assert detection == {"disabled": True}
     else:
         assert detection == {
@@ -117,7 +117,7 @@ def test_token_config_and_response(client, gemini_client, mode):
             "start_of_speech_sensitivity": "START_SENSITIVITY_LOW",
             "end_of_speech_sensitivity": "END_SENSITIVITY_LOW",
             "prefix_padding_ms": 300,
-            "silence_duration_ms": 1200,
+            "silence_duration_ms": 2000,
         }
 
 
@@ -147,7 +147,7 @@ def test_token_missing_key_and_sanitized_upstream_error(client, gemini_client, m
     assert "private-key" not in response.text
 
 
-@pytest.mark.parametrize("mode", ["auto", "ptt"])
+@pytest.mark.parametrize("mode", ["auto", "ptt", "over"])
 def test_real_sdk_http_serialization(client, monkeypatch, mode):
     """Exercise the actual SDK up to its HTTP transport, without network access."""
     requests = []
@@ -173,9 +173,9 @@ def test_real_sdk_http_serialization(client, monkeypatch, mode):
     speech = types.SpeechConfig.model_validate(setup["generationConfig"]["speechConfig"])
     assert speech.voice_config.prebuilt_voice_config.voice_name == "Kore"
     detection = types.RealtimeInputConfig.model_validate(setup["realtimeInputConfig"]).automatic_activity_detection
-    assert detection.disabled is (mode == "ptt")
+    assert detection.disabled is (mode != "auto")
     if mode == "auto":
-        assert detection.silence_duration_ms == 1200
+        assert detection.silence_duration_ms == 2000
         assert detection.prefix_padding_ms == 300
     assert setup["inputAudioTranscription"] == setup["outputAudioTranscription"] == {}
     assert "sessionResumption" not in setup

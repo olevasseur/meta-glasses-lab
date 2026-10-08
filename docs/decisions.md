@@ -13,3 +13,4 @@ Proposed 2026-10-06 from the research in `docs/research/`. Status is "proposed" 
 | 7 | App name "the glasses app", package `com.olevasseur.glassesapp`; target Pixel 10 Pro | confirmed 2026-10-06 | User choice |
 | 8 | Build order: M1 conversation + M2 notes backend in parallel, then M3 memory, M4 vision/triggers | proposed 2026-10-06 | Notes is a tool inside the conversation; backend part doesn't need glasses |
 | 9 | Phone reaches backend via `adb reverse` during dev; app holds no long-lived keys (shared secret + ephemeral Gemini tokens) | proposed | Keeps keys off the phone |
+| 10 | Auto defaults to 2000 ms patience (500–5000 ms configurable); add Over manual-turn mode with DAT-first sign-off recognition, shared-PCM Android fallback and a 45-second continuous-speech safety limit | confirmed by user 2026-10-07 | Avoid cutting off pauses; supersedes decision 3's proposed 1200 ms. Settings persist in DataStore; see `docs/features/over.md` for device limitations. |
