@@ -74,8 +74,8 @@ def response(approval_id):
     tier = 2 if item["name"] == "codex_task" else 1
     details = item["details"]
     summary = {
-        "codex_task": "Run a Codex task in the displayed repository",
-        "deep_research": "Research and publish: " + str(details.get("topic", ""))[:120],
+        "codex_task": "Run " + str(details.get("agent", "codex")).title() + " in " + str(details.get("repo", "the displayed repository")),
+        "deep_research": str(details.get("agent", "codex")).title() + " research and publish: " + str(details.get("topic", ""))[:120],
         "append_to_doc": "Create Glasses Inbox and append this note",
         "forget": "Delete saved facts matching: " + str(details.get("query", ""))[:120],
         "write_journal": "Generate and replace journal: " + str(details.get("date", "today")),
@@ -100,7 +100,7 @@ def get(approval_id):
 
 def listing(request):
     prune()
-    return {"approvals": [{"id": key, "name": item["name"]} for key, item in pending.items()]}
+    return {"approvals": [{"id": key, "name": item["name"], "agent": item.get("details", {}).get("agent"), "repo": item.get("details", {}).get("repo")} for key, item in pending.items()]}
 
 
 def install(app, prepare, execute):

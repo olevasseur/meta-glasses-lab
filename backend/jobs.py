@@ -13,6 +13,7 @@ from pathlib import Path
 
 from notes import BACKEND_DIR, match_document
 from secret_redaction import redact
+from job_agents import normalize_agent, claude_command, claude_result, compare_reports, merge_sources
 
 TERMINAL = {"completed", "failed", "cancelled"}
 
@@ -59,6 +60,8 @@ class Jobs:
                 status TEXT NOT NULL, summary TEXT NOT NULL
             );
         """)
+        if "runs" not in {r[1] for r in self.db.execute("PRAGMA table_info(jobs)")}:
+            self.db.execute("ALTER TABLE jobs ADD COLUMN runs TEXT")
         if self.db.execute("PRAGMA user_version").fetchone()[0] == 0:
             self.db.execute("UPDATE jobs SET status='failed', summary='Security upgrade: request fresh user approval.' WHERE status IN ('queued','needs_confirmation')")
             self.db.execute("PRAGMA user_version=1")
@@ -88,6 +91,9 @@ class Jobs:
     def _public(self, row):
         result = {k: row[k] for k in ("id", "kind", "status", "summary", "created", "updated", "worktree", "branch")}
         result["job_id"] = result.pop("id")
+        result["agent"] = json.loads(row["request"]).get("agent", "codex")
+        if row["runs"]:
+            result["runs"] = json.loads(row["runs"])
         if row["doc_result"]:
             result["document"] = json.loads(row["doc_result"])
         return result
@@ -118,6 +124,12 @@ class Jobs:
         summary = redact(summary, getattr(self.notes, "credentials", None))
         if document:
             document = json.loads(redact(json.dumps(document), getattr(self.notes, "credentials", None)))
+        if status in {"cancelled", "failed"}:
+            runs = json.loads(self._row(job_id)["runs"] or "{}")
+            for run in runs.values():
+                if run["status"] == "running":
+                    run.update(status=status, summary="Interrupted; inspect retained worktree and logs.")
+            self._save_runs(job_id, runs)
         with self.db:
             self.db.execute("UPDATE jobs SET status=?,summary=?,updated=?,doc_result=? WHERE id=?",
                             (status, summary[:1500], time.time(), json.dumps(document) if document else None, job_id))
@@ -149,11 +161,27 @@ class Jobs:
             alias = result["document"]["id"]
         return {"status": "matched", "repo": alias, "path": aliases[alias]}
 
-    def codex_task(self, repo, instruction, confirm=False, job_id=None):
+    def agent_settings(self):
+        path = self.data_dir / "job-settings.json"
+        saved = json.loads(path.read_text()) if path.exists() else {}
+        return {agent: {"enabled": saved.get(agent, {}).get("enabled", os.getenv(agent.upper() + "_JOBS_ENABLED", "true").lower() == "true"),
+                        "model": saved.get(agent, {}).get("model", os.getenv(agent.upper() + "_JOB_MODEL", default))}
+                for agent, default in (("codex", "gpt-6-astra"), ("claude", "claude-opus-5-5"))}
+
+    def _check_agent(self, agent):
+        agent = normalize_agent(agent)
+        settings = self.agent_settings()
+        for name in ("codex", "claude") if agent == "both" else (agent,):
+            if not settings[name]["enabled"]:
+                raise ValueError("Requested job agent is disabled")
+        return agent
+
+    def codex_task(self, repo, instruction, confirm=False, job_id=None, agent="codex"):
+        agent = self._check_agent(agent)
         resolved = self._resolve_repo(repo)
         if resolved["status"] != "matched":
             return resolved
-        request = {"repo": resolved["repo"], "path": resolved["path"], "instruction": instruction}
+        request = {"repo": resolved["repo"], "path": resolved["path"], "instruction": instruction, "agent": agent}
         if confirm:
             row = self._row(job_id) if job_id else None
             if not row or row["kind"] != "codex_task" or json.loads(row["request"]) != request:
@@ -164,15 +192,16 @@ class Jobs:
                 return {"status": "confirmation_expired", "summary": "Request a new preview and ask for confirmation again."}
             with self.db:
                 self.db.execute("UPDATE jobs SET status='queued',summary=?,updated=? WHERE id=?",
-                                ("Codex task queued for " + request["repo"] + ".", time.time(), job_id))
+                                (agent.title() + " task queued for " + request["repo"] + ".", time.time(), job_id))
             self._schedule(job_id)
         else:
-            summary = f"Run Codex in a new worktree of {request['repo']}: {instruction[:500]}. It will not push or merge. Shall I start?"
+            summary = f"Run {agent.title()} in a new worktree of {request['repo']}: {instruction[:500]}. It will not push or merge. Shall I start?"
             job_id = self._insert("codex_task", "needs_confirmation", request, summary)
         return self.status(job_id)
 
-    def deep_research(self, topic, doc_name="Glasses Research"):
-        job_id = self._insert("deep_research", "queued", {"topic": topic, "doc_name": doc_name}, f"Research queued: {topic[:200]}.")
+    def deep_research(self, topic, doc_name="Glasses Research", agent="codex"):
+        agent = self._check_agent(agent)
+        job_id = self._insert("deep_research", "queued", {"topic": topic, "doc_name": doc_name, "agent": agent}, f"Research queued: {topic[:200]}.")
         self._schedule(job_id)
         return self.status(job_id)
 
@@ -224,19 +253,23 @@ class Jobs:
         except ProcessLookupError:
             pass
         # Drain killed child's pipes so Process.wait cannot hang on a full buffer.
-        if proc.stdout:
-            while await proc.stdout.read(65536):
-                pass
+        for stream in (proc.stdout, getattr(proc, "stderr", None)):
+            if stream:
+                while await stream.read(65536):
+                    pass
         await proc.wait()
 
     async def _exec(self, job_id, command, cwd, log):
         # Don't leak the backend's Google/Gemini/shared credentials into child env.
         env = {k: os.environ[k] for k in ("PATH", "HOME", "USER", "TMPDIR", "JAVA_HOME", "ANDROID_HOME", "CODEX_HOME") if k in os.environ}
         env["GIT_TERMINAL_PROMPT"] = "0"
-        chunks, size = [], 0
+        chunks, errors, size = [], [], 0
+        separate_errors = command[0] == "claude"
         spawn = asyncio.create_task(asyncio.create_subprocess_exec(
             *command, cwd=cwd, env=env, stdin=asyncio.subprocess.DEVNULL,
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT, start_new_session=True,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE if separate_errors else asyncio.subprocess.STDOUT,
+            start_new_session=True,
         ))
         try:
             proc = await asyncio.shield(spawn)
@@ -246,11 +279,19 @@ class Jobs:
             raise
         self.processes[job_id] = proc
         try:
-            while chunk := await proc.stdout.read(65536):
-                size += len(chunk)
-                if size > 1_000_000:
-                    raise ValueError("Subprocess log limit exceeded")
-                chunks.append(chunk)
+            async def drain(stream, target):
+                nonlocal size
+                while chunk := await stream.read(65536):
+                    size += len(chunk)
+                    if size > 1_000_000:
+                        raise ValueError("Subprocess log limit exceeded")
+                    target.append(chunk)
+            if separate_errors:
+                async with asyncio.TaskGroup() as group:
+                    group.create_task(drain(proc.stdout, chunks))
+                    group.create_task(drain(proc.stderr, errors))
+            else:
+                await drain(proc.stdout, chunks)
             code = await proc.wait()
             if code:
                 raise RuntimeError("Command failed")
@@ -264,16 +305,28 @@ class Jobs:
             with os.fdopen(fd, "w") as output:
                 os.fchmod(output.fileno(), 0o600)
                 output.write(content)
+            if separate_errors:
+                fd = os.open(log.with_suffix(".stderr.log"), os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+                with os.fdopen(fd, "w") as output:
+                    os.fchmod(output.fileno(), 0o600)
+                    output.write(redact(b"".join(errors).decode("utf-8", errors="replace"),
+                                        getattr(self.notes, "credentials", None)))
 
     async def _run(self, job_id):
         try:
+            row = self._row(job_id)
+            agent = json.loads(row["request"]).get("agent", "codex")
+            # A comparison owns no slot; each of its two CLI runs acquires one.
+            if agent == "both":
+                await self._execute(row)
+                return
             async with self.semaphore:
                 row = self._row(job_id)
-                label = "Codex task" if row["kind"] == "codex_task" else "Research"
+                label = agent.title() + (" task" if row["kind"] == "codex_task" else " research")
                 with self.db:
                     self.db.execute("UPDATE jobs SET status='running',summary=?,updated=? WHERE id=?",
                                     (label + " is running.", time.time(), job_id))
-                async with asyncio.timeout(self.timeouts[row["kind"]]):
+                async with asyncio.timeout(3600 if agent == "claude" and row["kind"] == "codex_task" else self.timeouts[row["kind"]]):
                     await self._execute(row)
         except asyncio.CancelledError:
             if self.closing:
@@ -289,10 +342,11 @@ class Jobs:
             # Raw subprocess/Google errors may contain private data. Logs stay on Mac.
             self._finish(job_id, "failed", "Job failed. Check its local logs and configuration before retrying.")
 
-    async def _execute(self, row):
+    async def _agent_result(self, row, agent, folder):
         job_id, kind = row["id"], row["kind"]
         request = json.loads(row["request"])
-        folder = self.data_dir / "jobs" / job_id
+        self._check_agent(agent)
+        execution_id = job_id + ":" + agent if request.get("agent") == "both" else job_id
         folder.mkdir(parents=True, mode=0o700)
         output = folder / "result.json"
         schema = folder / "result-schema.json"
@@ -300,7 +354,7 @@ class Jobs:
             "summary": {"type": "string", "description": "Two or three short spoken sentences, maximum 600 characters."},
             "report": {"type": "string", "description": "Full Markdown report, including source URLs for research."},
         }, "required": ["summary", "report"], "additionalProperties": False}))
-        command = ["codex", "exec", "--ignore-user-config", "--ephemeral", "-m", "gpt-6-astra",
+        command = ["codex", "exec", "--ignore-user-config", "--ephemeral", "-m", self.agent_settings()[agent]["model"],
                    "-c", "model_reasoning_effort=high", "-c", 'approval_policy="never"',
                    "-c", "sandbox_workspace_write.network_access=false", "--output-schema", str(schema), "-o", str(output)]
         if kind == "codex_task":
@@ -310,15 +364,17 @@ class Jobs:
             repo = Path(request["path"])
             # Git must see this exact directory as the repository root (no ancestor fallback).
             root_file = folder / "repo-root.log"
-            await self._exec(job_id, ["git", "-C", str(repo), "rev-parse", "--show-toplevel"], repo, root_file)
+            await self._exec(execution_id, ["git", "-C", str(repo), "rev-parse", "--show-toplevel"], repo, root_file)
             if Path(root_file.read_text().strip()).resolve() != repo:
                 raise ValueError("Allowlisted path is not a repository root")
             slug = re.sub(r"[^a-z0-9]+", "-", request["repo"]).strip("-")[:40] or "task"
-            branch = f"glasses/{slug}-{time.strftime('%Y%m%d-%H%M%S', time.gmtime())}-{job_id[:8]}"
+            branch = f"glasses/{'claude-' if agent == 'claude' else ''}{slug}-{time.strftime('%Y%m%d-%H%M%S', time.gmtime())}-{job_id[:8]}"
             cwd = folder / "worktree"
-            with self.db:
-                self.db.execute("UPDATE jobs SET worktree=?,branch=? WHERE id=?", (str(cwd), branch, job_id))
-            await self._exec(job_id, ["git", "-c", "core.hooksPath=/dev/null", "-C", str(repo), "worktree", "add", "-b", branch, str(cwd), "HEAD"], repo, folder / "git.log")
+            self._save_run(job_id, agent, {"status": "running", "worktree": str(cwd), "branch": branch})
+            if request.get("agent") != "both":
+                with self.db:
+                    self.db.execute("UPDATE jobs SET worktree=?,branch=? WHERE id=?", (str(cwd), branch, job_id))
+            await self._exec(execution_id, ["git", "-c", "core.hooksPath=/dev/null", "-C", str(repo), "worktree", "add", "-b", branch, str(cwd), "HEAD"], repo, folder / "git.log")
             command += ["-s", "workspace-write", "-c", 'web_search="disabled"', "-C", str(cwd)]
             prompt = ("Work only in this worktree. Never push, merge, publish, deploy, change branches, or modify another checkout. "
                       "Do not commit; leave edits for human review. Do not attempt to bypass sandbox restrictions. "
@@ -332,7 +388,17 @@ class Jobs:
                       "Do not edit files, run code from sources, or access private local files. "
                       "Return a structured report with a title, findings, caveats/unverified items, and source URLs with today's access date. "
                       "Use primary sources where possible. Include a separate two or three sentence spoken summary (at most 600 characters). Topic: " + request["topic"])
-        await self._exec(job_id, command + ["--", prompt], cwd, folder / "codex.log")
+        if agent == "claude":
+            prompt += " Shell commands are disabled; report tests as not run. Never edit outside this working directory."
+            command = claude_command(self.agent_settings()[agent]["model"], schema.read_text(), prompt, kind == "codex_task")
+            log = folder / "claude.log"
+            await self._exec(execution_id, command, cwd, log)
+            result = claude_result(log.read_text())
+            with output.open("x") as stream:
+                output.chmod(0o600)
+                json.dump(result, stream)
+        else:
+            await self._exec(execution_id, command + ["--", prompt], cwd, folder / "codex.log")
         if output.stat().st_size > 500_000:
             raise ValueError("Oversized result")
         if output.is_symlink() or not output.is_file():
@@ -349,8 +415,70 @@ class Jobs:
         with report_path.open("x") as stream:
             report_path.chmod(0o600)
             stream.write(report)
+        details = {"summary": summary, "report": report, "status": "completed"}
+        if kind == "codex_task":
+            details.update(worktree=str(cwd), branch=branch)
+            if agent == "claude" or request.get("agent") == "both":
+                # Include new/untracked files without staging or mutating the agent's index.
+                await self._exec(execution_id, ["git", "-c", "core.hooksPath=/dev/null", "diff", "--no-ext-diff", "--no-textconv", "--stat", "HEAD"], cwd, folder / "diff-stat.log")
+                await self._exec(execution_id, ["git", "ls-files", "--others", "--exclude-standard"], cwd, folder / "untracked.log")
+                details["diff_stats"] = (folder / "diff-stat.log").read_text()[:10000]
+                details["untracked_files"] = (folder / "untracked.log").read_text()[:10000]
+                details["tests"] = "Not run: shell execution disabled" if agent == "claude" else "Agent-reported only; see report"
+        return details
+
+    async def _execute(self, row):
+        job_id, kind = row["id"], row["kind"]
+        request = json.loads(row["request"])
+        agent = self._check_agent(request.get("agent", "codex"))
+        folder = self.data_dir / "jobs" / job_id
+        if agent == "both":
+            async def run(name):
+                async with self.semaphore:
+                    with self.db:
+                        self.db.execute("UPDATE jobs SET status='running',summary='Comparing agents.',updated=? WHERE id=?", (time.time(), job_id))
+                    self._save_run(job_id, name, {"status": "running"})
+                    try:
+                        timeout = 3600 if name == "claude" and kind == "codex_task" else self.timeouts[kind]
+                        async with asyncio.timeout(timeout):
+                            result = await self._agent_result(row, name, folder / name)
+                    except Exception:
+                        result = {"status": "failed", "summary": "Agent failed; inspect local logs.", "report": "No completed report."}
+                    self._save_run(job_id, name, result)
+                    return json.loads(self._row(job_id)["runs"])[name]
+            async with asyncio.TaskGroup() as group:
+                tasks = {name: group.create_task(run(name)) for name in ("codex", "claude")}
+            runs = {name: task.result() for name, task in tasks.items()}
+            self._save_runs(job_id, runs)
+            try:
+                comparison = await asyncio.to_thread(compare_reports, runs, kind == "deep_research")
+                summary, report = comparison["summary"][:600], comparison["report"]
+            except Exception:
+                summary = "Agent results saved. Gemini comparison is unavailable; review both reports on the Mac."
+                report = "Comparison unavailable. Disagreements have not been assessed.\n\n" + "\n\n".join(
+                    "## " + name.title() + "\n" + run["report"] for name, run in runs.items())
+            if kind == "deep_research":
+                # Sources come from the original reports, with one canonical list.
+                report = re.sub(r'https?://[^\s<>\[\]()"\x27]+', '(see Sources)', report)
+                report += "\n\n## Sources (deduplicated)\n" + merge_sources(runs)
+            else:
+                report += "\n\n## Agent evidence (tests are self-reported)\n" + json.dumps(runs, indent=2)
+            report = redact(report, getattr(self.notes, "credentials", None))
+            with (folder / "report.md").open("x") as stream:
+                (folder / "report.md").chmod(0o600)
+                stream.write(report)
+            if any(run["status"] != "completed" for run in runs.values()):
+                self._finish(job_id, "failed", "Comparison incomplete: " + summary)
+                return
+        else:
+            result = await self._agent_result(row, agent, folder)
+            self._save_runs(job_id, {agent: result})
+            summary, report = result["summary"], result["report"]
         document = None
         if kind == "deep_research":
+            if len(report) > 100_000:
+                self._finish(job_id, "completed", summary + " Report retained locally; too large for Google Docs.")
+                return
             if not self.notes.token_path.exists():
                 document = {"status": "skipped", "reason": "Google token not configured"}
                 summary += " Report saved on the Mac; Google Docs is not configured."
@@ -362,3 +490,13 @@ class Jobs:
                 summary += (" Saved to " + document["doc_title"] + "." if document["status"] == "ok"
                             else " Report saved on the Mac; Google Docs needs attention.")
         self._finish(job_id, "completed", summary, document)
+
+    def _save_runs(self, job_id, runs):
+        with self.db:
+            self.db.execute("UPDATE jobs SET runs=? WHERE id=?", (
+                redact(json.dumps(runs), getattr(self.notes, "credentials", None)), job_id))
+
+    def _save_run(self, job_id, agent, result):
+        runs = json.loads(self._row(job_id)["runs"] or "{}")
+        runs[agent] = {**runs.get(agent, {}), **result}
+        self._save_runs(job_id, runs)

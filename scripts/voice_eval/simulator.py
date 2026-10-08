@@ -44,20 +44,20 @@ class FakeJobs:
     def _row(self, job_id):
         if job_id != JOB_ID or self.preview is None:
             raise ValueError('Unknown preview')
-        repo, instruction = self.preview
-        return {'request':json.dumps({'repo':'/synthetic/repos/'+repo,'instruction':instruction})}
+        repo, instruction, agent = self.preview
+        return {'request':json.dumps({'repo':'/synthetic/repos/'+repo,'instruction':instruction,'agent':agent})}
 
-    def codex_task(self, repo, instruction, confirm=False, job_id=None):
+    def codex_task(self, repo, instruction, confirm=False, job_id=None, agent="codex"):
         if not confirm:
-            self.preview = (repo, instruction)
+            self.preview = (repo, instruction, agent)
             return {'status':'needs_confirmation','job_id':JOB_ID,
                     'summary':f'Preview: {repo}: {instruction}'}
-        if self.preview != (repo, instruction) or job_id != JOB_ID:
+        if self.preview != (repo, instruction, agent) or job_id != JOB_ID:
             return {'status':'error','message':'A matching preview is required'}
         self.executed.append('codex_task')
         return {'status':'queued','job_id':JOB_ID}
 
-    def deep_research(self, topic, doc_name='Glasses Research'):
+    def deep_research(self, topic, doc_name='Glasses Research', agent='codex'):
         self.executed.append('deep_research')
         return {'status':'queued','job_id':JOB_ID}
 

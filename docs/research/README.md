@@ -75,3 +75,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   Gemini evaluation. Hardware codec, beamforming and SCO effects remain unverified.
 
 - [memory-eval-notes.md](memory-eval-notes.md) — **2026-10-08**: synthetic memory evaluation, profile budget starvation, event-time corrections, key aliases and lexical recall.
+
+- [Claude Code headless jobs](claude-code-headless.md) — **2026-10-08**:
+  documented restricted print-mode policy, subscription-safe CLI options,
+  both-agent scheduling/comparison, agent-bound approval and external smoke script.
