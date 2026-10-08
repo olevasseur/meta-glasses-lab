@@ -82,8 +82,8 @@ def test_gesture_tool_is_client_owned(client, monkeypatch):
     monkeypatch.setattr(app, "notes", notes_mock)
     monkeypatch.setattr(memory_api, "memory", memory_mock)
     response = client.post("/tools/await_gesture_confirmation", json={"question": "Forget this fact?"})
-    assert response.status_code == 404
-    assert response.json() == {"detail": "Tool runs on the phone"}
+    assert response.status_code == 400
+    assert response.json() == {"detail": "This tool must be executed on the glasses app"}
     assert notes_mock.mock_calls == memory_mock.mock_calls == []
 
 
@@ -94,7 +94,8 @@ def test_token_config_and_response(client, gemini_client, mode):
     after = datetime.now(UTC)
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
-    assert set(response.json()) == {"token", "model", "expires_at"}
+    assert set(response.json()) == {"token", "model", "expires_at", "client_tools"}
+    assert response.json()["client_tools"] == ["await_gesture_confirmation", "look", "set_watch_mode"]
     assert response.json()["token"] == "auth_tokens/test"
     assert response.json()["model"] == "gemini-3.8-live"
     client_mock, factory = gemini_client

@@ -15,11 +15,22 @@ class BackendClientTest {
             val backend = BackendClient(OkHttpClient(), server.url("/").toString(), "test")
             for ((mode, silence) in listOf(ConversationMode.OVER to 2000, ConversationMode.AUTO to 3250, ConversationMode.AUTO to 8000)) {
                 server.enqueue(MockResponse().setBody("""{"token":"test","model":"gemini-3.8-live","expires_at":"2026-10-07T21:00:00Z"}"""))
-                backend.token(mode, silence)
+                assertTrue(backend.token(mode, silence).clientTools.isEmpty())
                 val body = JSONObject(server.takeRequest().body.readUtf8())
                 assertEquals(mode.wireName, body.getString("mode"))
                 if (mode == ConversationMode.AUTO) assertEquals(silence.coerceIn(500, 5000), body.getInt("silence_ms"))
                 else assertFalse(body.has("silence_ms"))
+            }
+        }
+    }
+    @Test fun tokenAdvertisesClientExecutedTools() = runBlocking {
+        MockWebServer().use { server ->
+            server.start()
+            val backend = BackendClient(OkHttpClient(), server.url("/").toString(), "test")
+            for (mode in ConversationMode.entries) {
+                server.enqueue(MockResponse().setBody("""{"token":"auth_tokens/test","model":"gemini-3.8-live","expires_at":"2026-10-07T21:00:00Z","client_tools":["await_gesture_confirmation","look","set_watch_mode"]}"""))
+                assertEquals(setOf("await_gesture_confirmation", "look", "set_watch_mode"), backend.token(mode).clientTools)
+                assertEquals(mode.wireName, JSONObject(server.takeRequest().body.readUtf8()).getString("mode"))
             }
         }
     }

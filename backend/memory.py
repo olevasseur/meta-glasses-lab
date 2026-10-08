@@ -214,7 +214,9 @@ class Memory:
             data = json.dumps({"What you know about the user": facts, "Recent session summaries": summaries}, ensure_ascii=False)
             if len((prefix + data).encode("utf-8")) <= 8000:
                 return prefix + data
-            if len(facts) > 10 or not summaries:
+            # Keep the newest summary when possible, even when a larger system
+            # prompt leaves room for fewer than ten facts.
+            if len(facts) > 10 or not summaries or (len(summaries) == 1 and facts):
                 facts.pop()
             else:
                 summaries.pop()

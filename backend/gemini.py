@@ -6,7 +6,7 @@ from pathlib import Path
 from google import genai
 from google.genai import types
 
-from tools import DECLARATIONS
+from tools import CLIENT_TOOL_NAMES, DECLARATIONS
 
 DEFAULT_MODEL = "gemini-3.8-live"
 PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
@@ -69,4 +69,5 @@ def create_token(
         "token": token.name,
         "model": model,
         "expires_at": token.expire_time or config.expire_time.isoformat(),
+        "client_tools": CLIENT_TOOL_NAMES,
     }

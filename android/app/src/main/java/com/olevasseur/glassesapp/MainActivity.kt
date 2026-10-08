@@ -43,6 +43,11 @@ class MainActivity : ComponentActivity() {
             model.error("Glasses microphone permission denied. HFP/phone audio can still be tested.")
         }
     }
+    private val cameraPermission = registerForActivityResult(Wearables.RequestPermissionContract()) { result ->
+        if (result.getOrDefault(PermissionStatus.Denied) != PermissionStatus.Granted) {
+            model.error("Glasses camera permission denied. Grant it before asking Gemini to look.")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,6 +68,14 @@ class MainActivity : ComponentActivity() {
                                 if (status.getOrDefault(PermissionStatus.Denied) != PermissionStatus.Granted) {
                                     glassesPermission.launch(Permission.MICROPHONE)
                                 }
+                            }
+                        }
+                    },
+                    requestCameraPermission = {
+                        lifecycleScope.launch {
+                            if (model.glasses.initialize() && Wearables.checkPermissionStatus(Permission.CAMERA)
+                                    .getOrDefault(PermissionStatus.Denied) != PermissionStatus.Granted) {
+                                cameraPermission.launch(Permission.CAMERA)
                             }
                         }
                     },
@@ -96,6 +109,7 @@ private fun ConversationScreen(
     permissions: () -> Unit,
     register: () -> Unit,
     requestGlassesPermission: () -> Unit,
+    requestCameraPermission: () -> Unit,
 ) {
     Surface(Modifier.fillMaxSize()) {
         Column(Modifier.safeDrawingPadding().padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -108,6 +122,7 @@ private fun ConversationScreen(
                 OutlinedButton(onClick = permissions, enabled = !state.running) { Text("Permissions") }
             }
             TextButton(onClick = requestGlassesPermission, enabled = !state.running) { Text("Grant DAT microphone permission") }
+            TextButton(onClick = requestCameraPermission, enabled = !state.running) { Text("Grant DAT camera permission") }
             Text("Meta AI → Settings → App Info → tap version 5× → Developer Mode", style = MaterialTheme.typography.bodySmall)
             ConversationSettingsControls(state.settings, !state.running && !state.stopping && state.settingsLoaded, model::setSettings)
             Button(onClick = { if (state.running) model.stop() else model.start() }, enabled = !state.stopping && state.permissions && state.settingsLoaded, modifier = Modifier.fillMaxWidth()) {
@@ -125,12 +140,18 @@ private fun ConversationScreen(
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             val gestureState by model.gestures.state.collectAsStateWithLifecycle()
             GestureControls(gestureState, model::setGestures, model.gestures::setSensitivity)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = state.watchMode, onCheckedChange = model::setWatchMode, enabled = state.connected)
+                Text("Watch mode · 2 minute limit", modifier = Modifier.padding(start = 8.dp))
+            }
+            Text("${state.camera}. Ask: What am I looking at?", style = MaterialTheme.typography.bodySmall)
             if (BuildConfig.DEBUG) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(checked = state.mock, onCheckedChange = model::setMock, enabled = !state.running && !state.stopping)
                     Text("Mock glasses (phone audio)", modifier = Modifier.padding(start = 8.dp))
                 }
                 if (state.mock && state.ptt) OutlinedButton(onClick = model.glasses::mockHold, enabled = state.connected) { Text("Simulate capture hold") }
+                if (state.mock) Text("Vision uses the sample image: a blue mug and an orange.", style = MaterialTheme.typography.bodySmall)
             }
             Text("Live transcript", style = MaterialTheme.typography.titleMedium)
             if (state.transcript.isEmpty()) Text("Your conversation will appear here.")

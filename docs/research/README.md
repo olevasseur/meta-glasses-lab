@@ -10,6 +10,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 | [m2-backend-notes.md](m2-backend-notes.md) | google-genai ephemeral tokens + Docs API (verified while building M2) | `gemini-3.8-live` works with ephemeral tokens; `lock_additional_fields` semantics. |
 | [m3-memory-notes.md](m3-memory-notes.md) | SQLite memory + Gemini text summaries (2026-10-07) | Flash-Lite 3.5 free-tier model, real JSON schema compatibility, real summary and Live setup checks. |
 | [over-mode-notes.md](over-mode-notes.md) | Over turn control, DAT speech and shared PCM (2026-10-07) | DAT partial/final API verified; Android on-device PCM fallback; real manual-activity PCM session passed. Over now ends on keyword or 10-second silence, with no speech limit. Auto defaults to 2000 ms. |
+| [m4-vision-notes.md](m4-vision-notes.md) | DAT camera + Gemini Live vision (2026-10-07) | Photo-from-stream, mock media, realtime JPEG and image-bound tool responses verified with real auto/PTT tokens. |
 | [google-docs-notes.md](google-docs-notes.md) | Voice → Google Docs | Backend function tool, Desktop OAuth client published to production, Inbox doc + alias map + rapidfuzz. Keep API is Workspace-only. |
 | [head-gestures.md](head-gestures.md) | Head gestures (2026-10-07) | Real DAT Motion 1.0.0, pure Kotlin detector, explicit Gemini confirmation tool; auto/PTT real API smoke passed. Hardware thresholds/axes still need validation. |
 

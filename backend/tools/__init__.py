@@ -4,6 +4,7 @@ from google.genai import types
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from gesture_tools import AWAIT_GESTURE_CONFIRMATION
+from vision import CLIENT_TOOLS
 
 
 class Arguments(BaseModel):
@@ -92,4 +93,6 @@ REGISTRY = {
     "forget": (ForgetRequest, "memory", "forget", FORGET),
     "await_gesture_confirmation": (None, "client", None, AWAIT_GESTURE_CONFIRMATION),
 }
+REGISTRY.update({tool.name: (None, "client", None, tool) for tool in CLIENT_TOOLS})
+CLIENT_TOOL_NAMES = [name for name, entry in REGISTRY.items() if entry[1] == "client"]
 DECLARATIONS = [entry[3] for entry in REGISTRY.values()]

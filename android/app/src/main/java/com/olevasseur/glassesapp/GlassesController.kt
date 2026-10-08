@@ -2,8 +2,10 @@ package com.olevasseur.glassesapp
 
 import android.app.Activity
 import android.content.Context
+import android.net.Uri
 import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.selectors.AutoDeviceSelector
+import com.meta.wearable.dat.core.selectors.DeviceSelector
 import com.meta.wearable.dat.core.session.DeviceSessionState
 import com.meta.wearable.dat.core.session.DeviceSession
 import com.meta.wearable.dat.core.types.LinkState
@@ -42,6 +44,7 @@ class GlassesController(
     private var inputsJob: Job? = null
     private val mutableSession = MutableStateFlow<DeviceSession?>(null)
     val activeSession = mutableSession.asStateFlow()
+    private var deviceSession: DeviceSession? = null
     private var mock: MockGlasses? = null
     private val kit by lazy { MockDeviceKit.getInstance(context) }
 
@@ -72,18 +75,30 @@ class GlassesController(
 
     fun register(activity: Activity) { if (initialize()) Wearables.startRegistration(activity) }
 
+    // Camera, Inputs, Motion and Speech share one DAT session on Main.
+    fun acquireSession(selector: DeviceSelector): DeviceSession {
+        deviceSession?.takeIf { it.state.value != DeviceSessionState.STOPPED && it.state.value != DeviceSessionState.STOPPING }?.let { return it }
+        return Wearables.createSession(selector)
+            .fold(onSuccess = { it }, onFailure = { error, _ -> error(error.description) })
+            .also { deviceSession = it; it.start() }
+    }
+
+    fun releaseCameraSession(session: DeviceSession) {
+        if (inputsJob?.isActive != true && deviceSession === session) {
+            session.stop(); deviceSession = null
+        }
+    }
+
     fun startInputs() {
         if (inputsJob?.isActive == true) return
         if (!initialized) return
         inputsJob = scope.launch {
             AutoDeviceSelector().activeDeviceFlow().collectLatest { id ->
                 if (id == null) { onInputs("No glasses; use on-screen talk"); return@collectLatest }
-                val session = Wearables.createSession(com.meta.wearable.dat.core.selectors.SpecificDeviceSelector(id))
-                    .fold(onSuccess = { it }, onFailure = { error, _ -> onInputs(error.description); null })
-                    ?: return@collectLatest
+                val session = try { acquireSession(com.meta.wearable.dat.core.selectors.SpecificDeviceSelector(id)) }
+                    catch (_: Exception) { onInputs("Cannot start glasses session"); return@collectLatest }
                 try {
                     coroutineScope {
-                        session.start()
                         withTimeout(15_000) { session.state.first { it == DeviceSessionState.STARTED } }
                         mutableSession.value = session
                         // Motion can remain usable even if capture inputs are unavailable.
@@ -122,6 +137,7 @@ class GlassesController(
                 } finally {
                     if (mutableSession.value === session) mutableSession.value = null
                     session.stop()
+                    if (deviceSession === session) deviceSession = null
                     onInputLost()
                 }
             }
@@ -140,6 +156,8 @@ class GlassesController(
                 onSuccess = { glasses ->
                     mock = glasses
                     glasses.powerOn(); glasses.unfold(); glasses.don()
+                    glasses.services.camera.setCameraFeed(Uri.parse("android.resource://${context.packageName}/${R.raw.vision_stream}"))
+                    glasses.services.camera.setCapturedImage(Uri.parse("android.resource://${context.packageName}/${R.raw.vision_sample}"))
                 },
                 onFailure = { error, _ -> kit.disable(); onError("Mock: ${error.description}") },
             )

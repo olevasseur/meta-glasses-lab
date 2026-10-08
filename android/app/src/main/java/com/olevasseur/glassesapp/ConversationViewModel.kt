@@ -36,6 +36,8 @@ data class ConversationState(
     val connected: Boolean = false,
     val talking: Boolean = false,
     val mock: Boolean = false,
+    val camera: String = "Camera off",
+    val watchMode: Boolean = false,
     val transcript: List<TranscriptLine> = emptyList(),
     val lastTool: String = "None",
     val error: String? = null,
@@ -78,7 +80,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val gemini: GeminiSession = GeminiSession(
         scope = viewModelScope, backend = backend, audio = audio,
         onState = { label, connected ->
-            if (!connected) { screenTalking = false; glassesTalking = false; gestures.disconnected() }
+            if (!connected) { screenTalking = false; glassesTalking = false; gestures.disconnected(); vision.stop() }
             mutableState.update { it.copy(gemini = label, connected = connected) }
             if (state.value.settings.mode == ConversationMode.OVER) {
                 if (connected) beginOverTurn() else { overResumeJob?.cancel(); over.stop() }
@@ -98,9 +100,16 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             mutableState.update { it.copy(talking = value) }
         },
         onFatal = { message -> error(message); stop() },
-        onLocalTool = gestures::localTool,
+        localTool = { call -> gestures.localTool(call)?.let { ToolResult(it) } ?: vision.tool(call) },
         onEvent = gestures::onEvent,
     )
+    private val camera: GlassesCamera by lazy {
+        GlassesCamera(viewModelScope, glasses) { label -> mutableState.update { it.copy(camera = label) } }
+    }
+    private val vision: VisionController by lazy {
+        VisionController(viewModelScope, camera::capture, gemini::sendImage, camera::stop,
+            onWatch = { enabled -> mutableState.update { it.copy(watchMode = enabled) } }, onError = ::error)
+    }
     val glasses = GlassesController(application, viewModelScope,
         onGlasses = { label -> mutableState.update { it.copy(glasses = label) } },
         onInputs = { label -> mutableState.update { it.copy(inputs = label) } },
@@ -119,7 +128,9 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     fun setGestures(enabled: Boolean) {
         gestures.setEnabled(enabled)
         if (state.value.running && !state.value.stopping) {
-            if (enabled || state.value.settings.mode != ConversationMode.AUTO) glasses.startInputs() else glasses.stopInputs()
+            // Disabling Motion must not stop a camera sharing this session.
+            // Inputs/session stay attached until conversation Stop.
+            if (enabled) glasses.startInputs()
         }
     }
 
@@ -206,10 +217,15 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         gemini.setTalking(false)
     }
 
+    fun setWatchMode(enabled: Boolean) {
+        if (!enabled || state.value.connected) vision.setWatchMode(enabled)
+    }
+
     fun stop() {
         if (state.value.stopping || !state.value.running) return
         mutableState.update { it.copy(stopping = true, connected = false, talking = false) }
         overResumeJob?.cancel(); over.stop()
+        vision.stop()
         gemini.stop()
         memory.stop()
         gestures.disconnected()
@@ -237,6 +253,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
 
     override fun onCleared() {
         overResumeJob?.cancel(); over.stop()
+        vision.stop()
         gemini.close(); glasses.close()
         memory.stop()
         // viewModelScope is already cancelled; finish releasing platform audio on a cleanup scope.

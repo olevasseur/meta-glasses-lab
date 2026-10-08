@@ -28,7 +28,7 @@ backend (Python/FastAPI on the Mac; phone reaches it via `adb reverse tcp:8787 t
 Request: `{}` or `{"mode":"auto","silence_ms":2000}` (header `X-App-Secret: <shared secret from .env APP_SHARED_SECRET>`). Auto patience clamps to 500–5000 ms; default 2000.
 Response:
 ```json
-{"token": "<gemini ephemeral token name>", "model": "gemini-3.8-live", "expires_at": "<ISO8601>"}
+{"token": "<gemini ephemeral token name>", "model": "gemini-3.8-live", "expires_at": "<ISO8601>", "client_tools": ["await_gesture_confirmation", "look", "set_watch_mode"]}
 ```
 The backend locks the session config into the token (`liveConnectConstraints`): model, system instruction, voice, VAD, tool declarations. The app connects to the Live API WebSocket with this token and sends a minimal setup message.
 
@@ -39,6 +39,10 @@ Session config (backend-owned):
 - `responseModalities: ["AUDIO"]`, input + output audio transcription enabled
 - Tools: function declarations (see below)
 
+`client_tools` identifies declarations executed on Android, not `/tools`. M4 adds
+`look(question)` and `set_watch_mode(on)`. Camera frames go directly to Gemini;
+see [M4 vision](features/m4-vision.md) for lifecycle and image-bound tool responses.
+
 Push-to-talk mode: app may request `{"mode":"ptt"}` → backend returns a token whose config has `automaticActivityDetection.disabled=true`; app sends `activityStart`/`activityEnd`.
 
 Over mode: `{"mode":"over"}` also disables automatic activity detection. Local DAT speech (or Android on-device STT on shared PCM) ends a user activity on the selected trailing phrase. A local PCM speech-energy detector also ends the activity after 10 seconds of continuous silence (configurable from 5–30 seconds). There is no maximum turn length while speech continues. See [Over feature](features/over.md).
@@ -47,10 +51,10 @@ Over mode: `{"mode":"over"}` also disables automatic activity detection. Local D
 Header `X-App-Secret`. Body = the Gemini function call `args` object. Response = JSON object the app sends back as the `functionResponse.response`.
 
 The shared backend registry advertises notes, memory and the client-owned
-`await_gesture_confirmation` tool in every conversation mode. Android handles
-gesture confirmation locally; the backend rejects execution of that tool.
+`await_gesture_confirmation`, `look` and `set_watch_mode` tools in every conversation
+mode. Android handles these locally; the backend rejects their execution with HTTP 400.
 Memory context is included in the locked system instruction alongside the Over
-sign-off and gesture rules. See [memory](features/long-term-memory.md) and
+sign-off, gesture and vision rules. See [memory](features/long-term-memory.md) and
 [head gestures](features/head-gestures.md) for their full contracts.
 
 `append_to_doc`:
