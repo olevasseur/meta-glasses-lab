@@ -65,3 +65,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   fallback, on-device offline capture, durable text work and cached Live health;
   both Live models completed real constrained setup and text defaults were
   verified through the models list endpoint.
+
+- [HFP audio](hfp-audio.md) — **2026-10-08**: seeded narrowband/codec/loss/noise
+  stress channel, exact app resampler port, 8 kHz Vosk keyword proxy and paired
+  Gemini evaluation. Hardware codec, beamforming and SCO effects remain unverified.
