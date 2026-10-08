@@ -17,6 +17,7 @@ class TranscriptMemory(
     private val directory: File,
     private val onError: (String) -> Unit,
 ) {
+    var onApproval: suspend (JSONObject) -> Unit = {}
     var onMeetingReady: (JSONObject) -> Unit = {}
     private val sessions = linkedMapOf<String, JSONObject>()
     private val sending = Mutex()
@@ -92,6 +93,7 @@ class TranscriptMemory(
                 }
                 if (session.getBoolean("ending")) {
                     val result = if (session.has("meeting")) backend.endMeeting(id) else backend.endSession(id)
+                    if (result.optString("status") == "needs_confirmation") { onApproval(result); continue }
                     if (result.optString("status") == "processing") continue
                     check(File(directory, "$id.json").delete()) { "Cannot remove delivered memory upload" }
                     sessions.remove(id)

@@ -40,11 +40,11 @@ def declaration(name, description, properties, required=()):
 
 
 JOB_DECLARATIONS = [
-    declaration("codex_task", "Preview a Codex task in an allowlisted repo. ALWAYS call first with confirm=false. Read the preview and ask for explicit spoken confirmation or a valid app-reported nod to that pending question before calling again with confirm=true, returned job_id, and identical repo/instruction. Never infer consent. Never pushes or merges.", {
+    declaration("codex_task", "Propose a Codex task in an allowlisted repo. Android displays exact repo and instruction and requires capture or on-screen approval; never nod or spoken yes. Never resubmit confirmation fields. Never pushes or merges.", {
         "repo": ("STRING", "Spoken repository alias, never a filesystem path."),
         "instruction": ("STRING", "Exact requested task; unchanged on confirmation."),
-        "confirm": ("BOOLEAN", "True ONLY after the user explicitly approves the preview."),
-        "job_id": ("STRING", "The preview's job_id, required when confirming."),
+        "confirm": ("BOOLEAN", "Compatibility only; omit. This field never authorizes execution."),
+        "job_id": ("STRING", "Compatibility only; omit. Android owns approval handling."),
     }, ["repo", "instruction"]),
     declaration("deep_research", "Queue web research and save a sourced report to Google Docs. Returns promptly; report completion later.", {
         "topic": ("STRING", "Question/topic to research."),

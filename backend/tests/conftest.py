@@ -29,3 +29,17 @@ def isolated_visual_archive(monkeypatch, tmp_path):
 def isolated_diagnostic_logs(monkeypatch, tmp_path):
     import diagnostic_logs
     monkeypatch.setattr(diagnostic_logs, "store", diagnostic_logs.LogStore(tmp_path / "logs"))
+
+
+@pytest.fixture(autouse=True)
+def isolated_security_state(monkeypatch):
+    import approvals
+    from security_boundary import SecurityBoundary
+    monkeypatch.setenv("BACKEND_ALLOWED_HOSTS", "localhost,127.0.0.1,::1,testserver")
+    approvals.pending.clear()
+    approvals.completed.clear()
+    middleware = app.app.middleware_stack
+    while middleware is not None:
+        if isinstance(middleware, SecurityBoundary):
+            middleware.windows.clear()
+        middleware = getattr(middleware, "app", None)

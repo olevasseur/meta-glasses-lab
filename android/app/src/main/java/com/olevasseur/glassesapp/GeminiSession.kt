@@ -31,6 +31,7 @@ class GeminiSession(
     private val onEvent: (ServerEvent) -> Unit = {},
     private val localTool: suspend (FunctionCall) -> ToolResult = { ToolResult(toolError("Client tool is unavailable")) },
     private val onTranslationChanged: (String?) -> Unit = {},
+    private val onApproval: suspend (JSONObject) -> Unit = {},
     private val onClientTool: (String, JSONObject) -> Unit = { _, _ -> },
     private val sockets: WebSocket.Factory = OkHttpClient.Builder().readTimeout(0, TimeUnit.MILLISECONDS)
         .pingInterval(20, TimeUnit.SECONDS).build(),
@@ -279,6 +280,7 @@ class GeminiSession(
                 logDiagnosticTool(call.name, finished = true, failed = result.response.has("error") || result.response.optString("status") == "error")
                 onTool("${call.name}: ${result.response}")
                 deliver(call, result.response, result.jpeg)
+                onApproval(result.response)
                 if (result.response.optString("status") == "ok" && result.response.has("client_action")) {
                     onClientTool(call.name, result.response)
                 }

@@ -122,14 +122,14 @@
         }
       }
     ],
-    "allowed": [
-      "await_gesture_confirmation"
-    ],
     "forbidden_args": {
       "forget": [
         "confirmation_token"
       ]
-    }
+    },
+    "forbidden": [
+      "await_gesture_confirmation"
+    ]
   },
   {
     "id": "gesture-blue",
@@ -270,14 +270,14 @@
         }
       }
     ],
-    "allowed": [
-      "await_gesture_confirmation"
-    ],
     "forbidden_args": {
       "codex_task": [
         "confirm:true"
       ]
-    }
+    },
+    "forbidden": [
+      "await_gesture_confirmation"
+    ]
   },
   {
     "id": "research-canada",

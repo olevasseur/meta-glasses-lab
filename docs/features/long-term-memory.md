@@ -1,5 +1,7 @@
 # M3: Long-term memory
 
+**Approval update — 2026-10-08:** Remember/recall remain immediate. Forget uses app-owned nod, capture or Approve; spoken yes and returned tokens never authorize deletion. See [device approvals](device-approvals.md) for configuration, limits and verified evidence.
+
 Implemented and verified **2026-10-07**. Runtime AI remains Gemini only.
 
 ## Use it
@@ -12,11 +14,11 @@ Implemented and verified **2026-10-07**. Runtime AI remains Gemini only.
    harbour?” `recall` searches facts, summaries and transcript text, including
    fuzzy keyword matches.
 4. Say “Forget that” or “Forget my dog's name.” Gemini resolves the topic, reads
-   the matching saved facts, and asks for confirmation. Say yes to delete exactly
-   those candidates. The confirmation expires after five minutes; changed facts
-   require a new confirmation. With head gestures enabled and available, a nod
-   to the explicit pending question also confirms. This is saved-fact deletion,
-   not raw-history erasure.
+   the matching saved facts, and asks you to nod or press capture. Tap Approve on
+   the card as an alternative. Shake/Deny/60-second timeout declines; backend
+   requests expire after five minutes. Changed facts require a new request.
+   Spoken yes and tool confirmation tokens never authorize deletion. This is
+   saved-fact deletion, not raw-history erasure.
 5. Tap **Stop** (or capture HOLD to stop while leaving controls armed).
    Backgrounding/rotation keep the service and the same memory session alive.
    Final chunks upload before the backend summarizes. Next **Start** gets updated
@@ -62,7 +64,7 @@ All routes require `X-App-Secret` and use the existing no-store response policy.
 | `POST /sessions/{id}/end` | Empty body or `{}`; returns `status`, `summary`, extracted `facts`. Repeated closure returns cached summary without another Gemini request. Empty sessions need no Gemini request. |
 | `POST /tools/remember` | `{"fact":"The user lives in Toronto.","key":"user.home_city"}`. Optional stable key permits updates; normalized identical text deduplicates. |
 | `POST /tools/recall` | `{"query":"Toronto"}`; up to ten scored matches with source kind and record/session ID. |
-| `POST /tools/forget` | First `{"query":"Toronto"}`; then the same query plus returned `confirmation_token`, only after approval. |
+| `POST /tools/forget` | `{"query":"Toronto"}` proposes exact facts; the app/dashboard approves through a separate route. |
 | `POST /token` | Existing contract. Adds up to 30 recent facts and the latest three summaries to the base prompt, trimming oldest items to an 8,000 UTF-8-byte combined budget (roughly 2k English tokens). |
 
 `(session_id, seq)` is immutable and unique. Duplicate identical chunks are safe

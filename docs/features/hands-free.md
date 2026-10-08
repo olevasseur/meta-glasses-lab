@@ -1,5 +1,7 @@
 # Hands-free operation
 
+**Approval update — 2026-10-08:** While an approval card is pending, capture events approve that action before normal HOLD start/stop handling. Tier 2 Codex requires capture or screen; nod is unavailable. See [device approvals](device-approvals.md) for configuration, limits and verified evidence.
+
 Implemented and checked **2026-10-07**. Runtime AI is Gemini Live. No backend
 changes or new dependencies.
 

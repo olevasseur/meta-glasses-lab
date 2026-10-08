@@ -1,5 +1,7 @@
 # End-of-day journal
 
+**Approval update — 2026-10-08:** On-demand journal replacement uses Tier 1 device approval. Scheduled journal automation is unchanged. See [device approvals](device-approvals.md) for configuration, limits and verified evidence.
+
 Implemented and verified **2026-10-07**. Runtime AI is Gemini only. No Android
 changes or new dependencies: the existing app forwards the three new voice tools.
 

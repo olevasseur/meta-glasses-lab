@@ -1,5 +1,7 @@
 # Background jobs from the glasses
 
+**Approval update — 2026-10-08:** Codex requires capture or screen (no nod); research and cancellation require Tier 1 device approval. Dashboard fallback remains. See [device approvals](device-approvals.md) for configuration, limits and verified evidence.
+
 Implemented and checked **2026-10-07 (America/Toronto)**. Gemini Live remains the
 voice assistant. The explicitly requested developer/research tools launch the
 Mac's logged-in Codex CLI; no OpenAI API client, API key, or voice provider is added.
@@ -7,8 +9,8 @@ Mac's logged-in Codex CLI; no OpenAI API client, API key, or voice provider is a
 ## Voice and buttons
 
 - “Ask Codex to fix the failing tests in valiant.” Gemini previews the exact repo
-  and task, asks “Shall I start?”, then starts only after you say yes or give a valid nod to that pending question. Changing the
-  task requires another preview. Confirmation expires after ten minutes.
+  and task, asks you to review the phone and press capture or tap Approve. Changing the
+  task requires another preview. The device waits 60 seconds; server approval expires after five minutes.
 - “Research the capital of Canada with one official source.” A job starts in the
   background and normally appends its sourced report to **Glasses Research**.
   “Research … and save it in my travel notes” selects another Doc title or alias.
@@ -19,8 +21,8 @@ Mac's logged-in Codex CLI; no OpenAI API client, API key, or voice provider is a
   when it is ready and idle; during manual turns, replies, call/focus pauses or
   pending gesture confirmations, the phone shows a notification that opens the app.
   The existing “Last tool result” area also shows the latest event.
-- Nod confirmation uses the existing `await_gesture_confirmation` tool and its
-  single pending question. Only an actual app gesture event counts; silence never counts.
+- Research accepts an app-owned nod; Codex requires capture or screen. Model-held
+  confirmation tokens and spoken yes never count.
 
 ## Configuration
 
@@ -39,8 +41,8 @@ Populate it explicitly with spoken aliases and **absolute repository root paths*
 
 Aliases match exactly first, then use the notes module's RapidFuzz thresholds.
 Ambiguous matches ask for an alias; arbitrary paths are rejected. The preview
-records the canonical path, alias, and instruction. Confirmation must supply the
-same request and returned `job_id`; repeated confirmations return the same job.
+records the canonical path, alias, and instruction. An approval binds that stored request; only the app or dashboard consumes it.
+Repeated approval submissions cannot execute again.
 The allowlist is checked again immediately before worktree creation.
 
 Optional repo-root `.env` settings (restart after changes):
@@ -72,10 +74,10 @@ POST /tools/cancel_job   {job_id}
 GET /events?after=0&wait=20
 ```
 
-A coding preview returns `status: needs_confirmation`, `job_id`, and a summary.
-Submit `confirm: true` with that ID and the unchanged repo/instruction only after
-the user approves. A direct confirmed call without a stored preview is rejected.
-Research and confirmed coding return promptly with `status: queued`.
+Coding and research previews return `needs_confirmation`, `approval_id`, tier
+and exact review details. The device/dashboard endpoint consumes that approval;
+model confirmation fields always produce a fresh preview. Successful human
+approval queues work and returns `status: queued`.
 
 `job_status` returns the job or up to 20 jobs, active ones first. States are
 `needs_confirmation`, `queued`, `running`, `completed`, `failed`, `cancelled`.

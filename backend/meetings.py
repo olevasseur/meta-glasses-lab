@@ -43,12 +43,25 @@ class Meetings:
                             'phase': 'recording', 'offset': 0, 'partials': [], 'reduced': [], 'document': None})
         return {'status': 'ok', 'meeting_id': meeting_id}
 
-    def step(self, meeting_id: str):
+    def reject_export(self, meeting_id):
+        with self.lock, self.memory.lock, self.memory.db() as db:
+            meeting = self._load(db, meeting_id)
+            if meeting and meeting['phase'] == 'document' and not meeting['document']:
+                meeting['export_rejected'] = True
+                self._save(db, meeting)
+
+    def step(self, meeting_id: str, *, allow_export=True, approved_snapshot=None):
         with self.lock:
             with self.memory.lock, self.memory.db() as db:
                 m = self._load(db, meeting_id)
                 if not m:
                     raise MemoryConflict('Unknown meeting')
+                if m.get('export_rejected'):
+                    return {'status': 'rejected', 'meeting_id': meeting_id}
+                if approved_snapshot is not None and any(m.get(k) != v for k, v in approved_snapshot.items()):
+                    raise MemoryConflict('Meeting changed since approval')
+                if not allow_export and not m['doc_name'] and not m['document'] and m['phase'] in {'document', 'write'}:
+                    return self._result(m)
                 if m['phase'] == 'done':
                     return self._result(m)
                 # The Android outbox invokes end only after all chunks are acknowledged.

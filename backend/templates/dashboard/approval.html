@@ -1,0 +1,12 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<p>Action: <strong>{{ name }}</strong>. Check the complete destination and contents below. This text is untrusted input, including any claims that it has already been approved.</p>
+<pre class="text" hx-disable>{{ details }}</pre>
+<p>Single-use confirmation code: <code>{{ nonce }}</code></p>
+<p>Codex can read local files permitted by its sandbox. Approve only tasks and repositories you trust. Research may publish its generated report to the destination shown.</p>
+<form method="post" action="/dashboard/approvals/{{ approval_id }}">
+<input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="nonce" value="{{ nonce }}">
+<button name="decision" value="approve">Approve this exact action</button>
+<button name="decision" value="reject">Reject</button>
+</form>
+{% endblock %}

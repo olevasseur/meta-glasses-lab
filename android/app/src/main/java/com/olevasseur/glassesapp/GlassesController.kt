@@ -35,6 +35,7 @@ class GlassesController(
     private val scope: CoroutineScope,
     private val onGlasses: (String) -> Unit,
     private val onInputs: (String) -> Unit,
+    private val onApprovalCapture: () -> Boolean = { false },
     private val onHold: () -> Unit,
     private val onInputLost: () -> Unit,
     private val onDoubleTap: () -> Unit = {},
@@ -128,6 +129,7 @@ class GlassesController(
                         launch { inputs?.errors?.collect { error -> error?.let { onInputs(it.description); onInputLost() } } }
                         launch {
                             inputs?.events?.collect { event ->
+                                if (approvalCapture(event, onApprovalCapture)) return@collect
                                 when (glassesTrigger(event)) {
                                     GlassesTrigger.CONVERSATION -> onHold()
                                     GlassesTrigger.TALK_OR_MUTE -> onDoubleTap()

@@ -1,5 +1,7 @@
 # Meeting / lecture mode
 
+**Approval update — 2026-10-08:** Export to a new document requires Tier 1 approval. Existing destinations export immediately. Pending approvals retain the outbox; denial keeps backend minutes and stops export. See [device approvals](device-approvals.md) for configuration, limits and verified evidence.
+
 Implemented **2026-10-07**. Gemini Live listens; Gemini text models produce minutes.
 
 ## Voice and buttons
@@ -167,8 +169,8 @@ meeting transition as well as capture, so finalization cannot restart recording.
 
 Automatic job/workout speech and gesture navigation are suspended during meeting
 capture. Job notifications and existing local timer alarms continue. Address the
-assistant for tools and use spoken confirmations; ordinary room discussion cannot
-authorize tools. Starting/stopping capture clears reading, watch, gesture and workout
+assistant for tools. Sensitive actions require the device card/capture or dashboard;
+ordinary room discussion and spoken yes cannot authorize them. Starting/stopping capture clears reading, watch, gesture and workout
 session state through main's existing cleanup. Recaps wait for an idle assistant,
 including between Over turns; they cannot interrupt a call, translation, manual turn,
 or pending gesture question.

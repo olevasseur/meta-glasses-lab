@@ -96,6 +96,11 @@ async def evaluate(case, pcm, http, secret, timeout=45, settle_seconds=5):
             try:
                 if name in token.get('client_tools',[]):
                     reply,jpeg=android.call(name,args)
+                    if name=='delete_visual_memory':
+                        res=await asyncio.to_thread(http.post,'/visual/delete',json=args,
+                                                   headers={'X-App-Secret':secret})
+                        record['http_status']=res.status_code
+                        reply=res.json() if res.status_code==200 else {'status':'error','message':'Backend rejected deletion'}
                 else:
                     res=await asyncio.to_thread(http.post,'/tools/'+name,json=args,
                                                headers={'X-App-Secret':secret})

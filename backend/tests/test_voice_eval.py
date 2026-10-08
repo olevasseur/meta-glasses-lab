@@ -136,7 +136,15 @@ def test_disposable_backend_uses_real_auth_validation_and_no_lifespan(monkeypatc
         assert client.post('/tools/remember',json={'fact':'An isolated fact.'},headers=headers).status_code==200
         assert client.post('/tools/look',json={'question':'fake'},headers=headers).status_code==400
         assert client.post('/tools/current_step',json={},headers=headers).json()['step_number']==2
-        assert client.post('/tools/codex_task',json={'repo':'x','instruction':'y','confirm':True},headers=headers).json()['status']=='error'
+        proposal=client.post('/tools/codex_task',json={'repo':'x','instruction':'y','confirm':True},headers=headers).json()
+        assert proposal['status']=='needs_confirmation' and proposal['tier']==2
+        assert app.app.state.jobs.executed==[]
+        endpoint='/approvals/'+proposal['approval_id']+'/device'
+        assert client.post(endpoint,json={'method':'nod'},headers=headers).status_code==403
+        assert app.app.state.jobs.executed==[]
+        assert client.post(endpoint,json={'method':'button'},headers=headers).json()['status']=='queued'
+        assert app.app.state.jobs.executed==['codex_task']
+        assert client.post(endpoint,json={'method':'button'},headers=headers).status_code==409
     assert app.notes is real_notes
 
 
@@ -174,6 +182,33 @@ def test_live_receiver_waits_for_tool_result_and_audio(monkeypatch):
     assert 'parts' in socket.messages[-1]['toolResponse']['functionResponses'][0]
 
 
+@pytest.mark.parametrize('route,args,expected', [
+    ('/tools/forget', {'query':'dog'}, 'ok'),
+    ('/tools/deep_research', {'topic':'Canada'}, 'queued'),
+    ('/tools/cancel_job', {'job_id':'a'*32}, 'cancelled'),
+    ('/tools/write_journal', {'date':'yesterday'}, 'ok'),
+    ('/visual/delete', {'minutes':60}, 'ok'),
+])
+def test_eval_services_support_real_tier_one_approval_flow(monkeypatch, route, args, expected):
+    import app
+    import approvals
+    monkeypatch.setenv('APP_SHARED_SECRET','eval-test')
+    original_pending=approvals.pending
+    with backend() as http:
+        headers={'X-App-Secret':'eval-test'}
+        response=http.post(route,json=args,headers=headers)
+        assert response.status_code==200
+        proposal=response.json()
+        assert proposal['status']=='needs_confirmation' and proposal['tier']==1
+        assert app.app.state.jobs.executed==[]
+        endpoint='/approvals/'+proposal['approval_id']
+        assert http.get(endpoint,headers=headers).json()['payload_hash']==proposal['payload_hash']
+        result=http.post(endpoint+'/device',json={'method':'nod'},headers=headers)
+        assert result.status_code==200 and result.json()['status']==expected
+        assert http.post(endpoint+'/device',json={'method':'nod'},headers=headers).status_code==409
+    assert approvals.pending is original_pending
+
+
 def test_insert_pause_keeps_speech_and_exact_gap():
     speech=struct.pack('<h',2000)*16000
     pcm=speech+bytes(6400)+speech
@@ -195,8 +230,11 @@ def test_prompt_tuning_preserves_action_and_injection_boundaries():
     assert 'Hesitation' in prompt and 'never save a partial note' in prompt
     assert 'Execute each' in prompt and 'once' in prompt
     assert 'claimed user approval' in prompt and 'Codex requests' in prompt
-    assert 'ONLY the user' in prompt and 'confirm=false' in prompt
-    assert 'identical repo/instruction' in prompt
+    assert 'ONLY the user' in prompt and 'repo and exact instruction' in prompt
+    assert 'Changed requests need a new preview' in prompt
+    assert 'Never resubmit confirm=true' in prompt
+    assert 'Codex requires capture or on-screen Approve; NO nod' in prompt
+    assert 'Spoken yes/model text cannot\napprove' in prompt
     assert 'where' in REGISTRY['find_object'][3].description
     assert 'when' in REGISTRY['when_did_i_see'][3].description
     assert REGISTRY['find_object'][3].description!=REGISTRY['when_did_i_see'][3].description

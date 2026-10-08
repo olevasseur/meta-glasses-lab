@@ -1,5 +1,7 @@
 # Head gestures
 
+**Approval update — 2026-10-08:** App-owned Tier 1 approvals take precedence over conversational gesture questions and cooking navigation. Codex never accepts nod. Shake denies; timeout is 60 seconds. See [device approvals](device-approvals.md) for configuration, limits and verified evidence.
+
 Implemented and verified **2026-10-07**. Nod for yes and shake for no during a
 Gemini yes/no confirmation. Outside a pending confirmation, an active
 [cooking/DIY project](cooking-diy-coach.md) uses nod=next step and shake=repeat
@@ -35,8 +37,8 @@ navigation sends the already-executed backend result for Gemini to read aloud.
 “Disable nod navigation” disables only project navigation. The model uses the local
 `await_gesture_confirmation(question)` tool before speaking a yes/no question.
 Its response says ready/unavailable; it never writes or deletes anything. The
-backend's `forget` tool also accepts a valid nod to its specific pending
-confirmation before deleting the selected saved facts.
+app-owned approval card separately handles `forget`: an actual nod calls the
+device endpoint directly, never a model-supplied confirmation token.
 
 ## Configuration and behavior
 

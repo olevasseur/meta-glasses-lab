@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -22,6 +23,7 @@ SCOPES = [
 TOKEN_PATH = BACKEND_DIR / "secrets" / "token.json"
 INBOX_TITLE = "Glasses Inbox"
 CACHE_SECONDS = 300
+CREATE_INBOX = "__glasses_create_inbox__"
 
 
 def save_credentials(credentials: Credentials, path: Path = TOKEN_PATH) -> None:
@@ -118,18 +120,21 @@ class Notes:
         ).execute()
         return {"id": document["documentId"], "title": document["title"]}
 
-    def _resolve(self, doc_name: str, confirmed_doc_id: str | None) -> dict:
-        if confirmed_doc_id:
+    def _resolve(self, doc_name: str, confirmed_doc_id: str | None, *, create=True) -> dict:
+        if confirmed_doc_id and confirmed_doc_id != CREATE_INBOX:
+            if not re.fullmatch(r"[A-Za-z0-9_-]{1,200}", confirmed_doc_id):
+                raise ValueError("Invalid document ID")
             return {"status": "matched", "document": self._document(confirmed_doc_id)}
-        aliases = json.loads(self.aliases_path.read_text(encoding="utf-8"))
+        aliases = ({"inbox": None} if confirmed_doc_id == CREATE_INBOX else
+                   json.loads(self.aliases_path.read_text(encoding="utf-8")))
         if not isinstance(aliases, dict) or any(
-            not isinstance(value, str) or not value.strip()
+            not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,200}", value)
             for key, value in aliases.items()
             if not (key.strip().casefold() == "inbox" and value is None)
         ):
             raise ValueError("Aliases must map names to document IDs; only inbox may be null")
         aliases = {key.strip().casefold(): value for key, value in aliases.items()}
-        name = doc_name.strip().casefold()
+        name = "inbox" if confirmed_doc_id == CREATE_INBOX else doc_name.strip().casefold()
         if name in aliases and aliases[name] is not None:
             return {"status": "matched", "document": self._document(aliases[name])}
         if name == "inbox" and name in aliases:
@@ -144,11 +149,18 @@ class Notes:
                 return {"status": "needs_confirmation", "candidates": inboxes[:3]}
             if inboxes:
                 return {"status": "matched", "document": inboxes[0]}
+            if not create:
+                return {"status": "matched", "document": {"id": CREATE_INBOX, "title": INBOX_TITLE, "create_if_absent": True}}
             created = self.docs.documents().create(body={"title": INBOX_TITLE}).execute()
             document = {"id": created["documentId"], "title": INBOX_TITLE}
             self.cached_documents.append(document)
             return {"status": "matched", "document": document}
         return match_document(doc_name, self._list_documents())
+
+    def preview(self, doc_name: str, text: str, confirmed_doc_id: str | None = None) -> dict:
+        with self.lock:
+            self._connect()
+            return self._resolve(doc_name, confirmed_doc_id, create=False)
 
     def append(self, doc_name: str, text: str, confirmed_doc_id: str | None = None) -> dict:
         with self.lock:

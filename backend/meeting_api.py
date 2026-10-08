@@ -1,4 +1,6 @@
 """Meeting routes use the app's existing authentication and no-store middleware."""
+import asyncio
+import approvals
 import httpx
 from fastapi import APIRouter, HTTPException
 from google.genai.errors import APIError
@@ -29,9 +31,17 @@ def start(request: StartMeeting):
 
 
 @router.post('/meetings/{meeting_id}/end')
-def end(meeting_id: SessionId):
+async def end(meeting_id: SessionId):
     try:
-        return service.step(meeting_id)
+        result = await asyncio.to_thread(service.step, meeting_id, allow_export=False)
+        if result.get("phase") in {"document", "write"}:
+            def needs_approval():
+                with service.memory.lock, service.memory.db() as db:
+                    meeting = service._load(db, meeting_id)
+                    return not meeting["doc_name"] and not meeting["document"]
+            if await asyncio.to_thread(needs_approval):
+                return await approvals.propose("export_meeting", {"meeting_id": meeting_id}, deduplicate=True)
+        return result
     except MemoryConflict as exc:
         raise HTTPException(409, str(exc)) from exc
     except (APIError, httpx.HTTPError, ValueError, RuntimeError, OSError, GoogleAuthError, HttpError) as exc:

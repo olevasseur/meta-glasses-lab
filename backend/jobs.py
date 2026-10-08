@@ -12,6 +12,7 @@ import uuid
 from pathlib import Path
 
 from notes import BACKEND_DIR, match_document
+from secret_redaction import redact
 
 TERMINAL = {"completed", "failed", "cancelled"}
 
@@ -19,7 +20,7 @@ TERMINAL = {"completed", "failed", "cancelled"}
 class Jobs:
     def __init__(self, notes, data_dir=None, repos_path=None, concurrency=None):
         self.notes = notes
-        self.data_dir = Path(data_dir or BACKEND_DIR / "data")
+        self.data_dir = Path(data_dir or BACKEND_DIR / "data").resolve()
         self.repos_path = Path(repos_path or BACKEND_DIR / "codex_repos.json")
         self.limit = concurrency or int(os.getenv("JOBS_CONCURRENCY", "3"))
         if not 1 <= self.limit <= 32:
@@ -43,6 +44,7 @@ class Jobs:
             self.lock_file.close()
             raise RuntimeError("Jobs requires one backend worker per data directory") from None
         self.db = sqlite3.connect(self.data_dir / "jobs.db")
+        (self.data_dir / "jobs.db").chmod(0o600)
         self.db.row_factory = sqlite3.Row
         self.db.executescript("""
             PRAGMA journal_mode=WAL;
@@ -57,6 +59,10 @@ class Jobs:
                 status TEXT NOT NULL, summary TEXT NOT NULL
             );
         """)
+        if self.db.execute("PRAGMA user_version").fetchone()[0] == 0:
+            self.db.execute("UPDATE jobs SET status='failed', summary='Security upgrade: request fresh user approval.' WHERE status IN ('queued','needs_confirmation')")
+            self.db.execute("PRAGMA user_version=1")
+            self.db.commit()
         self.semaphore = asyncio.Semaphore(self.limit)
         self.changed = asyncio.Event()
         # Never replay an interrupted command or a possibly completed Docs append.
@@ -94,6 +100,13 @@ class Jobs:
         return {"status": "ok", "jobs": [self._public(row) for row in rows]}
 
     def _insert(self, kind, status, request, summary):
+        with self.db:
+            self.db.execute("UPDATE jobs SET status='cancelled' WHERE status='needs_confirmation' AND created < ?", (time.time() - 600,))
+        # Bound durable growth and scheduled tasks; completed artifacts need manual cleanup.
+        if self.db.execute("SELECT count(*) FROM jobs").fetchone()[0] >= 1000:
+            raise ValueError("Job archive is full; archive old jobs before adding more")
+        if self.db.execute("SELECT count(*) FROM jobs WHERE status IN ('queued','running','needs_confirmation')").fetchone()[0] >= 32:
+            raise ValueError("Too many pending jobs")
         job_id = uuid.uuid4().hex
         now = time.time()
         with self.db:
@@ -102,6 +115,9 @@ class Jobs:
         return job_id
 
     def _finish(self, job_id, status, summary, document=None):
+        summary = redact(summary, getattr(self.notes, "credentials", None))
+        if document:
+            document = json.loads(redact(json.dumps(document), getattr(self.notes, "credentials", None)))
         with self.db:
             self.db.execute("UPDATE jobs SET status=?,summary=?,updated=?,doc_result=? WHERE id=?",
                             (status, summary[:1500], time.time(), json.dumps(document) if document else None, job_id))
@@ -116,6 +132,8 @@ class Jobs:
             for k, v in aliases.items()
         ):
             raise ValueError("codex_repos.json must map spoken aliases to absolute repo paths")
+        if len({k.strip().casefold() for k in aliases}) != len(aliases):
+            raise ValueError("Repository aliases must be unique ignoring case and whitespace")
         return {k.strip().casefold(): str(Path(v).resolve()) for k, v in aliases.items()}
 
     def _resolve_repo(self, spoken):
@@ -205,32 +223,47 @@ class Jobs:
             os.killpg(proc.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
+        # Drain killed child's pipes so Process.wait cannot hang on a full buffer.
+        if proc.stdout:
+            while await proc.stdout.read(65536):
+                pass
         await proc.wait()
 
     async def _exec(self, job_id, command, cwd, log):
         # Don't leak the backend's Google/Gemini/shared credentials into child env.
         env = {k: os.environ[k] for k in ("PATH", "HOME", "USER", "TMPDIR", "JAVA_HOME", "ANDROID_HOME", "CODEX_HOME") if k in os.environ}
         env["GIT_TERMINAL_PROMPT"] = "0"
-        with log.open("ab") as output:
-            # Shield process creation so cancellation cannot lose a newly spawned PID.
-            spawn = asyncio.create_task(asyncio.create_subprocess_exec(
-                *command, cwd=cwd, env=env, stdin=asyncio.subprocess.DEVNULL,
-                stdout=output, stderr=output, start_new_session=True,
-            ))
-            try:
-                proc = await asyncio.shield(spawn)
-            except asyncio.CancelledError:
-                proc = await spawn
-                await self._stop_process(proc)
-                raise
-            self.processes[job_id] = proc
-            try:
-                code = await proc.wait()
-                if code:
-                    raise RuntimeError(f"Command exited with status {code}")
-            finally:
-                await self._stop_process(proc)
-                self.processes.pop(job_id, None)
+        chunks, size = [], 0
+        spawn = asyncio.create_task(asyncio.create_subprocess_exec(
+            *command, cwd=cwd, env=env, stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT, start_new_session=True,
+        ))
+        try:
+            proc = await asyncio.shield(spawn)
+        except asyncio.CancelledError:
+            proc = await spawn
+            await self._stop_process(proc)
+            raise
+        self.processes[job_id] = proc
+        try:
+            while chunk := await proc.stdout.read(65536):
+                size += len(chunk)
+                if size > 1_000_000:
+                    raise ValueError("Subprocess log limit exceeded")
+                chunks.append(chunk)
+            code = await proc.wait()
+            if code:
+                raise RuntimeError("Command failed")
+        finally:
+            await self._stop_process(proc)
+            self.processes.pop(job_id, None)
+            content = redact(b"".join(chunks).decode("utf-8", errors="replace"),
+                             getattr(self.notes, "credentials", None))
+            # Never follow a log symlink left by a job.
+            fd = os.open(log, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, "w") as output:
+                os.fchmod(output.fileno(), 0o600)
+                output.write(content)
 
     async def _run(self, job_id):
         try:
@@ -302,13 +335,20 @@ class Jobs:
         await self._exec(job_id, command + ["--", prompt], cwd, folder / "codex.log")
         if output.stat().st_size > 500_000:
             raise ValueError("Oversized result")
-        result = json.loads(output.read_text())
+        if output.is_symlink() or not output.is_file():
+            raise ValueError("Invalid result file")
+        result = json.loads(redact(output.read_text(), getattr(self.notes, "credentials", None)))
+        output.write_text(json.dumps(result))
+        output.chmod(0o600)
         if not isinstance(result.get("summary"), str) or not result["summary"].strip() or not isinstance(result.get("report"), str) or not result["report"].strip():
             raise ValueError("Invalid structured result")
         if len(result["report"]) > 100_000:
             raise ValueError("Report exceeds the Google Docs tool size limit")
         summary, report = result["summary"].strip()[:600], result["report"]
-        (folder / "report.md").write_text(report)
+        report_path = folder / "report.md"
+        with report_path.open("x") as stream:
+            report_path.chmod(0o600)
+            stream.write(report)
         document = None
         if kind == "deep_research":
             if not self.notes.token_path.exists():

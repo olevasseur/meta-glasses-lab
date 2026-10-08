@@ -51,3 +51,9 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 
 - [emulator-smoke.md](emulator-smoke.md) — **2026-10-08**: API 36 headless emulator,
   DAT camera/Inputs/Motion/Speech simulation, WAV capture and real-Gemini test boundaries.
+
+- [Backend security](backend-security.md) — **2026-10-08**: independent browser
+  approvals, SSRF edge cases, bounded requests/jobs/logs, disclosure and retention
+  regressions; real Auto/PTT/Over constrained Gemini setup passed.
+
+- [Device approvals](device-approvals.md) — **2026-10-08**: tiered app-owned nod/button/screen approvals, immutable backend payloads, real Gemini confirmation/result turns, and device limitations.

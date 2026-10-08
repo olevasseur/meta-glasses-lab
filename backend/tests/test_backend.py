@@ -1,3 +1,4 @@
+from approval_helpers import approved_post
 import json
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
@@ -46,6 +47,7 @@ def google_clients(monkeypatch, tmp_path):
     service = notes.Notes(token_path=tmp_path / "secrets" / "token.json", aliases_path=aliases_path)
     docs, drive = Mock(), Mock()
     credentials = Mock(valid=True)
+    credentials.refresh.side_effect = lambda request: setattr(credentials, "valid", True)
     credentials.to_json.return_value = '{"refresh_token":"fake-test-token"}'
     loader = Mock(return_value=credentials)
     monkeypatch.setattr(notes.Credentials, "from_authorized_user_file", loader)
@@ -235,10 +237,11 @@ def test_real_fuzzy_matching_normalization_ties_and_candidate_limit():
 
 
 def test_alias_append_request_body(client, google_clients):
-    response = client.post("/tools/append_to_doc", json={"doc_name": " WORK ", "text": "First line\nSecond line"})
+    response = approved_post(client, "/tools/append_to_doc", json={"doc_name": " WORK ", "text": "First line\nSecond line"})
     assert response.json() == {"status": "ok", "doc_title": "Work Log"}
     google_clients.drive.files.assert_not_called()
-    google_clients.docs.documents().get.assert_called_once_with(documentId="work-id", fields="documentId,title")
+    assert google_clients.docs.documents().get.call_count == 2
+    google_clients.docs.documents().get.assert_called_with(documentId="work-id", fields="documentId,title")
     call = google_clients.docs.documents().batchUpdate.call_args.kwargs
     assert call["documentId"] == "work-id"
     assert len(call["body"]["requests"]) == 1
@@ -255,9 +258,10 @@ def test_confirmed_id_bypasses_aliases_and_matching(client, google_clients):
     google_clients.service.aliases_path.unlink()
     google_clients.docs.documents().get().execute.return_value = {"documentId": "chosen-id", "title": "Chosen"}
     google_clients.docs.reset_mock()
-    response = client.post("/tools/append_to_doc", json={"doc_name": "nonsense", "text": "Note", "confirmed_doc_id": "chosen-id"})
+    response = approved_post(client, "/tools/append_to_doc", json={"doc_name": "nonsense", "text": "Note", "confirmed_doc_id": "chosen-id"})
     assert response.status_code == 200
-    google_clients.docs.documents().get.assert_called_once_with(documentId="chosen-id", fields="documentId,title")
+    assert google_clients.docs.documents().get.call_count == 2
+    google_clients.docs.documents().get.assert_called_with(documentId="chosen-id", fields="documentId,title")
     assert google_clients.docs.documents().batchUpdate.call_args.kwargs["documentId"] == "chosen-id"
     google_clients.drive.files.assert_not_called()
 
@@ -267,7 +271,7 @@ def test_ambiguous_or_missing_docs_never_write(client, google_clients, name, sta
     google_clients.drive.files().list().execute.return_value = {"files": [
         {"id": "1", "name": "Work Log"}, {"id": "2", "name": "Work Log 2026"},
     ]}
-    response = client.post("/tools/append_to_doc", json={"doc_name": name, "text": "Note"})
+    response = approved_post(client, "/tools/append_to_doc", json={"doc_name": name, "text": "Note"})
     assert response.status_code == 200
     assert response.json()["status"] == status
     google_clients.docs.documents().batchUpdate.assert_not_called()
@@ -275,25 +279,28 @@ def test_ambiguous_or_missing_docs_never_write(client, google_clients, name, sta
 
 
 def test_unambiguous_fuzzy_match_appends(client, google_clients):
+    google_clients.docs.documents().get().execute.return_value = {"documentId": "1", "title": "Work Log"}
     google_clients.drive.files().list().execute.return_value = {"files": [{"id": "1", "name": "Work Log"}]}
-    response = client.post("/tools/append_to_doc", json={"doc_name": "WORK LOG", "text": "Note"})
+    response = approved_post(client, "/tools/append_to_doc", json={"doc_name": "WORK LOG", "text": "Note"})
     assert response.json() == {"status": "ok", "doc_title": "Work Log"}
     assert google_clients.docs.documents().batchUpdate.call_args.kwargs["documentId"] == "1"
 
 
 def test_inbox_creation_is_reused(client, google_clients):
+    google_clients.docs.documents().get().execute.return_value = {"documentId": "inbox-id", "title": notes.INBOX_TITLE}
     for _ in range(2):
-        assert client.post("/tools/append_to_doc", json={"text": "Note"}).json() == {"status": "ok", "doc_title": "Glasses Inbox"}
+        assert approved_post(client, "/tools/append_to_doc", json={"text": "Note"}).json() == {"status": "ok", "doc_title": "Glasses Inbox"}
     google_clients.docs.documents().create.assert_called_once_with(body={"title": "Glasses Inbox"})
     assert google_clients.docs.documents().batchUpdate.call_count == 2
-    assert google_clients.drive.files().list.call_count == 1
+    assert google_clients.drive.files().list.call_count == 2  # Preview, then fresh recheck before creation.
 
 
 def test_inbox_rechecks_cached_miss_before_creating(client, google_clients, monkeypatch):
+    google_clients.docs.documents().get().execute.return_value = {"documentId": "new-inbox", "title": notes.INBOX_TITLE}
     monkeypatch.setattr(notes, "monotonic", lambda: 100)
     google_clients.service.cache_expires_at = 200
     google_clients.drive.files().list().execute.return_value = {"files": [{"id": "new-inbox", "name": "Glasses Inbox"}]}
-    response = client.post("/tools/append_to_doc", json={"text": "Note"})
+    response = approved_post(client, "/tools/append_to_doc", json={"text": "Note"})
     assert response.json() == {"status": "ok", "doc_title": "Glasses Inbox"}
     google_clients.docs.documents().create.assert_not_called()
     assert google_clients.docs.documents().batchUpdate.call_args.kwargs["documentId"] == "new-inbox"
@@ -301,11 +308,15 @@ def test_inbox_rechecks_cached_miss_before_creating(client, google_clients, monk
 
 @pytest.mark.parametrize("count,status", [(1, "ok"), (2, "needs_confirmation")])
 def test_find_existing_inbox_and_duplicate_titles(client, google_clients, count, status):
+    google_clients.docs.documents().get().execute.return_value = {"documentId": "0", "title": notes.INBOX_TITLE}
     google_clients.drive.files().list().execute.return_value = {"files": [
         {"id": str(i), "name": "Glasses Inbox"} for i in range(count)
     ]}
-    response = client.post("/tools/append_to_doc", json={"text": "Note"})
+    response = approved_post(client, "/tools/append_to_doc", json={"text": "Note"})
+    assert response.status_code == 200
     assert response.json()["status"] == status
+    if count == 1:
+        assert response.json()["status"] == status
     google_clients.docs.documents().create.assert_not_called()
     assert google_clients.docs.documents().batchUpdate.call_count == (1 if count == 1 else 0)
 
@@ -321,7 +332,8 @@ def test_drive_pagination_and_five_minute_cache(client, google_clients, monkeypa
     google_clients.drive.reset_mock()
     for time in (100, 399, 400):
         clock.return_value = time
-        assert client.post("/tools/append_to_doc", json={"doc_name": "Work Log", "text": "Note"}).json()["status"] == "ok"
+        google_clients.docs.documents().get().execute.return_value = {"documentId": "2" if time == 400 else "1", "title": "Work Log"}
+        assert approved_post(client, "/tools/append_to_doc", json={"doc_name": "Work Log", "text": "Note"}).json()["status"] == "ok"
     calls = google_clients.drive.files().list.call_args_list
     assert len(calls) == 3
     assert [call.kwargs["pageToken"] for call in calls] == [None, "page-2", None]
@@ -332,14 +344,14 @@ def test_drive_pagination_and_five_minute_cache(client, google_clients, monkeypa
 
 def test_incomplete_drive_search_never_creates_or_appends(client, google_clients):
     google_clients.drive.files().list().execute.return_value = {"files": [], "incompleteSearch": True}
-    assert client.post("/tools/append_to_doc", json={"text": "Note"}).status_code == 502
+    assert approved_post(client, "/tools/append_to_doc", json={"text": "Note"}).status_code == 503
     google_clients.docs.documents().create.assert_not_called()
     google_clients.docs.documents().batchUpdate.assert_not_called()
 
 
 def test_refresh_token_persisted_with_owner_permissions(client, google_clients):
     google_clients.credentials.valid = False
-    assert client.post("/tools/append_to_doc", json={"doc_name": "work", "text": "Note"}).status_code == 200
+    assert approved_post(client, "/tools/append_to_doc", json={"doc_name": "work", "text": "Note"}).status_code == 200
     google_clients.credentials.refresh.assert_called_once()
     path = google_clients.service.token_path
     assert json.loads(path.read_text()) == {"refresh_token": "fake-test-token"}
@@ -349,7 +361,7 @@ def test_refresh_token_persisted_with_owner_permissions(client, google_clients):
 
 @pytest.mark.parametrize("args", [{}, {"text": "   "}, {"text": "Note", "doc_name": ""}, {"text": "Note", "confirmed_doc_id": "bad/id"}])
 def test_invalid_note_arguments(client, google_clients, args):
-    assert client.post("/tools/append_to_doc", json=args).status_code == 422
+    assert approved_post(client, "/tools/append_to_doc", json=args).status_code == 422
     google_clients.loader.assert_not_called()
 
 
@@ -358,7 +370,7 @@ def test_google_failure_is_sanitized_and_not_retried(client, google_clients):
         SimpleNamespace(status=500, reason="Server error"), b'{"error":{"message":"private note"}}'
     )
     google_clients.docs.reset_mock()
-    response = client.post("/tools/append_to_doc", json={"doc_name": "work", "text": "Note"})
+    response = approved_post(client, "/tools/append_to_doc", json={"doc_name": "work", "text": "Note"})
     assert response.status_code == 502
     assert "private note" not in response.text
     google_clients.docs.documents().batchUpdate().execute.assert_called_once_with()

@@ -133,6 +133,8 @@ class VisualMemory:
     def _delete(self, db, where, args):
         ids = [row[0] for row in db.execute(f"SELECT id FROM frames WHERE {where}", args)]
         for frame_id in ids:
+            if not re.fullmatch(r"[a-f0-9]{32}", frame_id):
+                raise ValueError("Invalid stored frame ID")
             (self.directory / f"{frame_id}.jpg").unlink(missing_ok=True)
         db.execute(f"DELETE FROM frames WHERE {where}", args)
         return len(ids)
@@ -197,7 +199,9 @@ class VisualMemory:
             db.commit()
             if exists:
                 try:
-                    return (self.directory / f"{frame_id}.jpg").read_bytes()
+                    fd = os.open(self.directory / f"{frame_id}.jpg", os.O_RDONLY | os.O_NOFOLLOW)
+                    with os.fdopen(fd, "rb") as stream:
+                        return stream.read(1_000_000)
                 except FileNotFoundError:
                     pass
         return None
@@ -287,6 +291,13 @@ class VisualMemory:
             db.commit()
         matches.sort(key=lambda row: row["score"], reverse=True)  # Stable: newest breaks ties.
         return {"status": "ok", "matches": matches[:10], "evidence": "Historical sightings, not current locations"}
+
+    def delete_window(self, since: float, through: float):
+        with self.lock, self.database() as db:
+            count = self._delete(db, "captured BETWEEN ? AND ?", (since, through))
+            db.execute("INSERT OR REPLACE INTO settings VALUES ('deleted_through', ?)", (through,))
+            db.commit()
+        return {"status": "ok", "deleted": count, "includes_pinned": True}
 
     def delete_recent(self, minutes: int = 60):
         with self.lock, self.database() as db:

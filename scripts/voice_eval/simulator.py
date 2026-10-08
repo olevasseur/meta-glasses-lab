@@ -4,8 +4,10 @@ The production /token and /tools handlers, auth, validation and dispatch are use
 No app lifespan is entered: no real jobs, journal schedule or retention starts.
 """
 import io
+import json
 import time
 from contextlib import ExitStack, contextmanager
+from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -37,6 +39,13 @@ def jpeg_fixture(kind='menu'):
 class FakeJobs:
     def __init__(self):
         self.preview = None
+        self.executed = []
+
+    def _row(self, job_id):
+        if job_id != JOB_ID or self.preview is None:
+            raise ValueError('Unknown preview')
+        repo, instruction = self.preview
+        return {'request':json.dumps({'repo':'/synthetic/repos/'+repo,'instruction':instruction})}
 
     def codex_task(self, repo, instruction, confirm=False, job_id=None):
         if not confirm:
@@ -45,15 +54,18 @@ class FakeJobs:
                     'summary':f'Preview: {repo}: {instruction}'}
         if self.preview != (repo, instruction) or job_id != JOB_ID:
             return {'status':'error','message':'A matching preview is required'}
+        self.executed.append('codex_task')
         return {'status':'queued','job_id':JOB_ID}
 
     def deep_research(self, topic, doc_name='Glasses Research'):
+        self.executed.append('deep_research')
         return {'status':'queued','job_id':JOB_ID}
 
     def status(self, job_id=None):
         return {'status':'ok','jobs':[{'job_id':JOB_ID,'status':'running','summary':'Canada research'}]}
 
     async def cancel(self, job_id):
+        self.executed.append('cancel_job')
         return {'status':'cancelled','job_id':job_id}
 
 
@@ -64,10 +76,15 @@ def backend(prompt=None, tools_file=None):
     import coach
     import memory_api
     import visual_api
+    import approvals
+    import diagnostic_logs
     from memory import Memory
     from fastapi.testclient import TestClient
     with TemporaryDirectory(prefix='voice-eval-') as directory, ExitStack() as stack:
         root = Path(directory)
+        stack.enter_context(patch.object(approvals,'pending',{}))
+        stack.enter_context(patch.object(approvals,'completed',{}))
+        stack.enter_context(patch.object(diagnostic_logs,'store',diagnostic_logs.LogStore(root / 'logs')))
         memory = Memory(root / 'memory.db')
         memory.remember('The user has a dog named Maple.', 'user.dog')
         project = coach.Project(title='Pasta', ingredients=[coach.Ingredient(
@@ -81,15 +98,21 @@ def backend(prompt=None, tools_file=None):
         projects.run('next_step',{})
         stack.enter_context(patch.object(app,'projects',projects))
         stack.enter_context(patch.object(memory_api,'memory',memory))
-        stack.enter_context(patch.object(app,'notes',SimpleNamespace(append=lambda **kw:
+        stack.enter_context(patch.object(app,'notes',SimpleNamespace(
+            preview=lambda **kw:{'status':'matched','document':{'id':'synthetic-doc','title':kw.get('doc_name','Inbox')}},
+            append=lambda **kw:
             {'status':'ok','doc_title':kw.get('doc_name','Inbox')})))
         journal_result = {'status':'ok','doc_status':'synced','date':'2026-10-07',
                           'text':'Walked by the harbour. Task: buy apples.'}
         stack.enter_context(patch.object(app,'journal_service',return_value=SimpleNamespace(
+            now=lambda:datetime.fromisoformat('2026-10-08T12:00:00-04:00'),
             write_journal=lambda **kw:journal_result,read_journal=lambda **kw:journal_result,
             morning_brief=lambda **kw:{'status':'ok','tasks':['Buy apples.']})))
         stack.enter_context(patch.object(app.app.state,'jobs',FakeJobs(),create=True))
-        stack.enter_context(patch.object(visual_api,'memory',SimpleNamespace(find=lambda query:
+        stack.enter_context(patch.object(visual_api,'memory',SimpleNamespace(
+            clock=time.time,
+            delete_window=lambda **kw:{'status':'ok','deleted':1},
+            find=lambda query:
             {'status':'ok','matches':[{'caption':'Keys and wallet on the kitchen table.',
                                      'captured_at':'2026-10-07T17:00:00-04:00'}]})))
         if prompt:
@@ -105,7 +128,7 @@ def backend(prompt=None, tools_file=None):
             stack.enter_context(patch.object(gemini,'DECLARATIONS',declarations))
             stack.enter_context(patch.dict(REGISTRY,{d.name:(*REGISTRY[d.name][:3],d) for d in declarations}))
         # Deliberately not a TestClient context manager (which starts production lifespan).
-        client = TestClient(app.app)
+        client = TestClient(app.app, base_url='http://localhost')
         try:
             yield client
         finally:

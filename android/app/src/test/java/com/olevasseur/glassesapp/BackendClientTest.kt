@@ -9,6 +9,31 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class BackendClientTest {
+    @Test fun deviceApprovalUsesDedicatedAuthenticatedRoutes() = runBlocking {
+        MockWebServer().use { server ->
+            server.start()
+            val backend = BackendClient(OkHttpClient(), server.url("/").toString(), "test-secret")
+            val id = "a".repeat(32)
+            server.enqueue(MockResponse().setBody("""{"status":"needs_confirmation"}"""))
+            backend.approvalStatus(id)
+            val get = server.takeRequest()
+            assertEquals("GET", get.method)
+            assertEquals("/approvals/$id", get.path)
+            assertEquals("test-secret", get.getHeader("X-App-Secret"))
+            for (method in listOf("nod", "button", "screen")) {
+                server.enqueue(MockResponse().setBody("""{"status":"ok"}"""))
+                backend.approveDevice(id, method)
+                val request = server.takeRequest()
+                assertEquals("/approvals/$id/device", request.path)
+                assertEquals("test-secret", request.getHeader("X-App-Secret"))
+                assertEquals(method, JSONObject(request.body.readUtf8()).getString("method"))
+            }
+            server.enqueue(MockResponse().setBody("""{"status":"rejected"}"""))
+            backend.denyApproval(id)
+            assertEquals("/approvals/$id/deny", server.takeRequest().path)
+        }
+    }
+
     @Test fun visualUploadsAndStatusUseAuthenticatedBackendOnly() = runBlocking {
         MockWebServer().use { server ->
             server.start()

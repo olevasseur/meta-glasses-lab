@@ -77,6 +77,16 @@ therefore does not measure recognition of the keyword on a phone.
 
 ## Protocol and isolation
 
+**Security merge — 2026-10-08:** the current harness uses the production device
+approval boundary. Sensitive tool calls return proposals; model confirmation fields
+cannot execute them. Forget/Codex cases reject `await_gesture_confirmation` as an
+authorization path. Visual deletion uses `/visual/delete`, as Android does.
+Approval state and diagnostic logs are disposable alongside memory. Offline checks
+exercise approval/denial policy and single-use consumption with synthetic services;
+the live voice cases stop at the proposal unless they ask an ordinary gesture question.
+The recorded before/after results below remain historical evidence for their saved
+prompt and tool snapshots; the merged prompt has not had a new credentialed evaluation.
+
 The client mirrors `LiveProtocol.kt`: backend-issued ephemeral token in
 `Authorization: Token ...`, constrained v1beta WebSocket, minimal model plus
 client-owned sessionResumption setup, camelCase messages, 20 ms PCM16/16 kHz chunks with 300 ms microphone pre-roll.

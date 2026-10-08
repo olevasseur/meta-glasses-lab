@@ -1,0 +1,6 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<p>Tool requests cannot authorize themselves. Review each action here; requests expire after five minutes.</p>
+{% for item in approvals %}<article><a href="/dashboard/approvals/{{ item.id }}">Review {{ item.name }}</a></article>
+{% else %}<p>No pending requests.</p>{% endfor %}
+{% endblock %}
