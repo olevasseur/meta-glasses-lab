@@ -163,3 +163,22 @@ class Notes:
                 }}]},
             ).execute()  # No automatic retries: an append is not idempotent.
             return {"status": "ok", "doc_title": document["title"]}
+
+
+    def append_research(self, doc_name: str, text: str) -> dict:
+        """Create only the default research document; keep normal alias/fuzzy policy."""
+        if doc_name.strip().casefold() != "glasses research":
+            return self.append(doc_name, text)
+        with self.lock:
+            self._connect()
+            documents = self._list_documents(refresh=True)
+            matches = [doc for doc in documents if doc["title"] == "Glasses Research"]
+            if len(matches) > 1:
+                return {"status": "needs_confirmation", "candidates": matches[:3]}
+            if matches:
+                document_id = matches[0]["id"]
+            else:
+                created = self.docs.documents().create(body={"title": "Glasses Research"}).execute()
+                document_id = created["documentId"]
+                self.cache_expires_at = 0
+        return self.append(doc_name, text, confirmed_doc_id=document_id)

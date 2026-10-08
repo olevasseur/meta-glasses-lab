@@ -39,6 +39,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val mutableState = MutableStateFlow(ConversationState())
     val state = mutableState.asStateFlow()
     private val http = OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(25, TimeUnit.SECONDS) // Longer than the backend event poll (20 seconds).
         .retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).build()
     private val backend = BackendClient(http, BuildConfig.BACKEND_URL, BuildConfig.APP_SHARED_SECRET)
     private val audio = ConversationAudio(application, viewModelScope)
@@ -72,6 +73,19 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         onInputLost = { glassesTalking = false; gemini.setTalking(screenTalking) },
         onError = ::error,
     )
+    private val jobNotifications = JobNotifications(application)
+    private val jobEvents = JobEvents(
+        fetch = backend::events,
+        initialCursor = jobNotifications.cursor,
+        saveCursor = jobNotifications::saveCursor,
+        deliver = { event ->
+            mutableState.update { it.copy(lastTool = "${event.status}: ${event.summary}") }
+            gemini.sendJobEvent(event) || jobNotifications.show(event)
+        },
+    )
+
+    init { viewModelScope.launch { jobEvents.listen() } }
+
     private var startJob: Job? = null
     private var stopJob: Job? = null
 

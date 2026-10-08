@@ -179,6 +179,10 @@ class GeminiSession(
         if (sent) pendingResponses -= call.id else pendingResponses += call.id
     }
 
+    fun sendJobEvent(event: JobEvent): Boolean = synchronized(sendLock) {
+        active && ready && socket?.send(LiveProtocol.jobEvent(event)) == true
+    }
+
     fun sendAudio(pcm: ByteArray) = synchronized(sendLock) {
         if (active && ready && (!ptt || talking)) {
             val ws = socket ?: return@synchronized

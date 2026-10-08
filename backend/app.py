@@ -1,12 +1,14 @@
 """Run from backend/: uv run uvicorn app:app --port 8787."""
 
+import asyncio
 import hmac
 import os
+from contextlib import asynccontextmanager
 from typing import Literal
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from google.auth.exceptions import GoogleAuthError
@@ -15,11 +17,25 @@ from googleapiclient.errors import HttpError
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 import gemini
+from job_tools import REQUESTS
+from jobs import JOB_TOOLS, Jobs
 from notes import BACKEND_DIR, Notes
 
 load_dotenv(BACKEND_DIR.parent / ".env")  # Explicit environment values take precedence.
-app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 notes = Notes()
+
+
+@asynccontextmanager
+async def lifespan(app):
+    app.state.jobs = Jobs(notes)
+    await app.state.jobs.start()
+    try:
+        yield
+    finally:
+        await app.state.jobs.close()
+
+
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 
 
 @app.middleware("http")
@@ -68,7 +84,20 @@ def token(request: TokenRequest):
 
 
 @app.post("/tools/{name}")
-def dispatch_tool(name: str, args: dict | None = None):
+async def dispatch_tool(name: str, args: dict | None = None):
+    if name in JOB_TOOLS:
+        try:
+            request = REQUESTS[name].model_validate(args or {})
+        except ValidationError as exc:
+            raise RequestValidationError(exc.errors()) from exc
+        jobs = app.state.jobs
+        try:
+            if name == "cancel_job":
+                return await jobs.cancel(request.job_id)
+            method = jobs.status if name == "job_status" else getattr(jobs, name)
+            return method(**request.model_dump())
+        except (OSError, ValueError):
+            raise HTTPException(503, "Check the job configuration and repository allowlist") from None
     if name != "append_to_doc":
         raise HTTPException(404, "Unknown tool")
     try:
@@ -76,8 +105,13 @@ def dispatch_tool(name: str, args: dict | None = None):
     except ValidationError as exc:
         raise RequestValidationError(exc.errors()) from exc
     try:
-        return notes.append(**request.model_dump())
+        return await asyncio.to_thread(notes.append, **request.model_dump())
     except (FileNotFoundError, ValueError, GoogleAuthError) as exc:
         raise HTTPException(503, "Check Google credentials and doc_aliases.json; run scripts/google_auth.py if needed") from exc
     except (HttpError, OSError, RuntimeError) as exc:
         raise HTTPException(502, "Google Docs operation failed; check the document before retrying") from exc
+
+
+@app.get("/events")
+async def events(after: int = Query(0, ge=0), wait: float = Query(20, ge=0, le=20)):
+    return await app.state.jobs.events(after, wait)

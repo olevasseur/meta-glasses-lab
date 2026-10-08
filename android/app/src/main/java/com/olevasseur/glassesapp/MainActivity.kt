@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
 
     private fun requestPermissions() {
         val requested = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        if (Build.VERSION.SDK_INT >= 33) requested += Manifest.permission.POST_NOTIFICATIONS
         if (Build.VERSION.SDK_INT >= 31) requested += Manifest.permission.BLUETOOTH_CONNECT
         androidPermissions.launch(requested.toTypedArray())
     }
