@@ -33,21 +33,28 @@ class GlassesCamera(
     private var camera: Camera? = null
     private var monitor: Job? = null
 
-    suspend fun capture(): ByteArray {
+    private var highResolution = false
+
+    suspend fun capture(): ByteArray = capture(false)
+    suspend fun captureText(): ByteArray = capture(true)
+
+    private suspend fun capture(forText: Boolean): ByteArray {
         try {
             check(glasses.initialize()) { "Connect glasses and grant Nearby devices permission first" }
             check(Wearables.checkPermissionStatus(Permission.CAMERA).getOrDefault(PermissionStatus.Denied) == PermissionStatus.Granted) {
                 "Grant DAT camera permission before using vision"
             }
+            if (camera != null && forText && !highResolution) stop()
             if (camera == null) {
                 onState("Starting glasses camera…")
                 val id = AutoDeviceSelector().activeDeviceFlow().first { it != null }!!
                 val deviceSession = glasses.acquireSession(SpecificDeviceSelector(id))
                 session = deviceSession
                 deviceSession.state.first { it == DeviceSessionState.STARTED }
-                val added = deviceSession.addCamera(StreamConfiguration(videoQuality = VideoQuality.MEDIUM, frameRate = 2))
+                val added = deviceSession.addCamera(StreamConfiguration(videoQuality = if (forText) VideoQuality.HIGH else VideoQuality.MEDIUM, frameRate = 2))
                     .fold(onSuccess = { it }, onFailure = { error, _ -> error(error.description) })
                 camera = added
+                highResolution = forText
                 added.stream.start().fold(onSuccess = { }, onFailure = { error, _ -> error(error.description) })
                 added.stream.state.first { it == StreamState.STREAMING }
                 monitor = scope.launch {
@@ -60,7 +67,7 @@ class GlassesCamera(
             }
             val photo = checkNotNull(camera).stream.capturePhoto()
                 .fold(onSuccess = { it }, onFailure = { error, _ -> error(error.description) })
-            return withContext(Dispatchers.Default) { encode(photo) }
+            return withContext(Dispatchers.Default) { encode(photo, forText) }
         } catch (e: Exception) {
             stop()
             throw e
@@ -74,21 +81,40 @@ class GlassesCamera(
         onState("Camera off")
     }
 
-    private fun encode(photo: PhotoData): ByteArray {
+    private fun checkSharpness(bitmap: Bitmap) {
+        val scale = minOf(1.0, 512.0 / maxOf(bitmap.width, bitmap.height))
+        val small = Bitmap.createScaledBitmap(bitmap, maxOf(3, (bitmap.width * scale).toInt()),
+            maxOf(3, (bitmap.height * scale).toInt()), true)
+        try {
+            val pixels = IntArray(small.width * small.height)
+            small.getPixels(pixels, 0, small.width, 0, 0, small.width, small.height)
+            for (i in pixels.indices) {
+                val color = pixels[i]
+                pixels[i] = (77 * (color shr 16 and 255) + 150 * (color shr 8 and 255) + 29 * (color and 255)) shr 8
+            }
+            // ponytail: scene-dependent heuristic; calibrate on glasses before tuning this threshold.
+            if (laplacianVariance(pixels, small.width, small.height) < 60.0) throw BlurryTextFrame()
+        } finally { if (small !== bitmap) small.recycle() }
+    }
+
+    private fun encode(photo: PhotoData, forText: Boolean): ByteArray {
         // ImageDecoder applies HEIC orientation and downsamples during decode (API 28+).
         val original = when (photo) {
             is PhotoData.Bitmap -> photo.bitmap
             is PhotoData.HEIC -> ImageDecoder.decodeBitmap(ImageDecoder.createSource(photo.data.duplicate())) { decoder, info, _ ->
                 decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-                val (width, height) = visionDimensions(info.size.width, info.size.height)
-                decoder.setTargetSize(width, height)
+                if (!forText) {
+                    val (width, height) = visionDimensions(info.size.width, info.size.height)
+                    decoder.setTargetSize(width, height)
+                }
             }
         }
-        val (width, height) = visionDimensions(original.width, original.height)
+        val (width, height) = if (forText) original.width to original.height else visionDimensions(original.width, original.height)
         val scaled = Bitmap.createScaledBitmap(original, width, height, true)
         try {
+            if (forText) checkSharpness(original)
             return ByteArrayOutputStream().use { output ->
-                check(scaled.compress(Bitmap.CompressFormat.JPEG, 80, output)) { "JPEG encoding failed" }
+                check(scaled.compress(Bitmap.CompressFormat.JPEG, if (forText) 95 else 80, output)) { "JPEG encoding failed" }
                 output.toByteArray()
             }
         } finally {

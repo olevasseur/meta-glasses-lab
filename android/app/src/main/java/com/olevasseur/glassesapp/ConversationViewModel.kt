@@ -61,7 +61,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             mutableState.update { it.copy(talking = value) }
         },
         onFatal = { message -> error(message); stop() },
-        localTool = { vision.tool(it) },
+        localTool = { if (it.name in ReadToMeController.TOOL_NAMES) reading.tool(it) else vision.tool(it) },
     )
     private val camera: GlassesCamera by lazy {
         GlassesCamera(viewModelScope, glasses) { label -> mutableState.update { it.copy(camera = label) } }
@@ -69,6 +69,9 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val vision: VisionController by lazy {
         VisionController(viewModelScope, camera::capture, gemini::sendImage, camera::stop,
             onWatch = { enabled -> mutableState.update { it.copy(watchMode = enabled) } }, onError = ::error)
+    }
+    private val reading: ReadToMeController by lazy {
+        ReadToMeController({ vision.sendFrame(camera::captureText) }, vision::stop, audio::flush)
     }
     val glasses = GlassesController(application, viewModelScope,
         onGlasses = { label -> mutableState.update { it.copy(glasses = label) } },
@@ -132,6 +135,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         if (state.value.stopping || !state.value.running) return
         mutableState.update { it.copy(stopping = true, connected = false, talking = false) }
         vision.stop()
+        reading.clear()
         gemini.stop()
         glasses.stopInputs()
         screenTalking = false; glassesTalking = false
@@ -155,6 +159,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
 
     override fun onCleared() {
         vision.stop()
+        reading.clear()
         gemini.close(); glasses.close()
         // viewModelScope is already cancelled; finish releasing platform audio on a cleanup scope.
         val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)

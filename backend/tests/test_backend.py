@@ -97,7 +97,7 @@ def test_token_config_and_response(client, gemini_client, mode):
     constraints = config.live_connect_constraints
     assert constraints.model == "gemini-3.8-live"
     live = constraints.config
-    assert live.system_instruction == gemini.PROMPT_PATH.read_text()
+    assert live.system_instruction == gemini.PROMPT_PATH.read_text() + gemini.READING_INSTRUCTION
     assert live.response_modalities == ["AUDIO"]
     assert live.speech_config.voice_config.prebuilt_voice_config.voice_name == "Kore"
     assert live.input_audio_transcription is not None

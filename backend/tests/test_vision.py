@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 import app
 import gemini
-from vision import CLIENT_TOOL_NAMES
+from gemini import CLIENT_TOOL_NAMES
 
 
 @pytest.mark.parametrize("mode", ["auto", "ptt"])
@@ -19,7 +19,7 @@ def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
 
     monkeypatch.setattr(httpx.Client, "send", send)
     result = gemini.create_token("fake-key", gemini.DEFAULT_MODEL, mode)
-    assert result["client_tools"] == ["look", "set_watch_mode"]
+    assert result["client_tools"] == CLIENT_TOOL_NAMES
     body, = captured
     assert "tools" in body["fieldMask"]
     assert "sessionResumption" not in body["fieldMask"]

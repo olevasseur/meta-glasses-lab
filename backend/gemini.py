@@ -5,7 +5,11 @@ from pathlib import Path
 
 from google import genai
 from google.genai import types
-from vision import CLIENT_TOOLS, CLIENT_TOOL_NAMES
+from vision import CLIENT_TOOLS as VISION_TOOLS
+from read_to_me import READING_TOOLS, READING_INSTRUCTION
+
+CLIENT_TOOLS = [*VISION_TOOLS, *READING_TOOLS]
+CLIENT_TOOL_NAMES = [tool.name for tool in CLIENT_TOOLS]
 
 DEFAULT_MODEL = "gemini-3.8-live"
 PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
@@ -58,7 +62,7 @@ def token_config(model: str, mode: str) -> types.CreateAuthTokenConfig:
         live_connect_constraints=types.LiveConnectConstraints(
             model=model,
             config=types.LiveConnectConfig(
-                system_instruction=PROMPT_PATH.read_text(encoding="utf-8"),
+                system_instruction=PROMPT_PATH.read_text(encoding="utf-8") + READING_INSTRUCTION,
                 response_modalities=["AUDIO"],
                 speech_config={
                     "voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}
