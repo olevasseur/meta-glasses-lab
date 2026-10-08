@@ -1,0 +1,10 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<p><a href="/dashboard/conversations">← Conversations</a></p>
+<p class="muted">{{ session.id }} · Started {{ session.started_at }}</p>
+{% for turn in turns %}
+<article><h2>{{ "You" if turn.speaker == "user" else "Gemini" }} <small>#{{ turn.seq }}</small></h2>
+<time datetime="{{ turn.timestamp }}">{{ turn.timestamp }}</time>
+<div class="text" hx-disable>{{ turn.text }}</div></article>
+{% else %}<p>No transcript was recorded.</p>{% endfor %}
+{% endblock %}

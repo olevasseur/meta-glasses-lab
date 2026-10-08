@@ -9,6 +9,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 | [m1-android-notes.md](m1-android-notes.md) | Gemini Live wire protocol + DAT Android integration (verified while building M1) | WebSocket endpoint, `Authorization: Token …`, message shapes, audio formats, resumption rules. |
 | [m2-backend-notes.md](m2-backend-notes.md) | google-genai ephemeral tokens + Docs API (verified while building M2) | `gemini-3.8-live` works with ephemeral tokens; `lock_additional_fields` semantics. |
 | [m3-memory-notes.md](m3-memory-notes.md) | SQLite memory + Gemini text summaries (2026-10-07) | Flash-Lite 3.5 free-tier model, real JSON schema compatibility, real summary and Live setup checks. |
+| [dashboard-notes.md](dashboard-notes.md) | Local web dashboard (2026-10-07) | Jinja2/htmx, cookie sessions/CSRF, memory UI, real Gemini token-button check. |
 | [google-docs-notes.md](google-docs-notes.md) | Voice → Google Docs | Backend function tool, Desktop OAuth client published to production, Inbox doc + alias map + rapidfuzz. Keep API is Workspace-only. |
 
 ## Reconciled conflicts

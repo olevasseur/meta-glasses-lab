@@ -13,9 +13,10 @@ from fastapi.responses import JSONResponse
 from google.auth.exceptions import GoogleAuthError
 from google.genai.errors import APIError
 from googleapiclient.errors import HttpError
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 import gemini
+import dashboard
 import memory_api
 from memory import MemoryConflict
 from notes import BACKEND_DIR, Notes
@@ -23,7 +24,7 @@ from tools import REGISTRY
 
 load_dotenv(BACKEND_DIR.parent / ".env")  # Explicit environment values take precedence.
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
-notes = Notes()
+notes = Notes(on_append=dashboard.record_note)
 app.include_router(memory_api.router)
 
 
@@ -34,6 +35,8 @@ async def memory_storage_error(request: Request, exc: sqlite3.Error):
 
 @app.middleware("http")
 async def authenticate(request: Request, call_next):
+    if dashboard.is_dashboard(request):
+        return await call_next(request)  # Dashboard middleware enforces cookie + CSRF.
     secret = os.getenv("APP_SHARED_SECRET", "")
     supplied = request.headers.get("X-App-Secret", "")
     if not secret:
@@ -47,7 +50,7 @@ async def authenticate(request: Request, call_next):
 
 class TokenRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    mode: Literal["auto", "ptt"] = "auto"
+    mode: Literal["auto", "ptt"] = Field(default_factory=dashboard.default_mode)
 
 
 @app.post("/token")
@@ -86,3 +89,6 @@ def dispatch_tool(name: str, args: dict | None = None):
         if owner == "memory":
             raise HTTPException(503, "Memory storage unavailable") from exc
         raise HTTPException(502, "Google Docs operation failed; check the document before retrying") from exc
+
+
+dashboard.install(app, notes_service=lambda: notes, token_test=lambda: token(TokenRequest()))

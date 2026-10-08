@@ -1,0 +1,18 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<form class="card" method="post" action="/dashboard/settings/aliases">
+<h2>Google Doc aliases</h2><p class="muted">JSON mapping names to document IDs. Use <code>{"inbox": null}</code> to find or create your Inbox.</p>
+<input type="hidden" name="csrf" value="{{ csrf }}"><label>Aliases JSON<textarea class="mono" name="json" rows="7" required spellcheck="false">{{ aliases }}</textarea></label><button>Save aliases</button>
+</form>
+<form class="card" method="post" action="/dashboard/settings/repos">
+<h2>Codex repository allowlist</h2><p class="muted">Map names to absolute directory paths, for example <code>{"glasses": "/path/to/repo"}</code>. An empty object allows no repositories. Job execution requires the Codex jobs feature.</p>
+<input type="hidden" name="csrf" value="{{ csrf }}"><label>Repository JSON<textarea class="mono" name="json" rows="7" required spellcheck="false">{{ repos }}</textarea></label><button>Save allowlist</button>
+</form>
+<form class="card" method="post" action="/dashboard/settings/preferences">
+<h2>Preferences</h2><input type="hidden" name="csrf" value="{{ csrf }}">
+<label>Journal time<input type="time" name="journal_time" value="{{ preferences.journal_time }}" required></label>
+<p class="muted">Local wall-clock time, saved for the journal feature. Scheduling is not active in this dashboard.</p>
+<label>Default listening mode<select name="default_mode"><option value="auto" {% if preferences.default_mode == "auto" %}selected{% endif %}>Automatic</option><option value="ptt" {% if preferences.default_mode == "ptt" %}selected{% endif %}>Push to talk</option></select></label>
+<p class="muted">Used when a token request omits its mode. The Android app’s explicit mode takes precedence.</p><button>Save preferences</button>
+</form>
+{% endblock %}

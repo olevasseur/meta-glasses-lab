@@ -1,0 +1,8 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<p class="muted">The latest 100 successful appends recorded since dashboard installation.</p>
+{% for note in history %}
+<article><h2><a href="{{ note.url }}" target="_blank" rel="noopener noreferrer">{{ note.title }} ↗</a></h2>
+<time datetime="{{ note.created_at }}">{{ note.created_at }}</time><p class="text" hx-disable>{{ note.text }}</p></article>
+{% else %}<p class="card">No recorded notes. Say “Add a note to Inbox” in a conversation to get started.</p>{% endfor %}
+{% endblock %}
