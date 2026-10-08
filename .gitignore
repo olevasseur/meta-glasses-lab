@@ -13,3 +13,6 @@ node_modules/
 token.json
 credentials*.json
 client_secret*.json
+
+# Private conversation memory and SQLite sidecars
+backend/data/

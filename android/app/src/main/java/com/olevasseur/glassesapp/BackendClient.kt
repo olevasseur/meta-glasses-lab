@@ -12,6 +12,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import org.json.JSONArray
 import org.json.JSONObject
 
 class BackendClient(
@@ -30,6 +31,14 @@ class BackendClient(
         require(call.name.matches(Regex("[A-Za-z_][A-Za-z0-9_]{0,63}"))) { "Invalid tool name" }
         return post(listOf("tools", call.name), call.args)
     }
+
+    suspend fun transcripts(sessionId: String, turns: JSONArray): JSONObject = post(
+        listOf("transcripts"), JSONObject().put("session_id", sessionId).put("turns", turns),
+    )
+
+    suspend fun endSession(sessionId: String): JSONObject = post(
+        listOf("sessions", sessionId, "end"), JSONObject(),
+    )
 
     private suspend fun post(path: List<String>, body: JSONObject): JSONObject {
         val url = base.newBuilder().apply { path.forEach { addPathSegment(it) } }.build()

@@ -13,10 +13,13 @@ from googleapiclient.errors import HttpError
 import app
 import gemini
 import notes
+import memory_api
+from memory import Memory
 
 
 @pytest.fixture
-def client(monkeypatch):
+def client(monkeypatch, tmp_path):
+    monkeypatch.setattr(memory_api, "memory", Memory(tmp_path / "memory.db"))
     monkeypatch.setenv("APP_SHARED_SECRET", "test-app-secret")
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
     monkeypatch.delenv("GEMINI_LIVE_MODEL", raising=False)
@@ -167,6 +170,8 @@ def test_real_sdk_http_serialization(client, monkeypatch, mode):
     # Populated fields are locked; sessionResumption stays client-settable.
     assert "sessionResumption" not in body["fieldMask"]
     assert "realtimeInputConfig" in body["fieldMask"]
+    assert "systemInstruction" in body["fieldMask"]
+    assert "tools" in body["fieldMask"]
     setup = body["bidiGenerateContentSetup"]
     assert setup["model"] == "models/gemini-3.8-live"
     assert setup["generationConfig"]["responseModalities"] == ["AUDIO"]

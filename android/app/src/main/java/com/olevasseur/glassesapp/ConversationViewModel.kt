@@ -3,6 +3,7 @@ package com.olevasseur.glassesapp
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -15,6 +16,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import okhttp3.OkHttpClient
 
 data class TranscriptLine(val speaker: String, val text: String)
@@ -41,6 +44,10 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val http = OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS)
         .retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).build()
     private val backend = BackendClient(http, BuildConfig.BACKEND_URL, BuildConfig.APP_SHARED_SECRET)
+    private val memory = TranscriptMemory(backend, File(application.noBackupFilesDir, "memory-outbox"), ::error)
+    private val memoryUploads = viewModelScope.launch {
+        while (isActive) { memory.flush(); delay(5_000) }
+    }
     private val audio = ConversationAudio(application, viewModelScope)
     private var transcriptBoundary = true
     private var screenTalking = false
@@ -100,6 +107,8 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                     onRoute = { label -> mutableState.update { it.copy(route = label) } },
                     onError = { message -> viewModelScope.launch { error(message); stop() } },
                 )
+                memory.begin()
+                transcriptBoundary = true
                 gemini.start(state.value.ptt)
                 if (state.value.ptt) glasses.startInputs()
             } catch (e: CancellationException) { throw e }
@@ -118,16 +127,19 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         if (state.value.stopping || !state.value.running) return
         mutableState.update { it.copy(stopping = true, connected = false, talking = false) }
         gemini.stop()
+        memory.stop()
         glasses.stopInputs()
         screenTalking = false; glassesTalking = false
         stopJob = viewModelScope.launch {
             startJob?.cancelAndJoin(); startJob = null
             audio.stop()
+            memory.flush()
             mutableState.update { it.copy(running = false, stopping = false, gemini = "Stopped", route = "No audio session") }
         }
     }
 
     private fun appendTranscript(speaker: String, text: String) {
+        memory.append(if (speaker == "You") "user" else "model", text)
         mutableState.update { state ->
             val previous = state.transcript.lastOrNull()
             val lines = if (!transcriptBoundary && previous?.speaker == speaker) {
@@ -140,11 +152,14 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
 
     override fun onCleared() {
         gemini.close(); glasses.close()
+        memory.stop()
         // viewModelScope is already cancelled; finish releasing platform audio on a cleanup scope.
         val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         cleanup.launch {
             stopJob?.join()
+            memoryUploads.join()
             audio.stop()
+            memory.flush()
             http.dispatcher.executorService.shutdown(); http.connectionPool.evictAll()
             cleanup.cancel()
         }

@@ -6,34 +6,13 @@ from pathlib import Path
 from google import genai
 from google.genai import types
 
+from tools import DECLARATIONS
+
 DEFAULT_MODEL = "gemini-3.8-live"
 PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
 
-APPEND_TO_DOC = types.FunctionDeclaration(
-    name="append_to_doc",
-    description=(
-        "Append a requested note to a Google Doc. On needs_confirmation, ask the "
-        "user to choose a returned candidate before supplying confirmed_doc_id. "
-        "On not_found, offer Inbox. Do not automatically retry failed writes."
-    ),
-    parameters=types.Schema(
-        type="OBJECT",
-        properties={
-            "doc_name": types.Schema(
-                type="STRING", description="Document title or alias; defaults to Inbox."
-            ),
-            "text": types.Schema(type="STRING", description="The note to append."),
-            "confirmed_doc_id": types.Schema(
-                type="STRING",
-                description="ID from a candidate the user explicitly selected.",
-            ),
-        },
-        required=["text"],
-    ),
-)
 
-
-def token_config(model: str, mode: str) -> types.CreateAuthTokenConfig:
+def token_config(model: str, mode: str, system_instruction: str | None = None) -> types.CreateAuthTokenConfig:
     now = datetime.now(UTC)
     detection = (
         {"disabled": True}
@@ -57,7 +36,7 @@ def token_config(model: str, mode: str) -> types.CreateAuthTokenConfig:
         live_connect_constraints=types.LiveConnectConstraints(
             model=model,
             config=types.LiveConnectConfig(
-                system_instruction=PROMPT_PATH.read_text(encoding="utf-8"),
+                system_instruction=system_instruction or PROMPT_PATH.read_text(encoding="utf-8"),
                 response_modalities=["AUDIO"],
                 speech_config={
                     "voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}
@@ -66,14 +45,14 @@ def token_config(model: str, mode: str) -> types.CreateAuthTokenConfig:
                 output_audio_transcription={},
                 realtime_input_config={"automatic_activity_detection": detection},
                 context_window_compression={"sliding_window": {}},
-                tools=[types.Tool(function_declarations=[APPEND_TO_DOC])],
+                tools=[types.Tool(function_declarations=DECLARATIONS)],
             ),
         ),
     )
 
 
-def create_token(api_key: str, model: str, mode: str) -> dict:
-    config = token_config(model, mode)
+def create_token(api_key: str, model: str, mode: str, system_instruction: str | None = None) -> dict:
+    config = token_config(model, mode, system_instruction)
     with genai.Client(
         api_key=api_key,
         vertexai=False,
