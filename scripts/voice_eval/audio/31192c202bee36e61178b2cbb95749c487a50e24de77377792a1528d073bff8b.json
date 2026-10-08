@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Puck",
+  "text": "What is my workout status?",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "072ed3af549f38c9bd33c3eff77b4ed7fa520d48f580d63af7251d8108aa0a60.wav",
+  "pcm_sha256": "5ad45f6cf5eb1cc9a3d2c5422c354bc8a09e8845e69f807d06f14f9f76433e94"
+}

@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Puck",
+  "text": "Write my journal for yesterday.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "10660bd1f34bba95078bc63c0d4ea4e8504ffeada38d5c3631a2788af529781e.wav",
+  "pcm_sha256": "d3094214fea181b4d5c36d6c2e4038a90c2c48ebdaf17d9ee418d5478f7d31af"
+}

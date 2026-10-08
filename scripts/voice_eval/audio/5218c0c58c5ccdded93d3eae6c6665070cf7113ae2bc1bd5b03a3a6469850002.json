@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "Double the recipe quantities.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "4496f3bd0aa72ab279a8c670d0879d9c1686989f81cab70c517f86fbbc690f96.wav",
+  "pcm_sha256": "2686b04dd56c50dae0f80606f8e1485a9150554d233182e644b8764d931b1603"
+}

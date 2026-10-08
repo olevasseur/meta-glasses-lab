@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "Stop translating.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "ee05e388c00893cfbb66a9f8b4b2d7191aa2101b19958360064107b6e121f89e.wav",
+  "pcm_sha256": "9f5fae02dab02fef603fce46d976c9e32a8510042213dc39f716dcf3af8dcaa7"
+}

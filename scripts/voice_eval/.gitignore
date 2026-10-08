@@ -1,0 +1,3 @@
+# Raw/failed TTS batches can exceed 20 MB; only the 6.3 MB runnable corpus is committed.
+audio/batches/
+audio/*.tmp

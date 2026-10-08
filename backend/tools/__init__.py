@@ -55,7 +55,8 @@ class ReadJournalRequest(Arguments):
 APPEND_TO_DOC = types.FunctionDeclaration(
     name="append_to_doc",
     description=(
-        "Append a requested note to a Google Doc. On needs_confirmation, ask the "
+        "Append one complete requested note to a Google Doc, once. Wait through an "
+        "unfinished list or hesitation; do not save partial notes. On needs_confirmation, ask the "
         "user to choose a returned candidate before supplying confirmed_doc_id. "
         "On not_found, offer Inbox. Do not automatically retry failed writes."
     ),

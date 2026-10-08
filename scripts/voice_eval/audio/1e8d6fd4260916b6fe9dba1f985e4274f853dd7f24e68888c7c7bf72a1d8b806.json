@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "Forget my dog's name.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "0b3aff1951511ade181e09c112943ba45fae1a16858e07bf6f9f57e9bacbbb9b.wav",
+  "pcm_sha256": "a6f2138833bd8ca13fc41b429ebb7637d308ea99456300a9b64ab8cfdb2e5bf9"
+}

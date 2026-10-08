@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Puck",
+  "text": "Please add this to Work Log: the build is green.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "10660bd1f34bba95078bc63c0d4ea4e8504ffeada38d5c3631a2788af529781e.wav",
+  "pcm_sha256": "347b3c21747cb49eb13d5ef782c1129f1a8d5b2b0bb496e6c93e35bb28a74046"
+}

@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "When did I see my wallet?",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "20b08c11971693e966ba533e272a78d4bbdebd4e3f7beaee319437eba1d735fa.wav",
+  "pcm_sha256": "a47048cda0861fe9a50bd6080a79f6efedea32d9b604229d1be4ca8e309da764"
+}

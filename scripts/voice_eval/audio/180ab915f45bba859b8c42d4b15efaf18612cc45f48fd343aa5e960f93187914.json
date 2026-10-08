@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Puck",
+  "text": "What do you remember about my dog?",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "10660bd1f34bba95078bc63c0d4ea4e8504ffeada38d5c3631a2788af529781e.wav",
+  "pcm_sha256": "c58ede2faa9160947fdf60a697c67476f9b01d3383a2f227c23a5c9ca94e2f5f"
+}

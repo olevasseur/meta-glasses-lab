@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "Give me the gist of this menu.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "4496f3bd0aa72ab279a8c670d0879d9c1686989f81cab70c517f86fbbc690f96.wav",
+  "pcm_sha256": "a788325061b28fdcf4e5f339e011f85982cd1cf8a1cbee1d3aadd081c867cbfe"
+}

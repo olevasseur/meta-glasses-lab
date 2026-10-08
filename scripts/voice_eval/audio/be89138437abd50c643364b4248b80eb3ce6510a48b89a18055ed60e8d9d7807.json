@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "Stop watching now.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "0b3aff1951511ade181e09c112943ba45fae1a16858e07bf6f9f57e9bacbbb9b.wav",
+  "pcm_sha256": "bbda2dadf881c843d15f5b4375e5148b347b8092e134093d1f26fea5a757845b"
+}

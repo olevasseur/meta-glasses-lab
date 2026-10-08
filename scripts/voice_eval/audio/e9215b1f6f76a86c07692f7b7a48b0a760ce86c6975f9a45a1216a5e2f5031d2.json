@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "What am I looking at?",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "ee05e388c00893cfbb66a9f8b4b2d7191aa2101b19958360064107b6e121f89e.wav",
+  "pcm_sha256": "5650c95ef4b470053318efe0efd8e639366dd3e84e601a7f923c027cc2fe5b34"
+}

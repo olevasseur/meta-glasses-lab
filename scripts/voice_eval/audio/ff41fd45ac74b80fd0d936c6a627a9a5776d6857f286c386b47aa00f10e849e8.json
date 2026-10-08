@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "Where am I in the cooking project?",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "487a63885c6bfbc5169b2f5b90fac2eceb351843bfab6c61de0de155a7c5a264.wav",
+  "pcm_sha256": "a789fb9f384e4b94fb1e85c885e99f8c409d2c0442db5fa25c32a21a8025e12c"
+}

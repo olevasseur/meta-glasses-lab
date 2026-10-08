@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "Repeat the current recipe step.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "4496f3bd0aa72ab279a8c670d0879d9c1686989f81cab70c517f86fbbc690f96.wav",
+  "pcm_sha256": "468f0e059716a99d0ab43ad4c01f251bbe53852cf6d16564c3351950a69f90de"
+}

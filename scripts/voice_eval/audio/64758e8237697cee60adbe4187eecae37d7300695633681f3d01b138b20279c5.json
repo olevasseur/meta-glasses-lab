@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Puck",
+  "text": "Where did I leave my keys?",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "479f0c84397f86111805d816c5787cd5fb16c1cae86209e8e297f2100ca52629.wav",
+  "pcm_sha256": "716c877c9f2c19ae71962deea705d5d68c46b322d3d15dcb8064915bf4b4810e"
+}

@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "List my timers.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "4496f3bd0aa72ab279a8c670d0879d9c1686989f81cab70c517f86fbbc690f96.wav",
+  "pcm_sha256": "7a37f9c12309501d561bc72c4d63917301b7816fc6b7a277d6e201e75147c034"
+}

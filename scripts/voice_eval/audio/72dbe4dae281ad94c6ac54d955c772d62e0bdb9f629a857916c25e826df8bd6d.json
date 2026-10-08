@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "Switch to the French interpreter.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "0b3aff1951511ade181e09c112943ba45fae1a16858e07bf6f9f57e9bacbbb9b.wav",
+  "pcm_sha256": "6f16555a2ba321ffee1885513d643bbd8a6662f7ce29637d4d155fda77255ab4"
+}

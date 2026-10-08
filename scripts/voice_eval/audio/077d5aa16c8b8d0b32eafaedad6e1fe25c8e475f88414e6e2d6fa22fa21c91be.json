@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "Ask Codex to fix the failing tests in valiant.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "ee05e388c00893cfbb66a9f8b4b2d7191aa2101b19958360064107b6e121f89e.wav",
+  "pcm_sha256": "6c10a854f719a42ee1e0283ce2abdd5fa9c436bc529768d83c9cb32822103e08"
+}

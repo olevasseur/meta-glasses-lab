@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "Save a note to Inbox saying I need two lemons and fresh basil.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "0b3aff1951511ade181e09c112943ba45fae1a16858e07bf6f9f57e9bacbbb9b.wav",
+  "pcm_sha256": "616509091ae31f394399c0a3f3e856f1c5f5ec4bbdfe9051dfb8930ea8795657"
+}

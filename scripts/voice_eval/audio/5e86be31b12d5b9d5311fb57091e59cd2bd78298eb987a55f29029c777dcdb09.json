@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "Give me my morning brief.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "487a63885c6bfbc5169b2f5b90fac2eceb351843bfab6c61de0de155a7c5a264.wav",
+  "pcm_sha256": "ee0201f9b7ac5a8eb17e37fb2061fb799b6c072851c48e9517a0859ab31f3f1a"
+}

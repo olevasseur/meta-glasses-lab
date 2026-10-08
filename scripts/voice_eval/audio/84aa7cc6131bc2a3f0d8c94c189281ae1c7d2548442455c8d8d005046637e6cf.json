@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "Will this conversation keep working with the screen off?",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "0527d83de479ae4241d4c482d1dc4de9cc639d2c52390c26963dc70da369409a.wav",
+  "pcm_sha256": "ed84d4e26105064bf4c12285b0aab39014b80e072eb57a6628a06e740c3a5fec"
+}

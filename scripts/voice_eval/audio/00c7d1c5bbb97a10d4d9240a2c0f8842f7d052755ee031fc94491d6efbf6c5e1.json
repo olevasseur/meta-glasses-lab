@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Puck",
+  "text": "Ask me if I want tea. I will shake my head for no.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "10660bd1f34bba95078bc63c0d4ea4e8504ffeada38d5c3631a2788af529781e.wav",
+  "pcm_sha256": "d0723c54a6ae5fa4d0f22dc8b9087f16ea258fe52657cbab9a6fe7637344497a"
+}

@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Puck",
+  "text": "Research the capital of Canada with official sources and save the report.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "10660bd1f34bba95078bc63c0d4ea4e8504ffeada38d5c3631a2788af529781e.wav",
+  "pcm_sha256": "f2d55b70515cadb126b2cafbff6ecfc5ecc7aeda7cd23021a9a84f18bcc86169"
+}

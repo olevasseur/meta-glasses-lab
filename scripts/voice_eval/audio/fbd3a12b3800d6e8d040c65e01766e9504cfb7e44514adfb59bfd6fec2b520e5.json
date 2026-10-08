@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "Start a cooking project: boil two hundred grams of pasta for eight minutes, then drain it and add one tablespoon of olive oil.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "4496f3bd0aa72ab279a8c670d0879d9c1686989f81cab70c517f86fbbc690f96.wav",
+  "pcm_sha256": "36edbf3065ef5a537d7144966b21b2b4632baaf6f7d2a8938291f2a095e82391"
+}

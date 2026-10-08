@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Puck",
+  "text": "Okay, I want to save a note to Inbox about the picnic. Let me think, we need sandwiches and apples, and I am trying to remember what else we talked about, oh yes, we also need umbrellas because the forecast might change, and a blanket to sit on. Please save all of that. Over.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "479f0c84397f86111805d816c5787cd5fb16c1cae86209e8e297f2100ca52629.wav",
+  "pcm_sha256": "b293c5d95ab94962b71145ec342fa449183d2c970bdd70cc8c21ca19a95d0692"
+}

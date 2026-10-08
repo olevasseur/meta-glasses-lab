@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "Remember that my dog is named Maple.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "ee05e388c00893cfbb66a9f8b4b2d7191aa2101b19958360064107b6e121f89e.wav",
+  "pcm_sha256": "d7184fc9387cafc7f9b5735b3302c6d5d6f94fbf8d9acf0e7cebcadb00b2d9dd"
+}
