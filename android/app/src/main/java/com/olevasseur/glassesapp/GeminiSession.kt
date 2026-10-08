@@ -41,6 +41,7 @@ class GeminiSession(
     private var ptt = false
     private var settings = ConversationSettings()
     private var talking = false
+    private var replyPending = false
     private var token: LiveToken? = null
     private var handle: String? = null
     private var reconnectJob: Job? = null
@@ -138,6 +139,8 @@ class GeminiSession(
 
     private fun receive(event: ServerEvent, generation: Int) {
         event.error?.let { onFatal("Gemini reported an API error; check the backend session configuration"); return }
+        if (!event.inputText.isNullOrEmpty() || !event.outputText.isNullOrEmpty() || event.audio.isNotEmpty() || event.calls.isNotEmpty()) replyPending = true
+        if (event.turnComplete || event.interrupted) replyPending = false
         onEvent(event)
         if (event.resumable == true && event.handle != null) handle = event.handle
         if (event.setupComplete) {
@@ -205,7 +208,18 @@ class GeminiSession(
             }
         }
         if (endedActivity) onTalking(false)
+        if (sent) replyPending = true
         return sent
+    }
+
+    fun sendJobEvent(event: JobEvent): Boolean = synchronized(sendLock) {
+        val ws = socket
+        // A completion must not end a manual turn, interrupt a reply, or speak during a call.
+        if (!active || !ready || audioSuspended || talking || replyPending || !audio.playbackIdle ||
+            ws == null || ws.queueSize() > 256_000) return@synchronized false
+        val sent = ws.send(LiveProtocol.jobEvent(event))
+        if (sent) replyPending = true
+        sent
     }
 
     fun sendAudio(pcm: ByteArray) = synchronized(sendLock) {
@@ -243,6 +257,7 @@ class GeminiSession(
             else false
         }
         if (!changed) return
+        if (!value) replyPending = true
         onTalking(value)
         talkTimeout?.cancel()
         if (value) {
@@ -258,7 +273,7 @@ class GeminiSession(
         setupTimeout?.cancel()
         talkTimeout?.cancel()
         synchronized(sendLock) {
-            ready = false; talking = false
+            ready = false; talking = false; replyPending = false
             socket?.cancel(); socket = null
         }
         audio.flush()
@@ -275,7 +290,7 @@ class GeminiSession(
     fun stop() {
         synchronized(sendLock) {
             if (talking && ready) socket?.send(LiveProtocol.activity(false))
-            active = false; ready = false; talking = false
+            active = false; ready = false; talking = false; replyPending = false
             socket?.close(1000, "User stopped"); socket = null
         }
         reconnectJob?.cancel(); reconnectJob = null

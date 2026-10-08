@@ -4,10 +4,12 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.datastore.preferences.SharedPreferencesMigration
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 
@@ -34,7 +36,10 @@ data class ConversationSettings(
 
 val Context.conversationSettingsStore by preferencesDataStore(
     name = "conversation_settings",
-    produceMigrations = { context -> listOf(SharedPreferencesMigration(context, "hands_free", setOf("idle_minutes"))) },
+    produceMigrations = { context -> listOf(
+        SharedPreferencesMigration(context, "hands_free", setOf("idle_minutes")),
+        SharedPreferencesMigration(context, "job_events"),
+    ) },
 )
 
 class ConversationSettingsStore(private val store: DataStore<Preferences>) {
@@ -61,6 +66,13 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
             keyword = prefs[keywordKey] ?: "over",
             overSilenceSeconds = prefs[overSilenceKey] ?: 10,
         ).normalized()
+    }
+
+    suspend fun jobCursor(backendUrl: String): Long =
+        store.data.first()[longPreferencesKey("cursor:$backendUrl")] ?: 0L
+
+    suspend fun saveJobCursor(backendUrl: String, value: Long) {
+        store.edit { it[longPreferencesKey("cursor:$backendUrl")] = value }
     }
 
     suspend fun save(settings: ConversationSettings) {

@@ -46,10 +46,20 @@ class BackendClient(
         listOf("sessions", sessionId, "end"), JSONObject(),
     )
 
+    suspend fun events(after: Long): JSONObject {
+        val url = base.newBuilder().addPathSegment("events")
+            .addQueryParameter("after", after.toString()).addQueryParameter("wait", "20").build()
+        return execute(Request.Builder().url(url).header("X-App-Secret", secret).get().build())
+    }
+
     private suspend fun post(path: List<String>, body: JSONObject): JSONObject {
         val url = base.newBuilder().apply { path.forEach { addPathSegment(it) } }.build()
         val request = Request.Builder().url(url).header("X-App-Secret", secret)
             .post(body.toString().toRequestBody("application/json".toMediaType())).build()
+        return execute(request)
+    }
+
+    private suspend fun execute(request: Request): JSONObject {
         return suspendCancellableCoroutine { continuation ->
             val call = client.newCall(request)
             continuation.invokeOnCancellation { call.cancel() }

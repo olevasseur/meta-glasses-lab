@@ -215,11 +215,13 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
     }
 
     /** turnComplete means generation finished; wait for queued AND device-buffered speech. */
+    val playbackIdle: Boolean get() = synchronized(playbackLock) {
+        val output = track
+        output == null || (queueBytes == 0 && (output.playbackHeadPosition.toLong() and 0xffffffffL) >= writtenFrames)
+    }
+
     suspend fun awaitPlaybackIdle() {
-        while (synchronized(playbackLock) {
-            val output = track
-            output != null && (queueBytes > 0 || (output.playbackHeadPosition.toLong() and 0xffffffffL) < writtenFrames)
-        }) delay(20)
+        while (!playbackIdle) delay(20)
     }
 
     suspend fun stop() {

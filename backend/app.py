@@ -1,13 +1,15 @@
 """Run from backend/: uv run uvicorn app:app --port 8787."""
 
+import asyncio
 import hmac
 import os
 import sqlite3
+from contextlib import asynccontextmanager
 from typing import Literal
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from google.auth.exceptions import GoogleAuthError
@@ -18,12 +20,25 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 import gemini
 import memory_api
 from memory import MemoryConflict
+from jobs import Jobs
 from notes import BACKEND_DIR, Notes
 from tools import REGISTRY
 
 load_dotenv(BACKEND_DIR.parent / ".env")  # Explicit environment values take precedence.
-app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 notes = Notes()
+
+
+@asynccontextmanager
+async def lifespan(app):
+    app.state.jobs = Jobs(notes)
+    await app.state.jobs.start()
+    try:
+        yield
+    finally:
+        await app.state.jobs.close()
+
+
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 app.include_router(memory_api.router)
 
 
@@ -74,19 +89,28 @@ def token(request: TokenRequest):
 
 
 @app.post("/tools/{name}")
-def dispatch_tool(name: str, args: dict | None = None):
+async def dispatch_tool(name: str, args: dict | None = None):
     if name not in REGISTRY:
         raise HTTPException(404, "Unknown tool")
     request_type, owner, method, _ = REGISTRY[name]
     if owner == "client":
         raise HTTPException(400, "This tool must be executed on the glasses app")
     try:
-        request = request_type.model_validate(args)
+        request = request_type.model_validate(args if args is not None else {})
     except ValidationError as exc:
         raise RequestValidationError(exc.errors()) from exc
+    if owner == "jobs":
+        # Jobs owns an event-loop-bound SQLite connection and schedules async work.
+        try:
+            handler = getattr(app.state.jobs, method)
+            if name == "cancel_job":
+                return await handler(**request.model_dump())
+            return handler(**request.model_dump())
+        except (OSError, ValueError, sqlite3.Error):
+            raise HTTPException(503, "Check the job configuration and repository allowlist") from None
     try:
         service = notes if owner == "notes" else memory_api.memory
-        return getattr(service, method)(**request.model_dump())
+        return await asyncio.to_thread(getattr(service, method), **request.model_dump())
     except MemoryConflict as exc:
         raise HTTPException(409, str(exc)) from exc
     except (FileNotFoundError, ValueError, GoogleAuthError) as exc:
@@ -97,3 +121,8 @@ def dispatch_tool(name: str, args: dict | None = None):
         if owner == "memory":
             raise HTTPException(503, "Memory storage unavailable") from exc
         raise HTTPException(502, "Google Docs operation failed; check the document before retrying") from exc
+
+
+@app.get("/events")
+async def events(after: int = Query(0, ge=0), wait: float = Query(20, ge=0, le=20)):
+    return await app.state.jobs.events(after, wait)

@@ -62,6 +62,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val mutableState = MutableStateFlow(ConversationState())
     val state = mutableState.asStateFlow()
     private val http = OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(25, TimeUnit.SECONDS) // Longer than the backend event poll (20 seconds).
         .retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).build()
     private val backend = BackendClient(http, BuildConfig.BACKEND_URL, BuildConfig.APP_SHARED_SECRET)
     private val memory = TranscriptMemory(backend, File(application.noBackupFilesDir, "memory-outbox"), ::error)
@@ -139,6 +140,27 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         onInputReady = { service?.inputsAvailable(true) },
         onError = ::error,
     )
+    private val jobNotifications = JobNotifications(application)
+    init {
+        viewModelScope.launch {
+            // Load the durable cursor before polling so service recreation cannot replay it.
+            val cursor = try { settingsStore.jobCursor(BuildConfig.BACKEND_URL) }
+            catch (_: java.io.IOException) {
+                error("Could not load job notifications; reopen the app to retry.")
+                return@launch
+            }
+            JobEvents(
+                fetch = backend::events,
+                initialCursor = cursor,
+                saveCursor = { settingsStore.saveJobCursor(BuildConfig.BACKEND_URL, it) },
+                deliver = { event ->
+                    mutableState.update { it.copy(lastTool = "${event.status}: ${event.summary}") }
+                    (gestures.state.value.question == null && gemini.sendJobEvent(event)) || jobNotifications.show(event)
+                },
+            ).listen()
+        }
+    }
+
     private var startJob: Job? = null
     private var stopJob: Job? = null
 

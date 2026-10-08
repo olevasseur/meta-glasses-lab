@@ -125,4 +125,29 @@ class ConversationSettingsTest {
         } finally { reopenedScope.coroutineContext[Job]!!.cancelAndJoin() }
     }
 
+    @Test fun jobCursorsSurviveSettingsChangesAndServiceRecreationPerBackend() = runBlocking {
+        val file = File(temporary.root, "job-cursors.preferences_pb")
+        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val expected = ConversationSettings(ConversationMode.OVER, 3250, "your turn", 25, idleMinutes = 42)
+        try {
+            val settings = ConversationSettingsStore(PreferenceDataStoreFactory.create(scope = scope) { file })
+            assertEquals(0L, settings.jobCursor("backend-a"))
+            settings.save(expected)
+            settings.saveJobCursor("backend-a", 41L)
+            settings.saveJobCursor("backend-b", 7L)
+            settings.save(expected.copy(mode = ConversationMode.PTT))
+            assertEquals(41L, settings.jobCursor("backend-a"))
+            assertEquals(7L, settings.jobCursor("backend-b"))
+            assertEquals(expected.copy(mode = ConversationMode.PTT), settings.settings.first())
+        } finally { scope.coroutineContext[Job]!!.cancelAndJoin() }
+        val reopenedScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        try {
+            val settings = ConversationSettingsStore(PreferenceDataStoreFactory.create(scope = reopenedScope) { file })
+            assertEquals(41L, settings.jobCursor("backend-a"))
+            assertEquals(7L, settings.jobCursor("backend-b"))
+            assertEquals(0L, settings.jobCursor("backend-c"))
+            assertEquals(expected.copy(mode = ConversationMode.PTT), settings.settings.first())
+        } finally { reopenedScope.coroutineContext[Job]!!.cancelAndJoin() }
+    }
+
 }
