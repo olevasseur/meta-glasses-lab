@@ -35,6 +35,7 @@ class GeminiSession(
     private var socket: WebSocket? = null
     private var ready = false
     private var active = false
+    private var audioSuspended = false
     private var ptt = false
     private var talking = false
     private var token: LiveToken? = null
@@ -137,7 +138,7 @@ class GeminiSession(
         }
         // Interruption wins over stale audio if both ever occur in the same event.
         synchronized(sendLock) {
-            if (!event.interrupted && generation == audioGeneration.get()) event.audio.forEach(audio::enqueue)
+            if (!audioSuspended && !event.interrupted && generation == audioGeneration.get()) event.audio.forEach(audio::enqueue)
         }
         event.inputText?.takeIf { it.isNotEmpty() }?.let { onTranscript("You", it) }
         event.outputText?.takeIf { it.isNotEmpty() }?.let { onTranscript("Gemini", it) }
@@ -180,7 +181,7 @@ class GeminiSession(
     }
 
     fun sendAudio(pcm: ByteArray) = synchronized(sendLock) {
-        if (active && ready && (!ptt || talking)) {
+        if (active && ready && !audioSuspended && (!ptt || talking)) {
             val ws = socket ?: return@synchronized
             // Don't accumulate stale microphone data behind a stalled connection.
             if (ws.queueSize() > 256_000 || !ws.send(LiveProtocol.audio(pcm))) {
@@ -190,9 +191,19 @@ class GeminiSession(
         }
     }
 
+    fun suspendAudio(suspended: Boolean) {
+        if (suspended) setTalking(false)
+        synchronized(sendLock) {
+            if (audioSuspended == suspended) return
+            audioSuspended = suspended
+            audioGeneration.incrementAndGet()
+            if (suspended) audio.flush()
+        }
+    }
+
     fun setTalking(value: Boolean) {
         val changed = synchronized(sendLock) {
-            if (!active || !ready || !ptt || talking == value) false
+            if (!active || !ready || !ptt || (audioSuspended && value) || talking == value) false
             else if (socket?.send(LiveProtocol.activity(value)) == true) { talking = value; true }
             else false
         }

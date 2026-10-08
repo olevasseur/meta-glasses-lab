@@ -1,0 +1,7 @@
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="conversation" android:enabled="true"
+        android:icon="@drawable/ic_glasses" android:shortcutShortLabel="@string/shortcut_conversation">
+        <intent android:action="com.olevasseur.glassesapp.START_CONVERSATION"
+            android:targetPackage="com.olevasseur.glassesapp" android:targetClass="com.olevasseur.glassesapp.MainActivity" />
+    </shortcut>
+</shortcuts>

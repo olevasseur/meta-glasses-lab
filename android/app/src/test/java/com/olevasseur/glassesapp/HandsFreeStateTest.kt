@@ -1,0 +1,85 @@
+package com.olevasseur.glassesapp
+
+import org.junit.Assert.*
+import org.junit.Test
+
+class HandsFreeStateTest {
+    @Test fun `arming listens for buttons without starting the microphone`() {
+        val armed = HandsFreeState().arm(100)
+        assertTrue(armed.armed)
+        assertFalse(armed.conversation)
+        assertFalse(armed.shouldRun)
+    }
+
+    @Test fun `capture stop preserves controls and next hold starts again`() {
+        val started = HandsFreeState().arm(0).captureHold(1)
+        assertTrue(started.shouldRun)
+        val stopped = started.captureHold(2)
+        assertTrue(stopped.armed)
+        assertFalse(stopped.shouldRun)
+        assertTrue(stopped.captureHold(3).shouldRun)
+        assertFalse(stopped.stop().armed)
+    }
+
+    @Test fun `call and focus overlap cannot resume prematurely`() {
+        val active = HandsFreeState().start(0)
+        val paused = active.pause(PauseReason.CALL, true).pause(PauseReason.FOCUS, true)
+        assertFalse(paused.shouldRun)
+        assertFalse(paused.pause(PauseReason.FOCUS, false).shouldRun)
+        assertFalse(paused.pause(PauseReason.CALL, false).shouldRun)
+        assertTrue(paused.pause(PauseReason.CALL, false).pause(PauseReason.FOCUS, false).shouldRun)
+    }
+
+    @Test fun `start during call cannot bypass call guard`() {
+        val calling = HandsFreeState().pause(PauseReason.CALL, true)
+        assertFalse(calling.start(1).shouldRun)
+        assertFalse(calling.start(1).stop().start(2).shouldRun)
+    }
+
+    @Test fun `bluetooth loss requires explicit restart despite focus gain`() {
+        val disconnected = HandsFreeState().start(0).pause(PauseReason.BLUETOOTH, true)
+        assertFalse(disconnected.pause(PauseReason.FOCUS, false).shouldRun)
+        assertTrue(disconnected.start(1).shouldRun)
+    }
+
+    @Test fun `glasses session pause resumes only after all blockers clear`() {
+        val paused = HandsFreeState().start(0).pause(PauseReason.GLASSES, true).pause(PauseReason.CALL, true)
+        assertFalse(paused.pause(PauseReason.GLASSES, false).shouldRun)
+        assertTrue(paused.pause(PauseReason.GLASSES, false).pause(PauseReason.CALL, false).shouldRun)
+    }
+
+    @Test fun `stop cancels resume after a call or focus gain`() {
+        val stopped = HandsFreeState().start(0).pause(PauseReason.CALL, true).stop()
+        assertFalse(stopped.pause(PauseReason.CALL, false).pause(PauseReason.FOCUS, false).shouldRun)
+    }
+
+    @Test fun `mode switch clears mute and mute is unavailable while paused or in ptt`() {
+        val muted = HandsFreeState().start(0).toggleMute(1)
+        assertTrue(muted.muted)
+        assertFalse(muted.toggleMute(2).muted)
+        val ptt = muted.toggleMode(2)
+        assertTrue(ptt.ptt)
+        assertFalse(ptt.muted)
+        assertEquals(ptt, ptt.toggleMute(3))
+        val paused = HandsFreeState().start(0).pause(PauseReason.CALL, true)
+        assertEquals(paused, paused.toggleMute(3))
+    }
+
+    @Test fun `idle expiry has an exact boundary and activity resets it`() {
+        val active = HandsFreeState().start(10_000)
+        assertFalse(active.expired(69_999, 60_000))
+        assertTrue(active.expired(70_000, 60_000))
+        assertFalse(active.activity(69_000).expired(70_000, 60_000))
+        assertFalse(active.stop().expired(100_000, 60_000))
+        assertTrue(active.pause(PauseReason.CALL, true).expired(70_000, 60_000))
+        assertTrue(HandsFreeState().arm(0).expired(60_000, 60_000))
+    }
+
+    @Test fun `idle preference is bounded and repeated starts are idempotent`() {
+        assertEquals(1, HandsFreeState.idleMinutes(-1))
+        assertEquals(60, HandsFreeState.idleMinutes(500))
+        assertEquals(5, HandsFreeState.idleMinutes(5))
+        val started = HandsFreeState().start(0)
+        assertEquals(started, started.start(0))
+    }
+}

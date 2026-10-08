@@ -1,6 +1,7 @@
 package com.olevasseur.glassesapp
 
 import android.app.Application
+import android.annotation.SuppressLint
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import java.util.concurrent.TimeUnit
@@ -8,6 +9,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
@@ -33,9 +40,15 @@ data class ConversationState(
     val transcript: List<TranscriptLine> = emptyList(),
     val lastTool: String = "None",
     val error: String? = null,
+    val handsFree: HandsFreeState = HandsFreeState(),
+    val idleMinutes: Int = HandsFreeState.DEFAULT_IDLE_MINUTES,
 )
 
 class ConversationViewModel(application: Application) : AndroidViewModel(application) {
+    // Same lifetime as its owning Service; onCleared removes this reference.
+    @SuppressLint("StaticFieldLeak")
+    internal var service: ConversationService? = null
+    @Volatile private var muted = false
     private val mutableState = MutableStateFlow(ConversationState())
     val state = mutableState.asStateFlow()
     private val http = OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS)
@@ -63,13 +76,10 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     val glasses = GlassesController(application, viewModelScope,
         onGlasses = { label -> mutableState.update { it.copy(glasses = label) } },
         onInputs = { label -> mutableState.update { it.copy(inputs = label) } },
-        onHold = {
-            if (state.value.connected && state.value.ptt) {
-                glassesTalking = !glassesTalking
-                gemini.setTalking(glassesTalking || screenTalking)
-            }
-        },
-        onInputLost = { glassesTalking = false; gemini.setTalking(screenTalking) },
+        onHold = { service?.captureHold() },
+        onDoubleTap = { service?.toggleInput() },
+        onInputLost = { finishTalking(); service?.inputsAvailable(false) },
+        onInputReady = { service?.inputsAvailable(true) },
         onError = ::error,
     )
     private var startJob: Job? = null
@@ -77,17 +87,28 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
 
     fun permissionsGranted(granted: Boolean) {
         mutableState.update { it.copy(permissions = granted) }
-        // Bluetooth is optional for a phone-only session; activity initializes DAT separately.
+        // Bluetooth is optional for a phone-only session; the service initializes DAT separately.
         if (!granted) error("Microphone permission is required. Allow it in Android app settings.")
     }
     fun error(message: String) { mutableState.update { it.copy(error = message) } }
-    fun setMode(ptt: Boolean) { if (!state.value.running) mutableState.update { it.copy(ptt = ptt) } }
+    fun setMode(ptt: Boolean) { service?.setMode(ptt) }
+    internal fun applyMode(ptt: Boolean) { mutableState.update { it.copy(ptt = ptt) } }
+    internal fun controls(value: HandsFreeState, idleMinutes: Int) {
+        muted = value.muted
+        gemini.suspendAudio(!value.shouldRun)
+        mutableState.update { it.copy(handsFree = value, idleMinutes = idleMinutes) }
+    }
+    fun setIdleMinutes(value: Int) { service?.setIdleMinutes(value) }
+    fun arm() { service?.arm() }
+    fun toggleInput() { service?.toggleInput() }
+    fun start() { service?.startConversation() }
+    fun stop() { service?.stopAll() }
     fun setMock(enabled: Boolean) {
-        if (state.value.running || state.value.stopping) return
+        if (state.value.handsFree.armed || state.value.running || state.value.stopping) return
         if (glasses.setMock(enabled)) mutableState.update { it.copy(mock = enabled) }
     }
 
-    fun start() {
+    internal fun startSession() {
         if (state.value.running || state.value.stopping || !state.value.permissions) return
         if (!BuildConfig.DEBUG || BuildConfig.APP_SHARED_SECRET.isBlank()) {
             error("Set APP_SHARED_SECRET in android/local.properties and rebuild the debug app.")
@@ -95,30 +116,45 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         }
         mutableState.update { it.copy(running = true, gemini = "Opening microphone…", error = null) }
         startJob = viewModelScope.launch {
-            try {
-                audio.start(forcePhone = state.value.mock, onAudio = gemini::sendAudio,
-                    onRoute = { label -> mutableState.update { it.copy(route = label) } },
-                    onError = { message -> viewModelScope.launch { error(message); stop() } },
-                )
-                gemini.start(state.value.ptt)
-                if (state.value.ptt) glasses.startInputs()
-            } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { error(e.message ?: "Cannot start audio"); stop() }
+            var sessionStarted = false
+            state.map { it.handsFree.shouldRun }.distinctUntilChanged().collectLatest { allowed ->
+                if (!allowed) return@collectLatest
+                try {
+                    audio.start(forcePhone = state.value.mock, onAudio = { gemini.sendAudio(if (muted) ByteArray(it.size) else it) },
+                        onRoute = { label -> mutableState.update { it.copy(route = label) } },
+                        onError = { message -> viewModelScope.launch { error(message); stop() } },
+                        onBluetoothLost = { service?.bluetoothLost() },
+                    )
+                    service?.audioStarted()
+                    if (!sessionStarted) { gemini.start(state.value.ptt); sessionStarted = true }
+                    awaitCancellation()
+                } catch (e: CancellationException) { throw e }
+                catch (e: Exception) { error(e.message ?: "Cannot start audio"); stop() }
+                finally {
+                    withContext(NonCancellable) { audio.stop() }
+                    mutableState.update { it.copy(route = "Audio paused") }
+                }
+            }
         }
     }
 
     fun talk(pressed: Boolean) {
-        if (!state.value.connected || !state.value.ptt) return
+        if (!state.value.connected || !state.value.ptt || !state.value.handsFree.shouldRun) return
+        service?.activity()
         screenTalking = pressed
         gemini.setTalking(screenTalking || glassesTalking)
     }
+    fun toggleGlassesTalking() {
+        if (!state.value.connected || !state.value.ptt || !state.value.handsFree.shouldRun) return
+        glassesTalking = !glassesTalking
+        gemini.setTalking(glassesTalking || screenTalking)
+    }
     fun finishTalking() { screenTalking = false; glassesTalking = false; gemini.setTalking(false) }
 
-    fun stop() {
+    internal fun stopSession() {
         if (state.value.stopping || !state.value.running) return
         mutableState.update { it.copy(stopping = true, connected = false, talking = false) }
         gemini.stop()
-        glasses.stopInputs()
         screenTalking = false; glassesTalking = false
         stopJob = viewModelScope.launch {
             startJob?.cancelAndJoin(); startJob = null
@@ -128,6 +164,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private fun appendTranscript(speaker: String, text: String) {
+        service?.activity()
         mutableState.update { state ->
             val previous = state.transcript.lastOrNull()
             val lines = if (!transcriptBoundary && previous?.speaker == speaker) {
@@ -139,11 +176,13 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     override fun onCleared() {
+        service = null
         gemini.close(); glasses.close()
         // viewModelScope is already cancelled; finish releasing platform audio on a cleanup scope.
         val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         cleanup.launch {
             stopJob?.join()
+            startJob?.join()
             audio.stop()
             http.dispatcher.executorService.shutdown(); http.connectionPool.evictAll()
             cleanup.cancel()

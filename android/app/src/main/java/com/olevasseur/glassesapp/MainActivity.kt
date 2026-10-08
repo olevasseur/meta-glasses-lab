@@ -4,11 +4,15 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
+import android.content.ComponentName
+import android.content.Intent
+import android.content.ServiceConnection
+import android.content.pm.ShortcutInfo
+import android.content.pm.ShortcutManager
+import android.os.IBinder
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -27,34 +31,50 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.Lifecycle
+import com.meta.wearable.dat.core.voiceinvocations.isVoiceInvocationsIntent
 import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.types.Permission
 import com.meta.wearable.dat.core.types.PermissionStatus
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-    private val model: ConversationViewModel by viewModels()
+    private var boundService by mutableStateOf<ConversationService?>(null)
+    private var binding = false
+    private var pendingStart = false
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName, binder: IBinder) {
+            boundService = (binder as ConversationService.LocalBinder).service
+            boundService?.uiResumed(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+            updatePermissions()
+        }
+        override fun onServiceDisconnected(name: ComponentName) { boundService = null }
+    }
     private val androidPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         updatePermissions()
     }
     // Same DAT permission contract as CameraAccess; HFP itself uses Android RECORD_AUDIO.
     private val glassesPermission = registerForActivityResult(Wearables.RequestPermissionContract()) { result ->
         if (result.getOrDefault(PermissionStatus.Denied) != PermissionStatus.Granted) {
-            model.error("Glasses microphone permission denied. HFP/phone audio can still be tested.")
+            boundService?.model?.error("Glasses microphone permission denied. HFP/phone audio can still be tested.")
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingStart = savedInstanceState?.getBoolean("pending_start")
+            ?: (isVoiceInvocationsIntent(intent) || intent.action == ConversationService.START)
+        binding = bindService(Intent(this, ConversationService::class.java), connection, BIND_AUTO_CREATE)
         setContent {
             MaterialTheme {
+                val model = boundService?.model
+                if (model == null) { Text("Connecting to conversation service…"); return@MaterialTheme }
                 val state by model.state.collectAsStateWithLifecycle()
-                DisposableEffect(state.running) {
-                    if (state.running) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                    else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                    onDispose { window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
-                }
                 ConversationScreen(state, model, ::requestPermissions,
+                    pinShortcut = {
+                        getSystemService(ShortcutManager::class.java).requestPinShortcut(
+                            ShortcutInfo.Builder(this, "conversation").build(), null)
+                    },
                     register = { model.glasses.register(this) },
                     requestGlassesPermission = {
                         lifecycleScope.launch {
@@ -73,19 +93,42 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestPermissions() {
-        val requested = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        val requested = mutableListOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_PHONE_STATE)
         if (Build.VERSION.SDK_INT >= 31) requested += Manifest.permission.BLUETOOTH_CONNECT
-        androidPermissions.launch(requested.toTypedArray())
+        if (Build.VERSION.SDK_INT >= 33) requested += Manifest.permission.POST_NOTIFICATIONS
+        val missing = requested.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isEmpty()) updatePermissions() else androidPermissions.launch(missing.toTypedArray())
     }
     private fun updatePermissions() {
-        model.permissionsGranted(ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
-        if (Build.VERSION.SDK_INT < 31 || ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
-            model.glasses.initialize()
+        boundService?.permissionsChanged()
+        launchWhenReady()
+    }
+    private fun launchWhenReady() {
+        if (pendingStart && lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) && boundService?.model?.state?.value?.permissions == true) {
+            pendingStart = false
+            boundService?.startConversation()
         }
     }
-    override fun onStop() {
-        if (!isChangingConfigurations) model.stop() // M1 is a foreground conversation.
-        super.onStop()
+    override fun onResume() {
+        super.onResume()
+        boundService?.uiResumed(true)
+        updatePermissions()
+    }
+    override fun onPause() { boundService?.uiResumed(false); super.onPause() }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (isVoiceInvocationsIntent(intent) || intent.action == ConversationService.START) pendingStart = true
+        launchWhenReady()
+    }
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("pending_start", pendingStart)
+        super.onSaveInstanceState(outState)
+    }
+    override fun onDestroy() {
+        if (binding) unbindService(connection)
+        boundService = null
+        super.onDestroy()
     }
 }
 
@@ -94,6 +137,7 @@ private fun ConversationScreen(
     state: ConversationState,
     model: ConversationViewModel,
     permissions: () -> Unit,
+    pinShortcut: () -> Unit,
     register: () -> Unit,
     requestGlassesPermission: () -> Unit,
 ) {
@@ -104,40 +148,58 @@ private fun ConversationScreen(
             Text("Gemini: ${state.gemini}")
             Text("Audio: ${state.route}")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = register, enabled = !state.running) { Text("Connect glasses") }
-                OutlinedButton(onClick = permissions, enabled = !state.running) { Text("Permissions") }
+                OutlinedButton(onClick = register, enabled = !state.handsFree.armed) { Text("Connect glasses") }
+                OutlinedButton(onClick = permissions, enabled = !state.handsFree.armed) { Text("Permissions") }
             }
-            TextButton(onClick = requestGlassesPermission, enabled = !state.running) { Text("Grant DAT microphone permission") }
+            TextButton(onClick = requestGlassesPermission, enabled = !state.handsFree.armed) { Text("Grant DAT microphone permission") }
             Text("Meta AI → Settings → App Info → tap version 5× → Developer Mode", style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = !state.ptt, onClick = { model.setMode(false) }, label = { Text("Auto") }, enabled = !state.running)
-                FilterChip(selected = state.ptt, onClick = { model.setMode(true) }, label = { Text("Push-to-talk") }, enabled = !state.running)
+                FilterChip(selected = !state.handsFree.ptt, onClick = { model.setMode(false) }, label = { Text("Auto") })
+                FilterChip(selected = state.handsFree.ptt, onClick = { model.setMode(true) }, label = { Text("Push-to-talk") })
             }
-            Text(if (state.ptt) "Hold on screen to speak. On glasses, hold capture once to start, again to finish."
+            Text(if (state.ptt) "Hold on screen to speak; double-tap the glasses touchpad to start/finish speech."
                 else "Speak naturally. Gemini uses the backend’s patient voice detection.", style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = { if (state.running) model.stop() else model.start() }, enabled = !state.stopping && state.permissions, modifier = Modifier.fillMaxWidth()) {
-                Text(if (state.stopping) "Stopping…" else if (state.running) "Stop" else "Start")
+            Text("Capture HOLD starts/stops a conversation. Double-tap mutes Auto or toggles speech in PTT.")
+            if (state.handsFree.pauses.isNotEmpty() && state.handsFree.conversation) Text("Paused: ${state.handsFree.pauses.joinToString()}")
+            Button(onClick = { if (state.handsFree.conversation && state.handsFree.pauses.isEmpty()) model.stop() else model.start() }, enabled = !state.stopping && state.permissions, modifier = Modifier.fillMaxWidth()) {
+                Text(if (state.stopping) "Stopping…" else if (state.handsFree.conversation && state.handsFree.pauses.isNotEmpty()) "Resume" else if (state.handsFree.conversation) "Stop" else "Start")
+            }
+            if (state.handsFree.armed) {
+                OutlinedButton(onClick = model::stop) { Text("Stop service and glasses controls") }
+            } else {
+                OutlinedButton(onClick = model::arm, enabled = state.permissions) { Text("Enable glasses controls") }
+            }
+            Text(state.inputs, style = MaterialTheme.typography.bodySmall)
+            if (state.running && !state.ptt) OutlinedButton(onClick = model::toggleInput) {
+                Text(if (state.handsFree.muted) "Unmute microphone" else "Mute microphone")
             }
             if (state.ptt) {
-                HoldToTalk(state.connected, state.talking, model::talk, model::finishTalking)
+                HoldToTalk(state.connected && state.handsFree.shouldRun, state.talking, model::talk, model::finishTalking)
                 if (state.talking) OutlinedButton(onClick = model::finishTalking) { Text("Finish speaking") }
                 Text(state.inputs, style = MaterialTheme.typography.bodySmall)
-                Text("Capture HOLD has no release event in DAT 1.0.0. Speech ends automatically after 60 seconds.", style = MaterialTheme.typography.bodySmall)
+                Text("Double-tap has no release event. PTT speech ends automatically after 60 seconds.", style = MaterialTheme.typography.bodySmall)
             }
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             if (BuildConfig.DEBUG) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(checked = state.mock, onCheckedChange = model::setMock, enabled = !state.running && !state.stopping)
+                    Switch(checked = state.mock, onCheckedChange = model::setMock, enabled = !state.handsFree.armed && !state.stopping)
                     Text("Mock glasses (phone audio)", modifier = Modifier.padding(start = 8.dp))
                 }
-                if (state.mock && state.ptt) OutlinedButton(onClick = model.glasses::mockHold, enabled = state.connected) { Text("Simulate capture hold") }
+                if (state.mock) {
+                    OutlinedButton(onClick = model.glasses::mockHold, enabled = state.handsFree.armed) { Text("Simulate capture hold") }
+                    OutlinedButton(onClick = model.glasses::mockDoubleTap, enabled = state.connected) { Text("Simulate double-tap") }
+                }
             }
             Text("Live transcript", style = MaterialTheme.typography.titleMedium)
             if (state.transcript.isEmpty()) Text("Your conversation will appear here.")
             state.transcript.forEach { line -> Text("${line.speaker}: ${line.text}") }
             Text("Last tool result", style = MaterialTheme.typography.titleMedium)
             Text(state.lastTool)
-            Text("Keep this screen open during M1 conversations.", style = MaterialTheme.typography.bodySmall)
+            Text("Continues with the screen off. Switching Auto/PTT starts a new conversation.", style = MaterialTheme.typography.bodySmall)
+            Text("Stop after ${state.idleMinutes} minutes without transcript or control activity")
+            Slider(value = state.idleMinutes.toFloat(), onValueChange = { model.setIdleMinutes(it.toInt()) },
+                valueRange = 1f..60f, steps = 58)
+            TextButton(onClick = pinShortcut) { Text("Add Start shortcut to home screen") }
         }
     }
 }
