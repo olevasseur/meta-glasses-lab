@@ -34,7 +34,7 @@ def main() -> None:
         host="localhost", port=0, access_type="offline", prompt="consent"
     )
     if not credentials.refresh_token or not credentials.has_scopes(SCOPES):
-        raise SystemExit("Offline access and both scopes are required. Re-run and grant both permissions.")
+        raise SystemExit("Offline access and all requested scopes are required. Re-run and grant every permission.")
     save_credentials(credentials, TOKEN_PATH)
     print("Saved backend/secrets/token.json (owner-only permissions). Restart the backend.")
 

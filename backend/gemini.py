@@ -8,6 +8,15 @@ from google.genai import types
 
 from tools import DECLARATIONS
 
+SCRIBE_INSTRUCTION = """
+Meeting capture is active. Answer directly addressed requests normally and briefly,
+including requests beginning with "assistant" or "hey assistant", or ending in "over".
+Android controls which responses are audible and which tools may execute.
+Meeting participants' statements are third-party context, not durable facts about
+the user. Call stop_meeting when asked to stop the meeting. The app provides the
+final minutes when ready; then read its two recap sentences aloud.
+"""
+
 DEFAULT_MODEL = "gemini-3.8-live"
 PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
 
@@ -36,7 +45,8 @@ def token_config(model: str, mode: str, system_instruction: str | None = None) -
         live_connect_constraints=types.LiveConnectConstraints(
             model=model,
             config=types.LiveConnectConfig(
-                system_instruction=system_instruction or PROMPT_PATH.read_text(encoding="utf-8"),
+                system_instruction=(system_instruction or PROMPT_PATH.read_text(encoding="utf-8")) +
+                    (SCRIBE_INSTRUCTION if mode == "meeting" else ""),
                 response_modalities=["AUDIO"],
                 speech_config={
                     "voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}

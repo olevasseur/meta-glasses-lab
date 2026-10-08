@@ -47,6 +47,6 @@ def test_oauth_incomplete_consent_preserves_existing_token(oauth, missing):
         credentials.refresh_token = None
     else:
         credentials.has_scopes.return_value = False
-    with pytest.raises(SystemExit, match="both scopes are required"):
+    with pytest.raises(SystemExit, match="all requested scopes are required"):
         google_auth.main()
     assert token_path.read_text() == "existing-credentials"

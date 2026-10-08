@@ -52,7 +52,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
     private var headOffset = 0
 
     @SuppressLint("MissingPermission") // Activity requests RECORD_AUDIO / BLUETOOTH_CONNECT first.
-    suspend fun start(forcePhone: Boolean, onAudio: (ByteArray) -> Unit, onRoute: (String) -> Unit, onError: (String) -> Unit) {
+    suspend fun start(forcePhone: Boolean, onAudio: (ByteArray) -> Unit, onRoute: (String) -> Unit, onError: (String) -> Unit, roomCapture: Boolean = false) {
         check(!engaged) { "Audio already active" }
         engaged = true
         originalMode = manager.mode
@@ -65,7 +65,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
             val buffer = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
             check(buffer > 0) { "Microphone does not support $rate Hz PCM" }
             val record = AudioRecord.Builder()
-                .setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
+                .setAudioSource(if (roomCapture && !bluetooth) MediaRecorder.AudioSource.MIC else MediaRecorder.AudioSource.VOICE_COMMUNICATION)
                 .setAudioFormat(AudioFormat.Builder().setSampleRate(rate)
                     .setChannelMask(AudioFormat.CHANNEL_IN_MONO).setEncoding(AudioFormat.ENCODING_PCM_16BIT).build())
                 .setBufferSizeInBytes(maxOf(buffer, rate / 5 * 2)).build()

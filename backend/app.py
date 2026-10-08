@@ -17,6 +17,8 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 import gemini
 import memory_api
+import meeting_api
+from meetings import Meetings
 from memory import MemoryConflict
 from notes import BACKEND_DIR, Notes
 from tools import REGISTRY
@@ -25,6 +27,8 @@ load_dotenv(BACKEND_DIR.parent / ".env")  # Explicit environment values take pre
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 notes = Notes()
 app.include_router(memory_api.router)
+meeting_api.service = Meetings(memory_api.memory, notes)
+app.include_router(meeting_api.router)
 
 
 @app.exception_handler(sqlite3.Error)
@@ -47,7 +51,7 @@ async def authenticate(request: Request, call_next):
 
 class TokenRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    mode: Literal["auto", "ptt"] = "auto"
+    mode: Literal["auto", "ptt", "meeting"] = "auto"
 
 
 @app.post("/token")
@@ -74,6 +78,8 @@ def dispatch_tool(name: str, args: dict | None = None):
     except ValidationError as exc:
         raise RequestValidationError(exc.errors()) from exc
     try:
+        if owner == "meeting_control":
+            return {"status": "ok", "client_action": name, **request.model_dump()}
         service = notes if owner == "notes" else memory_api.memory
         return getattr(service, method)(**request.model_dump())
     except MemoryConflict as exc:

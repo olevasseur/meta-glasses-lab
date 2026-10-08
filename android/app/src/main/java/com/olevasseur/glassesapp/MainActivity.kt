@@ -118,7 +118,8 @@ private fun ConversationScreen(
             Button(onClick = { if (state.running) model.stop() else model.start() }, enabled = !state.stopping && state.permissions, modifier = Modifier.fillMaxWidth()) {
                 Text(if (state.stopping) "Stopping…" else if (state.running) "Stop" else "Start")
             }
-            if (state.ptt) {
+            MeetingControls(state, model)
+            if (state.ptt && !state.meeting) {
                 HoldToTalk(state.connected, state.talking, model::talk, model::finishTalking)
                 if (state.talking) OutlinedButton(onClick = model::finishTalking) { Text("Finish speaking") }
                 Text(state.inputs, style = MaterialTheme.typography.bodySmall)

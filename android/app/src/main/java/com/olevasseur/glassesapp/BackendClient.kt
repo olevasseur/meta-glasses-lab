@@ -22,8 +22,8 @@ class BackendClient(
 ) {
     private val base = baseUrl.trimEnd('/').toHttpUrl()
 
-    suspend fun token(ptt: Boolean): LiveToken {
-        val json = post(listOf("token"), if (ptt) JSONObject().put("mode", "ptt") else JSONObject())
+    suspend fun token(ptt: Boolean, meeting: Boolean = false): LiveToken {
+        val json = post(listOf("token"), if (meeting) JSONObject().put("mode", "meeting") else if (ptt) JSONObject().put("mode", "ptt") else JSONObject())
         return LiveToken(json.getString("token"), json.getString("model"), json.getString("expires_at"))
     }
 
@@ -39,6 +39,12 @@ class BackendClient(
     suspend fun endSession(sessionId: String): JSONObject = post(
         listOf("sessions", sessionId, "end"), JSONObject(),
     )
+
+    suspend fun startMeeting(id: String, metadata: JSONObject): JSONObject = post(
+        listOf("meetings", "start"), JSONObject(metadata.toString()).put("meeting_id", id),
+    )
+
+    suspend fun endMeeting(id: String): JSONObject = post(listOf("meetings", id, "end"), JSONObject())
 
     private suspend fun post(path: List<String>, body: JSONObject): JSONObject {
         val url = base.newBuilder().apply { path.forEach { addPathSegment(it) } }.build()
