@@ -147,6 +147,35 @@ def test_fact_validation(client, key, text):
     assert post(client, "/memory/save", login(client), key=key, text=text).status_code == 422
 
 
+@pytest.mark.parametrize('delete_via', ['dashboard', 'voice'])
+def test_dashboard_and_voice_share_corrected_fact_suppression(client, monkeypatch, delete_via):
+    import memory
+    from memory_summary import Fact, Summary
+
+    token = login(client)
+    store = memory_api.memory
+    with store.db() as db:
+        store._upsert(db, 'old', 'Sister Ann.', observed_at='2026-01-01T00:00:00Z')
+        store._upsert(db, 'new', 'Sister Ana.', observed_at='2026-02-01T00:00:00Z', supersedes=['old'])
+        fact, = store._facts(db)
+    if delete_via == 'dashboard':
+        assert post(client, '/memory/delete', token, id=fact['id'], updated_at=fact['updated_at']).status_code == 303
+    else:
+        preview = store.forget('sister')
+        assert store.forget('sister', preview['confirmation_token'])['deleted'] == 1
+    with store.db() as db:
+        assert {row['key'] for row in store._forgotten(db)} == {'old', 'new'}
+    store.ingest('delayed', [{'seq': 0, 'speaker': 'user', 'text': 'A relative called Ann.',
+                              'timestamp': '2026-01-15T00:00:00Z'}])
+    monkeypatch.setattr(memory, 'summarize', Mock(return_value=Summary(
+        summary='', facts=[Fact(key='old', text='A relative called Ann.')])))
+    assert store.end('delayed')['facts'] == []
+    assert post(client, '/memory/save', token, key='new', text='Sister Ana Maria.').status_code == 303
+    with store.db() as db:
+        assert store._forgotten(db) == []
+    assert store.recall('sister')['matches'][0]['text'] == 'Sister Ana Maria.'
+
+
 def test_conversation_search_chunks_timestamps_pagination_and_summaries(client):
     login(client)
     memory_api.memory.ingest("session-toronto", [

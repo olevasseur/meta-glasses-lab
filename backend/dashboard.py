@@ -280,7 +280,7 @@ def save_fact(request: Request):
         duplicate = db.execute("SELECT key FROM facts WHERE normalized=?", (normalized(fact),)).fetchone()
         if duplicate and duplicate[0] != normalized(key):
             raise HTTPException(409, "That fact already exists under another key")
-        db.execute("DELETE FROM forgotten WHERE key=? OR text=?", (normalized(key), fact))
+        memory._restore_forgotten(db, normalized(key), fact)
         memory._upsert(db, normalized(key), fact)
     return redirect("/dashboard/memory")
 
@@ -294,8 +294,7 @@ def delete_fact(request: Request):
             raise HTTPException(404, "Fact not found")
         if fact["updated_at"] != request.state.form.get("updated_at"):
             raise HTTPException(409, "Fact changed; reload before deleting")
-        db.execute("DELETE FROM facts WHERE id=?", (fact["id"],))
-        db.execute("INSERT OR REPLACE INTO forgotten VALUES (?,?,?)", (fact["key"], fact["text"], fact["text"]))
+        memory._delete_fact(db, fact, fact["text"])
     return redirect("/dashboard/memory")
 
 

@@ -109,7 +109,10 @@ def test_fact_dedupe_and_correction(store, monkeypatch):
     first = store.remember("The user lives in Toronto.", "user.home_city")
     same = store.remember("THE USER LIVES IN TORONTO!")
     assert first["fact"]["id"] == same["fact"]["id"]
-    store.ingest("s", [turn(text="I moved to Montreal.")])
+    # Correction evidence is newer than the explicit remember above.
+    from datetime import UTC, datetime, timedelta
+    store.ingest("s", [{**turn(text="I moved to Montreal."),
+                        "timestamp": (datetime.now(UTC) + timedelta(seconds=1)).isoformat()}])
     monkeypatch.setattr(memory, "summarize", Mock(return_value=result("The user lives in Montreal.")))
     store.end("s")
     with store.db() as db:
@@ -183,7 +186,7 @@ def test_context_budget_and_latest_three_summaries(store):
             db.execute("INSERT INTO sessions VALUES (?,?,?)", (str(i), str(i), str(i)))
             db.execute("INSERT INTO summaries VALUES (?,?,?)", (str(i), f"Session marker {i}", str(i)))
     context = store.context(gemini.PROMPT_PATH.read_text())
-    assert len(context.encode()) <= 8000
+    assert len(context.encode()) - len(gemini.PROMPT_PATH.read_text().encode()) <= 8000
     assert "submit_reading" in context
     assert "start_project" in context
     assert "set_visual_memory" in context and "find_object" in context

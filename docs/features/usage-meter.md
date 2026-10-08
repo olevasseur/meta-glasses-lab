@@ -78,6 +78,10 @@ replaced. This feature adds its own database; it does not alter memory tables.
 - Evaluation TTS calls, including failures, through the shared fixture synthesizer
   (also used by batch fixture generation). Token counting and ephemeral minting
   are not inference calls in this ledger.
+- Memory-evaluation corpus generation, probes and summary attempts (including
+  fallback/retries) use the same text ledger and daily evaluation allowance.
+  The resumable [memory evaluator](memory-eval.md) reserves per attempt; fixed
+  voice suites reserve the selected run. Offline memory replay reserves nothing.
 
 The API uses the existing `X-App-Secret` middleware: `GET /usage` returns the
 snapshot and `POST /usage/live` accepts bounded cumulative connection reports.

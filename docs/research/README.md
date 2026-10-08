@@ -73,3 +73,5 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 - [HFP audio](hfp-audio.md) — **2026-10-08**: seeded narrowband/codec/loss/noise
   stress channel, exact app resampler port, 8 kHz Vosk keyword proxy and paired
   Gemini evaluation. Hardware codec, beamforming and SCO effects remain unverified.
+
+- [memory-eval-notes.md](memory-eval-notes.md) — **2026-10-08**: synthetic memory evaluation, profile budget starvation, event-time corrections, key aliases and lexical recall.

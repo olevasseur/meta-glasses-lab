@@ -1,0 +1,12 @@
+{
+  "mode": "deterministic summary replay, no provider",
+  "checks": {
+    "natural_question_retrieves_bare_value": true,
+    "profile_retains_attribute_for_bare_value": true,
+    "forget_finds_keyed_bare_value": true,
+    "forgotten_value_absent_from_profile": true,
+    "latest_evidence_wins_over_upload_order": true
+  },
+  "passed": 5,
+  "total": 5
+}
