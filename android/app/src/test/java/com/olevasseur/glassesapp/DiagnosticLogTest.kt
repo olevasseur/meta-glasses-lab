@@ -82,13 +82,17 @@ class DiagnosticLogTest {
         }
         latency.reset()
         latency.input(speech)
+        clock = 400
+        latency.activityEnd()
         clock = 900
         latency.input(ByteArray(3200))
         assertEquals(800L, latency.firstAudio())
+        assertEquals(300L, latency.endWaitMs)
         assertNull(latency.firstAudio())
         latency.input(speech)
         assertNull(latency.firstAudio()) // More PCM/audio parts cannot produce extra latencies.
         latency.reset()
+        assertNull(latency.endWaitMs)
         assertNull(latency.firstAudio())
     }
 

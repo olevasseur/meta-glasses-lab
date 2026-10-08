@@ -37,6 +37,9 @@ fun SettingsScreen(state: ConversationState, model: ConversationViewModel, permi
             Slider(state.settings.silenceMs.toFloat(), { model.setSettings(state.settings.copy(silenceMs = it.roundToInt())) },
                 valueRange = 500f..5000f, steps = 17, enabled = enabled,
                 modifier = Modifier.semantics { contentDescription = "Auto patience in milliseconds" })
+            LabeledSwitch("Thinking sound for slow tools", state.settings.thinkingCue, enabled) {
+                model.setSettings(state.settings.copy(thinkingCue = it))
+            }
             Text("Over keyword")
             // A column also accommodates large accessibility fonts without clipped choices.
             ConversationSettings.KEYWORDS.forEach { keyword ->

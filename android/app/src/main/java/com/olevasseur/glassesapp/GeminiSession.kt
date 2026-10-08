@@ -32,6 +32,7 @@ class GeminiSession(
     private val localTool: suspend (FunctionCall) -> ToolResult = { ToolResult(toolError("Client tool is unavailable")) },
     private val onTranslationChanged: (String?) -> Unit = {},
     private val onApproval: suspend (JSONObject) -> Unit = {},
+    private val onSlowTool: () -> Unit = {},
     private val onClientTool: (String, JSONObject) -> Unit = { _, _ -> },
     private val canAnnounce: () -> Boolean = { true },
     private val elapsedMs: () -> Long = android.os.SystemClock::elapsedRealtime,
@@ -57,6 +58,8 @@ class GeminiSession(
     private var handle: String? = null
     private var reconnectJob: Job? = null
     private var setupTimeout: Job? = null
+    private var websocketStartedMs = 0L
+    private var setupStartedMs = 0L
     private var talkTimeout: Job? = null
     private var attempts = 0
     private var modelFailures = 0
@@ -98,12 +101,14 @@ class GeminiSession(
             val reusable = token?.takeIf {
                 handle != null && runCatching { Instant.parse(it.expiresAt).isAfter(Instant.now().plusSeconds(30)) }.getOrDefault(false)
             }
+            val tokenStartedMs = elapsedMs()
             val credentials = reusable ?: backend.token(settings.mode, settings.silenceMs, translationLanguage, meetingGate.active, avoidedModels).also {
                 if (handleModel != null && handleModel != it.model) { handle = null; handleReceivedAt = null }
                 if (it.model in avoidedModels) avoidedModels.clear() // All candidates failed: start a new circuit.
                 currentModel = it.model
                 token = it
             }
+            DiagnosticLog.add("latency", "token_fetch_ms=${elapsedMs() - tokenStartedMs} reused_for_resume=${reusable != null}")
             if (!active) return
             if (handle == null) {
                 // Tool responses belong to their old Live context, never a replacement session.
@@ -112,6 +117,7 @@ class GeminiSession(
             }
             val request = Request.Builder().url(LiveProtocol.ENDPOINT)
                 .header("Authorization", "Token ${credentials.token}").build()
+            websocketStartedMs = elapsedMs()
             synchronized(sendLock) { socket = sockets.newWebSocket(request, listener(credentials.model)) }
             setupTimeout = scope.launch {
                 delay(20_000)
@@ -127,8 +133,11 @@ class GeminiSession(
     private fun listener(model: String) = object : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
             scope.launch {
-                if (webSocket === socket && active) webSocket.send(LiveProtocol.setup(model, handle))
-                else webSocket.close(1000, "Stopped")
+                if (webSocket === socket && active) {
+                    setupStartedMs = elapsedMs()
+                    DiagnosticLog.add("latency", "websocket_connect_ms=${setupStartedMs - websocketStartedMs}")
+                    webSocket.send(LiveProtocol.setup(model, handle))
+                } else webSocket.close(1000, "Stopped")
             }
         }
         override fun onMessage(webSocket: WebSocket, text: String) {
@@ -185,8 +194,9 @@ class GeminiSession(
             handleModel = token?.model
             DiagnosticMetrics.handleUpdatedMs = elapsedMs()
         } else if (event.resumable == false) { handle = null; handleReceivedAt = null; DiagnosticMetrics.handleUpdatedMs = null }
-        if (!audioSuspended && !event.interrupted && event.audio.isNotEmpty()) DiagnosticMetrics.response()
+        if (!audioSuspended && !event.interrupted && event.audio.isNotEmpty()) DiagnosticMetrics.response(if (ptt) null else settings.silenceMs)
         if (event.setupComplete) {
+            DiagnosticLog.add("latency", "live_setup_ms=${elapsedMs() - setupStartedMs}")
             setupTimeout?.cancel()
             stableConnection?.cancel()
             stableConnection = scope.launch {
@@ -281,18 +291,22 @@ class GeminiSession(
         onTool("${call.name}: running…")
         // Register before execution: local tools can complete or switch sessions without suspending.
         val job = scope.launch(start = CoroutineStart.LAZY) {
+            val toolStartedMs = elapsedMs()
             val result = try {
                 if (meetingGate.active && call.name in setOf("start_translation", "stop_translation")) {
                     ToolResult(toolError("Stop the meeting before starting translation"))
                 } else if (translationLanguage != null && call.name !in setOf("start_translation", "stop_translation")) {
                     ToolResult(toolError("Leave translation mode to use assistant tools"))
-                } else routeTool(call, token?.clientTools.orEmpty(), localTool, backend::tool)
+                } else withToolWaitCue(settings.thinkingCue && !meetingGate.active && translationLanguage == null, {
+                    if (!audioSuspended && !talking && audio.playbackIdle && canAnnounce()) onSlowTool()
+                }) { routeTool(call, token?.clientTools.orEmpty(), localTool, backend::tool) }
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 // Never automatically replay a POST whose side effects may already have happened.
                 ToolResult(toolError("Tool request failed; outcome may be unknown. Ask the user before retrying."))
             }
+            DiagnosticLog.add("latency", "tool_round_trip_ms=${elapsedMs() - toolStartedMs} feature=${diagnosticFeature(call.name)}")
             if (call.id !in cancelledCalls && active) {
                 // Retain no captured images across reconnects or duplicate calls. A lost visual
                 // response needs a fresh look, not a cached success describing an old frame.
@@ -418,7 +432,7 @@ class GeminiSession(
             else false
         }
         if (!changed) return
-        if (!value) replyPending = true
+        if (!value) { replyPending = true; DiagnosticMetrics.latency.activityEnd() }
         onTalking(value)
         talkTimeout?.cancel()
         if (value) {

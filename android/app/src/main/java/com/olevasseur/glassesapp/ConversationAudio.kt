@@ -46,6 +46,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
         fun device(value: AudioDeviceInfo?) = value?.let { "${it.productName} (type=${it.type}, id=${it.id}; advertised rates=${it.sampleRates.joinToString()})" } ?: "inactive / unknown"
         "Input: ${device(recorder?.routedDevice)}\nOutput: ${device(track?.routedDevice)}\n" +
             "${translationSpeaker.diagnosticOutput()}\nConfigured PCM: input=${recorder?.sampleRate ?: 0} Hz → Gemini=16000 Hz; output=${track?.sampleRate ?: 0} Hz\n" +
+            "Playback buffer=${track?.bufferSizeInFrames ?: 0} frames; underruns=${track?.underrunCount ?: 0}\n" +
             "SCO=${manager.isBluetoothScoOn}; communication=${if (Build.VERSION.SDK_INT >= 31) device(manager.communicationDevice) else "legacy SCO"}"
     }
     private var recorder: AudioRecord? = null
@@ -64,6 +65,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
     private var queueBytes = 0
     private var headOffset = 0
     private var writtenFrames = 0L
+    private var firstQueuedNs: Long? = null
 
     @SuppressLint("MissingPermission") // Activity requests RECORD_AUDIO / BLUETOOTH_CONNECT first.
     suspend fun start(forcePhone: Boolean, onAudio: (ByteArray) -> Unit, onRoute: (String) -> Unit, onError: (String) -> Unit, onBluetoothLost: () -> Unit = {}, roomCapture: Boolean = false) {
@@ -72,10 +74,12 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
         reportError = onError
         originalMode = manager.mode
         try {
+            val routeStarted = System.nanoTime()
             manager.mode = AudioManager.MODE_IN_COMMUNICATION
             val canUseBluetooth = Build.VERSION.SDK_INT < 31 ||
                 ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
             val bluetooth = if (!forcePhone && canUseBluetooth) selectRoute() else { usePhoneRoute(); false }
+            DiagnosticLog.add("latency", "route_ready_ms=${(System.nanoTime() - routeStarted) / 1_000_000} bluetooth=$bluetooth")
             val rate = if (bluetooth) 8000 else 16000
             val buffer = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
             check(buffer > 0) { "Microphone does not support $rate Hz PCM" }
@@ -99,11 +103,16 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
                 .setAudioFormat(AudioFormat.Builder().setSampleRate(24000)
                     .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).setEncoding(AudioFormat.ENCODING_PCM_16BIT).build())
-                .setBufferSizeInBytes(maxOf(minimum, 4800))
+                .setBufferSizeInBytes(maxOf(minimum, 9600))
                 .setTransferMode(AudioTrack.MODE_STREAM).build()
             synchronized(playbackLock) { track = output }
             check(output.state == AudioTrack.STATE_INITIALIZED) { "Speaker initialization failed" }
             routeDevice?.let { output.setPreferredDevice(it) }
+            val bufferPolicy = PlaybackBuffer((minimum + 1) / 2, output.bufferCapacityInFrames)
+            output.setBufferSizeInFrames(bufferPolicy.frames)
+            // API 31+ can start on the first PCM write independently of buffer capacity.
+            if (Build.VERSION.SDK_INT >= 31) output.setStartThresholdInFrames(1)
+            DiagnosticLog.add("latency", "playback_buffer_frames=${output.bufferSizeInFrames} capacity_frames=${output.bufferCapacityInFrames}")
             output.play()
             if (record != null) {
                 record.startRecording()
@@ -145,10 +154,18 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
                     while (isActive) {
                         synchronized(playbackLock) {
                             val chunk = queue.peekFirst()
+                            if (bufferPolicy.observe(output.underrunCount, chunk != null)) {
+                                output.setBufferSizeInFrames(bufferPolicy.frames)
+                                DiagnosticLog.add("latency", "playback_grow_frames=${output.bufferSizeInFrames} underruns=${output.underrunCount}")
+                            }
                             if (chunk != null) {
                                 // Nonblocking writes mean flush() never waits behind buffered speech.
                                 val count = output.write(chunk, headOffset, minOf(960, chunk.size - headOffset), AudioTrack.WRITE_NON_BLOCKING)
                                 check(count >= 0) { "Speaker write failed ($count)" }
+                                if (count > 0) firstQueuedNs?.let {
+                                    DiagnosticLog.add("latency", "first_chunk_to_write_ms=${(System.nanoTime() - it) / 1_000_000}")
+                                    firstQueuedNs = null
+                                }
                                 writtenFrames += count / 2
                                 SmokeHooks.played(count)
                                 headOffset += count
@@ -228,6 +245,9 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
             // ponytail: cap at ~40 seconds; stop on overflow instead of growing without bound.
             check(queueBytes + pcm.size <= 1_920_000) { "Audio playback fell behind" }
             check(pcm.size % 2 == 0) { "Malformed 16-bit audio" }
+            if (queueBytes == 0 && (track!!.playbackHeadPosition.toLong() and 0xffffffffL) >= writtenFrames) {
+                firstQueuedNs = System.nanoTime()
+            }
             queue.addLast(pcm)
             queueBytes += pcm.size
         }
@@ -238,6 +258,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
         queueBytes = 0
         headOffset = 0
         writtenFrames = 0
+        firstQueuedNs = null
         track?.let { output -> output.pause(); output.flush(); output.play() }
         Unit
     }
@@ -274,7 +295,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
         synchronized(playbackLock) {
             track?.let { release { it.pause(); it.flush() }; release { it.release() } }
             track = null
-            queue.clear(); queueBytes = 0; headOffset = 0; writtenFrames = 0
+            queue.clear(); queueBytes = 0; headOffset = 0; writtenFrames = 0; firstQueuedNs = null
         }
         release {
             if (Build.VERSION.SDK_INT >= 31) manager.clearCommunicationDevice()
