@@ -51,6 +51,8 @@ class BackendClient(
         return execute(Request.Builder().url(url).header("X-App-Secret", secret).get().build())
     }
 
+    suspend fun workout(log: JSONObject): JSONObject = post(listOf("workouts"), log)
+
     private suspend fun post(path: List<String>, body: JSONObject): JSONObject {
         val url = base.newBuilder().apply { path.forEach { addPathSegment(it) } }.build()
         val request = Request.Builder().url(url).header("X-App-Secret", secret)

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -26,8 +27,10 @@ data class ConversationSettings(
     val idleMinutes: Int = HandsFreeState.DEFAULT_IDLE_MINUTES,
     val translationLanguage: String? = null,
     val translationPhoneSpeaker: Boolean = false,
+    val workoutSensitivity: Float = 0.5f,
 ) {
     fun normalized() = copy(
+        workoutSensitivity = if (workoutSensitivity.isFinite()) workoutSensitivity.coerceIn(0f, 1f) else 0.5f,
         silenceMs = silenceMs.coerceIn(500, 5000),
         idleMinutes = HandsFreeState.idleMinutes(idleMinutes),
         keyword = keyword.takeIf { it in KEYWORDS } ?: "over",
@@ -43,10 +46,13 @@ val Context.conversationSettingsStore by preferencesDataStore(
     produceMigrations = { context -> listOf(
         SharedPreferencesMigration(context, "hands_free", setOf("idle_minutes")),
         SharedPreferencesMigration(context, "job_events"),
+        SharedPreferencesMigration(context, "workout", setOf("sensitivity")),
     ) },
 )
 
 class ConversationSettingsStore(private val store: DataStore<Preferences>) {
+    private val workoutKey = floatPreferencesKey("workout_sensitivity")
+    private val legacyWorkoutKey = floatPreferencesKey("sensitivity")
     private val idleKey = intPreferencesKey("idle_minutes")
     private val modeKey = stringPreferencesKey("mode")
     private val silenceKey = intPreferencesKey("silence_ms")
@@ -58,6 +64,10 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
 
     val settings = store.data.onStart {
         store.edit {
+            it[legacyWorkoutKey]?.let { sensitivity ->
+                if (workoutKey !in it) it[workoutKey] = sensitivity
+                it.remove(legacyWorkoutKey)
+            }
             if (legacySafetyKey in it) {
                 // Speech duration has different semantics: migrate to the silence default.
                 if (overSilenceKey !in it) it[overSilenceKey] = 10
@@ -73,6 +83,7 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
             overSilenceSeconds = prefs[overSilenceKey] ?: 10,
             translationLanguage = prefs[translationLanguageKey],
             translationPhoneSpeaker = prefs[translationSpeakerKey] ?: false,
+            workoutSensitivity = prefs[workoutKey] ?: 0.5f,
         ).normalized()
     }
 
@@ -86,6 +97,8 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
     suspend fun save(settings: ConversationSettings) {
         val value = settings.normalized()
         store.edit {
+            it[workoutKey] = value.workoutSensitivity
+            it.remove(legacyWorkoutKey)
             it[idleKey] = value.idleMinutes
             it[modeKey] = value.mode.wireName
             it[silenceKey] = value.silenceMs

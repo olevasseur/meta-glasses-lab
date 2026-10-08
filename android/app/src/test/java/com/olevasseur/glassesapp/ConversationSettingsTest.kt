@@ -2,6 +2,7 @@ package com.olevasseur.glassesapp
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import java.io.File
@@ -131,7 +132,7 @@ class ConversationSettingsTest {
         val file = File(temporary.root, "job-cursors.preferences_pb")
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val expected = ConversationSettings(ConversationMode.OVER, 3250, "your turn", 25, idleMinutes = 42,
-            translationLanguage = "fr", translationPhoneSpeaker = true)
+            translationLanguage = "fr", translationPhoneSpeaker = true, workoutSensitivity = 0.8f)
         try {
             val settings = ConversationSettingsStore(PreferenceDataStoreFactory.create(scope = scope) { file })
             assertEquals(0L, settings.jobCursor("backend-a"))
@@ -155,6 +156,26 @@ class ConversationSettingsTest {
             assertEquals(0L, settings.jobCursor("backend-c"))
             assertEquals(expected.copy(mode = ConversationMode.PTT), settings.settings.first())
         } finally { reopenedScope.coroutineContext[Job]!!.cancelAndJoin() }
+    }
+
+    @Test fun workoutSensitivityMigratesAndKeepsExplicitSettings() = runBlocking {
+        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        try {
+            val store = PreferenceDataStoreFactory.create(scope = scope) { File(temporary.root, "workout.preferences_pb") }
+            val settings = ConversationSettingsStore(store)
+            val legacy = floatPreferencesKey("sensitivity")
+            val current = floatPreferencesKey("workout_sensitivity")
+            store.edit { it[legacy] = 0.75f }
+            assertEquals(0.75f, settings.settings.first().workoutSensitivity)
+            assertFalse(legacy in store.data.first())
+            store.edit { it[legacy] = 0.25f; it[current] = 0.8f }
+            assertEquals(0.8f, settings.settings.first().workoutSensitivity)
+            assertFalse(legacy in store.data.first())
+            for ((input, expected) in listOf(-1f to 0f, 2f to 1f, Float.NaN to 0.5f, Float.POSITIVE_INFINITY to 0.5f)) {
+                settings.save(ConversationSettings(workoutSensitivity = input))
+                assertEquals(expected, settings.settings.first().workoutSensitivity)
+            }
+        } finally { scope.coroutineContext[Job]!!.cancelAndJoin() }
     }
 
 }

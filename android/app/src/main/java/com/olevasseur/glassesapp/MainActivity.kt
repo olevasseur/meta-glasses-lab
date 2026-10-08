@@ -202,6 +202,9 @@ private fun ConversationScreen(
                 Text("Watch mode · 2 minute limit", modifier = Modifier.padding(start = 8.dp))
             }
             Text("${state.camera}. Ask: What am I looking at?", style = MaterialTheme.typography.bodySmall)
+
+            val workoutState by model.workout.state.collectAsStateWithLifecycle()
+            WorkoutControls(workoutState, { model.workout.stop() }, model::setWorkoutSensitivity)
             if (BuildConfig.DEBUG) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(checked = state.mock, onCheckedChange = model::setMock, enabled = !state.handsFree.armed && !state.stopping)

@@ -96,6 +96,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
         scope.launch {
             while (true) {
                 delay(1_000)
+                if (controls.shouldRun && model.workout.state.value.active) activity()
                 if (controls.expired(now(), model.state.value.idleMinutes * 60_000L)) stopAll()
             }
         }

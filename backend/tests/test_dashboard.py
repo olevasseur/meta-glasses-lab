@@ -278,6 +278,7 @@ def test_dashboard_default_preserves_merged_token_contract(client, monkeypatch, 
             "append_to_doc", "remember", "recall", "forget", "await_gesture_confirmation",
             "look", "set_watch_mode", "codex_task", "deep_research", "job_status", "cancel_job",
             "start_translation", "stop_translation",
+            "start_workout", "stop_workout", "workout_status", "workout_history",
         } if persona == "assistant" else {"start_translation", "stop_translation"})
         detection = live.realtime_input_config.automatic_activity_detection
         assert detection.disabled == (mode != "auto")

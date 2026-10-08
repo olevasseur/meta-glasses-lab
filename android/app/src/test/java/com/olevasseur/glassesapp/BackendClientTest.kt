@@ -28,8 +28,8 @@ class BackendClientTest {
             server.start()
             val backend = BackendClient(OkHttpClient(), server.url("/").toString(), "test")
             for (mode in ConversationMode.entries) {
-                server.enqueue(MockResponse().setBody("""{"token":"auth_tokens/test","model":"gemini-3.8-live","expires_at":"2026-10-07T21:00:00Z","client_tools":["await_gesture_confirmation","look","set_watch_mode"]}"""))
-                assertEquals(setOf("await_gesture_confirmation", "look", "set_watch_mode"), backend.token(mode).clientTools)
+                server.enqueue(MockResponse().setBody("""{"token":"auth_tokens/test","model":"gemini-3.8-live","expires_at":"2026-10-07T21:00:00Z","client_tools":["await_gesture_confirmation","look","set_watch_mode","start_workout","stop_workout","workout_status"]}"""))
+                assertEquals(setOf("await_gesture_confirmation", "look", "set_watch_mode", "start_workout", "stop_workout", "workout_status"), backend.token(mode).clientTools)
                 assertEquals(mode.wireName, JSONObject(server.takeRequest().body.readUtf8()).getString("mode"))
             }
         }

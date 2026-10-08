@@ -7,6 +7,7 @@ from job_tools import JOB_DECLARATIONS, REQUESTS
 from gesture_tools import AWAIT_GESTURE_CONFIRMATION
 from vision import CLIENT_TOOLS
 from translation import START_TRANSLATION, STOP_TRANSLATION, StartTranslationRequest, StopTranslationRequest
+from workouts import WORKOUT_REGISTRY
 
 
 class Arguments(BaseModel):
@@ -104,6 +105,7 @@ REGISTRY.update({
     "start_translation": (StartTranslationRequest, "translation", "start_translation", START_TRANSLATION),
     "stop_translation": (StopTranslationRequest, "translation", "stop_translation", STOP_TRANSLATION),
 })
+REGISTRY.update(WORKOUT_REGISTRY)
 CLIENT_TOOL_NAMES = [name for name, entry in REGISTRY.items() if entry[1] == "client"]
 DECLARATIONS = [entry[3] for entry in REGISTRY.values()]
 TRANSLATION_DECLARATIONS = [entry[3] for entry in REGISTRY.values() if entry[1] == "translation"]

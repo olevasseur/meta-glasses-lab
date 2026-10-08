@@ -21,6 +21,7 @@ import gemini
 import dashboard
 import memory_api
 import translation
+import workouts
 from memory import MemoryConflict
 from jobs import Jobs
 from notes import BACKEND_DIR, Notes
@@ -42,6 +43,7 @@ async def lifespan(app):
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 app.include_router(memory_api.router)
+app.include_router(workouts.router)
 
 
 @app.exception_handler(sqlite3.Error)
@@ -128,16 +130,16 @@ async def dispatch_tool(name: str, args: dict | None = None):
         except (OSError, ValueError, sqlite3.Error):
             raise HTTPException(503, "Check the job configuration and repository allowlist") from None
     try:
-        service = notes if owner == "notes" else memory_api.memory
+        service = notes if owner == "notes" else workouts if owner == "workouts" else memory_api.memory
         return await asyncio.to_thread(getattr(service, method), **request.model_dump())
     except MemoryConflict as exc:
         raise HTTPException(409, str(exc)) from exc
     except (FileNotFoundError, ValueError, GoogleAuthError) as exc:
-        if owner == "memory":
+        if owner in {"memory", "workouts"}:
             raise HTTPException(503, "Memory storage unavailable") from exc
         raise HTTPException(503, "Check Google credentials and doc_aliases.json; run scripts/google_auth.py if needed") from exc
     except (HttpError, OSError, RuntimeError) as exc:
-        if owner == "memory":
+        if owner in {"memory", "workouts"}:
             raise HTTPException(503, "Memory storage unavailable") from exc
         raise HTTPException(502, "Google Docs operation failed; check the document before retrying") from exc
 

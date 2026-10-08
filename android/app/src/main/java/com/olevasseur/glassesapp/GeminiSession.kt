@@ -244,12 +244,16 @@ class GeminiSession(
         return sent
     }
 
-    fun sendJobEvent(event: JobEvent): Boolean = synchronized(sendLock) {
+    fun sendJobEvent(event: JobEvent): Boolean = sendIdleText(LiveProtocol.jobEvent(event))
+
+    fun sendWorkoutCue(text: String): Boolean = sendIdleText(gestureTextTurn(text))
+
+    private fun sendIdleText(message: String): Boolean = synchronized(sendLock) {
         val ws = socket
-        // A completion must not end a manual turn, interrupt a reply, or speak during a call.
+        // An automatic cue must not end a manual turn, interrupt a reply, or speak during a call.
         if (!active || !ready || audioSuspended || translationLanguage != null || talking || replyPending || !audio.playbackIdle ||
             ws == null || ws.queueSize() > 256_000) return@synchronized false
-        val sent = ws.send(LiveProtocol.jobEvent(event))
+        val sent = ws.send(message)
         if (sent) replyPending = true
         sent
     }
