@@ -6,6 +6,8 @@ from pathlib import Path
 from google import genai
 from google.genai import types
 
+from gesture_tools import AWAIT_GESTURE_CONFIRMATION
+
 DEFAULT_MODEL = "gemini-3.8-live"
 PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
 
@@ -66,7 +68,7 @@ def token_config(model: str, mode: str) -> types.CreateAuthTokenConfig:
                 output_audio_transcription={},
                 realtime_input_config={"automatic_activity_detection": detection},
                 context_window_compression={"sliding_window": {}},
-                tools=[types.Tool(function_declarations=[APPEND_TO_DOC])],
+                tools=[types.Tool(function_declarations=[APPEND_TO_DOC, AWAIT_GESTURE_CONFIRMATION])],
             ),
         ),
     )

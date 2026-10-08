@@ -9,6 +9,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 | [m1-android-notes.md](m1-android-notes.md) | Gemini Live wire protocol + DAT Android integration (verified while building M1) | WebSocket endpoint, `Authorization: Token …`, message shapes, audio formats, resumption rules. |
 | [m2-backend-notes.md](m2-backend-notes.md) | google-genai ephemeral tokens + Docs API (verified while building M2) | `gemini-3.8-live` works with ephemeral tokens; `lock_additional_fields` semantics. |
 | [google-docs-notes.md](google-docs-notes.md) | Voice → Google Docs | Backend function tool, Desktop OAuth client published to production, Inbox doc + alias map + rapidfuzz. Keep API is Workspace-only. |
+| [head-gestures.md](head-gestures.md) | Head gestures (2026-10-07) | Real DAT Motion 1.0.0, pure Kotlin detector, explicit Gemini confirmation tool; auto/PTT real API smoke passed. Hardware thresholds/axes still need validation. |
 
 ## Reconciled conflicts
 - **Token locking vs resumption (2026-10-06):** the backend initially locked the whole setup, which would make Gemini ignore the app's resumption handle. Fixed: `lock_additional_fields=[]` and `sessionResumption` left client-owned. See docs/architecture.md.

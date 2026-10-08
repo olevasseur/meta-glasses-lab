@@ -125,6 +125,8 @@ private fun ConversationScreen(
                 Text("Capture HOLD has no release event in DAT 1.0.0. Speech ends automatically after 60 seconds.", style = MaterialTheme.typography.bodySmall)
             }
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            val gestureState by model.gestures.state.collectAsStateWithLifecycle()
+            GestureControls(gestureState, model::setGestures, model.gestures::setSensitivity)
             if (BuildConfig.DEBUG) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(checked = state.mock, onCheckedChange = model::setMock, enabled = !state.running && !state.stopping)

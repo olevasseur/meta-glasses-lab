@@ -27,6 +27,8 @@ class GeminiSession(
     private val onTool: (String) -> Unit,
     private val onTalking: (Boolean) -> Unit,
     private val onFatal: (String) -> Unit,
+    private val onLocalTool: (FunctionCall) -> JSONObject? = { null },
+    private val onEvent: (ServerEvent) -> Unit = {},
 ) {
     private val client = OkHttpClient.Builder().readTimeout(0, TimeUnit.MILLISECONDS)
         .pingInterval(20, TimeUnit.SECONDS).build()
@@ -127,6 +129,7 @@ class GeminiSession(
 
     private fun receive(event: ServerEvent, generation: Int) {
         event.error?.let { onFatal("Gemini reported an API error; check the backend session configuration"); return }
+        onEvent(event)
         if (event.resumable == true && event.handle != null) handle = event.handle
         if (event.setupComplete) {
             setupTimeout?.cancel()
@@ -158,7 +161,7 @@ class GeminiSession(
         onTool("${call.name}: running…")
         toolJobs[call.id] = scope.launch {
             val result = try {
-                backend.tool(call)
+                onLocalTool(call) ?: backend.tool(call)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
@@ -177,6 +180,10 @@ class GeminiSession(
     private fun deliver(call: FunctionCall, result: JSONObject) {
         val sent = synchronized(sendLock) { ready && socket?.send(LiveProtocol.toolResponse(call, result)) == true }
         if (sent) pendingResponses -= call.id else pendingResponses += call.id
+    }
+
+    fun sendGestureText(text: String): Boolean = synchronized(sendLock) {
+        active && ready && !talking && socket?.let { it.queueSize() <= 256_000 && it.send(gestureTextTurn(text)) } == true
     }
 
     fun sendAudio(pcm: ByteArray) = synchronized(sendLock) {
