@@ -30,6 +30,7 @@ class GeminiSession(
     private val onEvent: (ServerEvent) -> Unit = {},
     private val localTool: suspend (FunctionCall) -> ToolResult = { ToolResult(toolError("Client tool is unavailable")) },
     private val onTranslationChanged: (String?) -> Unit = {},
+    private val onClientTool: (String, JSONObject) -> Unit = { _, _ -> },
 ) {
     private val client = OkHttpClient.Builder().readTimeout(0, TimeUnit.MILLISECONDS)
         .pingInterval(20, TimeUnit.SECONDS).build()
@@ -39,6 +40,10 @@ class GeminiSession(
     private var ready = false
     private var active = false
     private var audioSuspended = false
+    private val meetingGate = MeetingGate()
+    private val meetingAudio = MeetingAudioBuffer()
+    private var wakeFallback: Job? = null
+    private var replayingWake = false
     private var ptt = false
     private var settings = ConversationSettings()
     private var talking = false
@@ -61,13 +66,14 @@ class GeminiSession(
         start(ConversationSettings(mode = if (pushToTalk) ConversationMode.PTT else ConversationMode.AUTO))
     }
 
-    fun start(options: ConversationSettings) {
+    fun start(options: ConversationSettings, meeting: Boolean = false) {
         stop()
         synchronized(sendLock) {
-            settings = options.normalized()
-            active = true; ptt = settings.mode != ConversationMode.AUTO
+            settings = options.normalized().let { if (meeting) it.copy(translationLanguage = null) else it }
+            meetingGate.configure(meeting, settings.meetingOver)
+            active = true; ptt = settings.mode != ConversationMode.AUTO && !meeting
         }
-        onTranslationChanged(translationLanguage)
+        if (!meeting) onTranslationChanged(translationLanguage)
         onTalking(false)
         onState("Switching session…", false)
         reconnectJob = scope.launch { connect() }
@@ -80,7 +86,7 @@ class GeminiSession(
             val reusable = token?.takeIf {
                 handle != null && runCatching { Instant.parse(it.expiresAt).isAfter(Instant.now().plusSeconds(30)) }.getOrDefault(false)
             }
-            val credentials = reusable ?: backend.token(settings.mode, settings.silenceMs, translationLanguage).also { token = it }
+            val credentials = reusable ?: backend.token(settings.mode, settings.silenceMs, translationLanguage, meetingGate.active).also { token = it }
             if (!active) return
             val request = Request.Builder().url(LiveProtocol.ENDPOINT)
                 .header("Authorization", "Token ${credentials.token}").build()
@@ -128,7 +134,11 @@ class GeminiSession(
             webSocket.close(code, null)
             scope.launch {
                 if (webSocket !== socket || !active) return@launch
-                if (code == 1007 || code == 1008) onFatal("Gemini rejected setup ($code); check token constraints and resumption field mask")
+                if (meetingGate.active && handle != null && (code == 1007 || code == 1008)) {
+                    handle = null; token = null
+                    onTranscript("You", " [Capture note: Live context could not resume; starting fresh while retaining the saved meeting transcript.] ")
+                    reconnect("Starting a fresh meeting connection")
+                } else if (code == 1007 || code == 1008) onFatal("Gemini rejected setup ($code); check token constraints and resumption field mask")
                 else reconnect("Gemini disconnected ($code)")
             }
         }
@@ -153,9 +163,44 @@ class GeminiSession(
         if (event.setupComplete) {
             setupTimeout?.cancel()
             attempts = 0
-            synchronized(sendLock) { ready = true }
+            synchronized(sendLock) {
+                ready = true
+                if (meetingGate.active) {
+                    val dropped = meetingAudio.droppedBytes
+                    meetingAudio.drain().forEach { socket?.send(LiveProtocol.audio(it)) }
+                    meetingAudio.clear()
+                    if (dropped > 0) onTranscript("You", " [Capture gap: ${dropped / 32_000} seconds of audio lost during disconnection.] ")
+                }
+            }
             onState("Connected", true)
             pendingResponses.toList().forEach { id -> responses[id]?.let { deliver(it.first, it.second) } }
+        }
+        if (event.interrupted && !replayingWake) { wakeFallback?.cancel(); meetingGate.endTurn() }
+        event.inputText?.takeIf { it.isNotEmpty() }?.let {
+            // Late transcription during a call/final drain is archived, but cannot
+            // reopen permission to speak or execute tools after audio resumes.
+            if (!audioSuspended) meetingGate.input(it)
+            wakeFallback?.cancel()
+            if (meetingGate.active && meetingGate.mayRespond && !audioSuspended) {
+                val request = meetingGate.requestText
+                wakeFallback = scope.launch {
+                    delay(2_000)
+                    // The scribe sometimes ignores even a recognized address. Explicit text
+                    // ends the turn; late/missing input transcription still fails closed.
+                    replayingWake = true
+                    meetingGate.input(request)
+                    sendText("Assistant, respond to this directly addressed request, using tools if needed: " + JSONObject.quote(request))
+                    delay(30_000)
+                    replayingWake = false
+                    meetingGate.endTurn()
+                }
+            }
+            onTranscript("You", it)
+        }
+        if (meetingGate.active && meetingGate.mayRespond &&
+            (event.audio.sumOf { it.size } > 1024 || !event.outputText.isNullOrEmpty() || event.calls.isNotEmpty())) {
+            wakeFallback?.cancel()
+            replayingWake = false
         }
         // Interruption wins over stale audio if both ever occur in the same event.
         synchronized(sendLock) {
@@ -174,18 +219,21 @@ class GeminiSession(
                             }
                         } else audio.enqueue(utterance.pcm)
                     }
-                } else if (!audioSuspended) event.audio.forEach(audio::enqueue)
+                } else if (!audioSuspended && meetingGate.mayRespond) event.audio.forEach(audio::enqueue)
             }
         }
-        event.inputText?.takeIf { it.isNotEmpty() }?.let { onTranscript("You", it) }
-        event.outputText?.takeIf { it.isNotEmpty() }?.let { onTranscript("Gemini", it) }
+        event.outputText?.takeIf { it.isNotEmpty() && meetingGate.mayRespond }?.let { onTranscript("Gemini", it) }
         if (event.turnComplete || event.interrupted) onTurnEnd()
         event.cancelledIds.forEach { id ->
             cancelledCalls += id
             toolJobs.remove(id)?.cancel()
             pendingResponses -= id
         }
-        event.calls.forEach(::callTool)
+        event.calls.forEach { call ->
+            if (meetingGate.mayRespond && (!meetingGate.active || !audioSuspended)) callTool(call)
+            else deliver(call, JSONObject().put("status", "ignored").put("message", "Meeting is silent; no direct address."))
+        }
+        if (event.turnComplete && !replayingWake) meetingGate.endTurn()
         if (event.goAway) reconnect("Gemini is renewing the connection")
     }
 
@@ -196,7 +244,9 @@ class GeminiSession(
         onTool("${call.name}: running…")
         toolJobs[call.id] = scope.launch {
             val result = try {
-                if (translationLanguage != null && call.name !in setOf("start_translation", "stop_translation")) {
+                if (meetingGate.active && call.name in setOf("start_translation", "stop_translation")) {
+                    ToolResult(toolError("Stop the meeting before starting translation"))
+                } else if (translationLanguage != null && call.name !in setOf("start_translation", "stop_translation")) {
                     ToolResult(toolError("Leave translation mode to use assistant tools"))
                 } else routeTool(call, token?.clientTools.orEmpty(), localTool, backend::tool)
             } catch (e: CancellationException) {
@@ -212,6 +262,9 @@ class GeminiSession(
                     else toolError("This visual response cannot be replayed; request a fresh look if needed.")
                 onTool("${call.name}: ${result.response}")
                 deliver(call, result.response, result.jpeg)
+                if (result.response.optString("status") == "ok" && result.response.has("client_action")) {
+                    onClientTool(call.name, result.response)
+                }
                 if (result.response.optString("status") == "ok" && call.name in setOf("start_translation", "stop_translation")) {
                     val language = Translation.switchedLanguage(call, result.response)
                     // Fresh token/context; stop clears old tool jobs, handles and playback.
@@ -232,7 +285,7 @@ class GeminiSession(
         var endedActivity = false
         val sent = synchronized(sendLock) {
             val ws = socket
-            if (!active || !ready || audioSuspended || translationLanguage != null ||
+            if (!active || !ready || audioSuspended || meetingGate.active || translationLanguage != null ||
                 audio.translationSpeaker.playing || ws == null || ws.queueSize() > 256_000) return@synchronized false
             sendGestureTurn(text, settings.mode, talking, ws::send) {
                 talking = false
@@ -245,7 +298,7 @@ class GeminiSession(
     }
 
     fun canNavigateCoach(): Boolean = synchronized(sendLock) {
-        active && ready && !audioSuspended && translationLanguage == null &&
+        active && ready && !audioSuspended && !meetingGate.active && translationLanguage == null &&
             !replyPending && audio.playbackIdle && !audio.translationSpeaker.playing &&
             (!talking || settings.mode == ConversationMode.OVER) &&
             socket?.let { it.queueSize() <= 256_000 } == true
@@ -258,18 +311,31 @@ class GeminiSession(
     private fun sendIdleText(message: String): Boolean = synchronized(sendLock) {
         val ws = socket
         // An automatic cue must not end a manual turn, interrupt a reply, or speak during a call.
-        if (!active || !ready || audioSuspended || translationLanguage != null || talking || replyPending || !audio.playbackIdle ||
+        if (!active || !ready || audioSuspended || meetingGate.active || translationLanguage != null || talking || replyPending || !audio.playbackIdle ||
             ws == null || ws.queueSize() > 256_000) return@synchronized false
         val sent = ws.send(message)
         if (sent) replyPending = true
         sent
     }
 
+    fun sendRecap(text: String): Boolean = sendIdleText(gestureTextTurn(text))
+
+    private fun sendText(text: String): Boolean = synchronized(sendLock) {
+        active && ready && !audioSuspended && socket?.send(gestureTextTurn(text)) == true
+    }
+
+    /** Stop input while retaining the socket for final transcript delivery. */
+    fun finishInput() = synchronized(sendLock) {
+        if (ready && !ptt) socket?.send("""{"realtimeInput":{"audioStreamEnd":true}}""")
+    }
+
     fun sendAudio(pcm: ByteArray) = synchronized(sendLock) {
+        if (active && !ready && !audioSuspended && meetingGate.active) meetingAudio.add(pcm)
         if (active && ready && !audioSuspended && !audio.translationSpeaker.playing && (!ptt || talking)) {
             val ws = socket ?: return@synchronized
             // Don't accumulate stale microphone data behind a stalled connection.
-            if (ws.queueSize() > 1_000_000 || !ws.send(LiveProtocol.audio(pcm))) {
+            if (ws.queueSize() > (if (meetingGate.active) 2_000_000 else 1_000_000) || !ws.send(LiveProtocol.audio(pcm))) {
+                if (meetingGate.active) meetingAudio.add(pcm)
                 ready = false
                 scope.launch { reconnect("Audio uplink stalled") }
             }
@@ -279,7 +345,7 @@ class GeminiSession(
     fun sendImage(jpeg: ByteArray): Boolean = synchronized(sendLock) {
         val ws = socket
         // Drop frames under backpressure; never queue a camera backlog behind audio.
-        active && ready && !audioSuspended && translationLanguage == null &&
+        active && ready && !audioSuspended && meetingGate.mayRespond && translationLanguage == null &&
             ws != null && ws.queueSize() < 64_000 && ws.send(LiveProtocol.image(jpeg))
     }
 
@@ -291,6 +357,9 @@ class GeminiSession(
             audioSuspended = suspended
             audioGeneration.incrementAndGet()
             if (suspended) {
+                wakeFallback?.cancel(); replayingWake = false
+                meetingGate.endTurn()
+                meetingAudio.clear()
                 audio.flush()
                 if (replyPending) translationBuffer.discardTurn() else translationBuffer.clear()
                 audio.translationSpeaker.stop()
@@ -327,6 +396,8 @@ class GeminiSession(
         audio.flush()
         audio.translationSpeaker.stop()
         translationBuffer.clear()
+        wakeFallback?.cancel(); replayingWake = false
+        meetingGate.endTurn()
         onTalking(false)
         if (++attempts > 8) { onFatal("$reason. Reconnect limit reached; tap Start to retry."); return }
         onState("$reason · reconnecting${if (handle == null) " (new session)" else ""}", false)
@@ -341,8 +412,11 @@ class GeminiSession(
         synchronized(sendLock) {
             if (talking && ready) socket?.send(LiveProtocol.activity(false))
             active = false; ready = false; talking = false; replyPending = false
+            meetingAudio.clear()
+            meetingGate.configure(false)
             socket?.close(1000, "User stopped"); socket = null
         }
+        wakeFallback?.cancel(); replayingWake = false
         reconnectJob?.cancel(); reconnectJob = null
         setupTimeout?.cancel(); talkTimeout?.cancel()
         toolJobs.values.forEach { it.cancel() }; toolJobs.clear()

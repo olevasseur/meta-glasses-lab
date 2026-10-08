@@ -225,6 +225,30 @@ def transcript(request: Request, session_id: str):
     return render(request, "transcript.html", "Conversation", session=session, turns=turns)
 
 
+def meetings_page(request):
+    meeting_id = request.query_params.get("id")
+    page = max(0, min(int(request.query_params.get("page", "0")), 100_000))
+    memory = memory_api.memory
+    with memory.lock, memory.db() as db:
+        exists = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='meetings'").fetchone()
+        if meeting_id:
+            row = db.execute("SELECT data FROM meetings WHERE id=?", (meeting_id,)).fetchone() if exists else None
+            if not row:
+                raise HTTPException(404, "Meeting not found")
+            meeting = json.loads(row["data"])
+            turns = db.execute("SELECT * FROM turns WHERE session_id=? ORDER BY seq", (meeting_id,)).fetchall()
+            from meeting_summary import render_minutes
+            from urllib.parse import quote
+            return {"meeting": meeting, "turns": turns,
+                    "minutes": render_minutes(meeting["result"]) if meeting.get("result") else None,
+                    "doc_url": "https://docs.google.com/document/d/" + quote(meeting["document"]["id"], safe="") + "/edit"
+                    if meeting.get("document") else None}
+        rows = db.execute("""SELECT id, json_extract(data, '$.title') AS title,
+            json_extract(data, '$.started_at') AS started_at, json_extract(data, '$.phase') AS phase
+            FROM meetings ORDER BY started_at DESC, id DESC LIMIT 51 OFFSET ?""", (page * 50,)).fetchall() if exists else []
+    return {"meetings_list": rows[:50], "page": page, "has_next": len(rows) > 50}
+
+
 def memory_page(request):
     memory = memory_api.memory
     with memory.lock, memory.db() as db:
@@ -427,6 +451,7 @@ def test_token(request: Request):
 
 # Register built-ins; extension pages get the same authentication/CSRF boundary.
 register_page("conversations", "Conversations", "conversations.html", conversations)
+register_page("meetings", "Meetings", "meetings.html", meetings_page)
 register_page("memory", "Memory", "memory.html", memory_page)
 register_page("notes", "Notes", "notes.html", notes_page)
 register_page("settings", "Settings", "settings.html", settings_page)

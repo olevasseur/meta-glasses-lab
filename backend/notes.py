@@ -15,6 +15,7 @@ from rapidfuzz import fuzz, process, utils
 
 BACKEND_DIR = Path(__file__).resolve().parent
 SCOPES = [
+    "https://www.googleapis.com/auth/drive.file",
     "https://www.googleapis.com/auth/documents",
     "https://www.googleapis.com/auth/drive.metadata.readonly",
 ]

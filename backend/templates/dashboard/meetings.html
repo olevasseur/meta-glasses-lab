@@ -1,0 +1,25 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+{% if meeting %}
+<p><a href="/dashboard/meetings">All meetings</a></p>
+<h2>{{ meeting.title }}</h2>
+<p>{{ meeting.started_at }} · {{ meeting.phase }}</p>
+{% if doc_url %}<p><a href="{{ doc_url }}" target="_blank" rel="noopener noreferrer">Open Google Doc</a></p>{% endif %}
+<h2>Minutes</h2>
+{% if minutes %}<div class="text" hx-disable>{{ minutes }}</div>{% else %}<p>Minutes are not ready yet.</p>{% endif %}
+{% if meeting.phase != 'done' %}<p>Capture or processing is pending. The app resumes finalization after recording stops.</p>{% endif %}
+<h2>Transcript</h2>
+{% for turn in turns %}
+<article><small>{{ turn.timestamp }} · {{ turn.speaker }}</small><div class="text" hx-disable>{{ turn.text }}</div></article>
+{% else %}<p>No transcript captured.</p>{% endfor %}
+{% else %}
+{% for item in meetings_list %}
+<article><a href="/dashboard/meetings?id={{ item.id | urlencode }}">{{ item.title }}</a>
+<p>{{ item.started_at }} · {{ item.phase }}</p></article>
+{% else %}<p>No meetings recorded yet.</p>{% endfor %}
+<nav aria-label="Meeting pages">
+{% if page %}<a href="/dashboard/meetings?page={{ page - 1 }}">Previous</a>{% endif %}
+{% if has_next %}<a href="/dashboard/meetings?page={{ page + 1 }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

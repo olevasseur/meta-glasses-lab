@@ -1,0 +1,94 @@
+{
+  "summary": "The team reviewed branch readiness, error metrics, support requirements, rollback procedures, privacy compliance, success criteria, and budget for the library booking pilot, deciding to conduct a restricted two-branch pilot with twenty invited patrons each at Harbour and Cedar, scheduled for Friday, October ninth, subject to conditions.",
+  "decisions": [
+    "Scale down the launch from a twelve-branch public release to a pilot with twenty invited patrons each at the Harbour and Cedar branches.",
+    "Pause new invitations if support receives more than five pilot tickets in a day, while keeping existing reservations active.",
+    "Trigger an immediate stop to new bookings in the event of a confirmed double booking or data exposure, moving existing reservations to a staff-managed spreadsheet.",
+    "Keep pilot invitations as drafts until written privacy approval is received.",
+    "Approve a two-hundred-dollar budget cap for the first month of the two-branch pilot.",
+    "Set the success criteria to include ten days of observation, at least thirty completed patron bookings, zero double bookings, and at most five percent needing help with basic booking, excluding staff test bookings.",
+    "Change the launch schedule from Monday to Friday, October ninth, with staggered batches for Harbour at ten and Cedar at noon, conditional on written privacy approval and passing staff tests."
+  ],
+  "action_items": [
+    {
+      "task": "Label notification failures correctly on the dashboard and link the underlying query in the launch checklist",
+      "owner": "Alex",
+      "due": null
+    },
+    {
+      "task": "Enlarge the booking reference and change the cancellation button on the screens",
+      "owner": "Alex",
+      "due": null
+    },
+    {
+      "task": "Write a one-page staff guide covering cancellation, missing email, and checking the reference",
+      "owner": "Priya",
+      "due": null
+    },
+    {
+      "task": "Review Priya's staff guide for plain language",
+      "owner": "Jordan",
+      "due": "2026-10-08"
+    },
+    {
+      "task": "Produce a test export of the fallback spreadsheet and add a short rollback checklist",
+      "owner": "Alex",
+      "due": "2026-10-08"
+    },
+    {
+      "task": "Ask Sam in privacy to confirm the exact data retention policy duration for fallback spreadsheets",
+      "owner": "Maya",
+      "due": "2026-10-08"
+    },
+    {
+      "task": "Verify the forty invitees against eligibility rules regarding children and tell Sam directly",
+      "owner": "Priya",
+      "due": "2026-10-08"
+    },
+    {
+      "task": "Send the itemised budget to finance",
+      "owner": "Alex",
+      "due": "October 8"
+    },
+    {
+      "task": "Own the staff test checklist and record results in the shared pilot document",
+      "owner": "Priya",
+      "due": "Thursday at 4"
+    },
+    {
+      "task": "Put the review meeting on the calendar",
+      "owner": "Maya",
+      "due": null
+    },
+    {
+      "task": "Deploy the dashboard fix and UI fixes before Thursday's tests",
+      "owner": "Alex",
+      "due": "Thursday"
+    },
+    {
+      "task": "Ask the on-call team about weekend support for the rollback checklist and report their answer in the pilot document",
+      "owner": "Alex",
+      "due": null
+    },
+    {
+      "task": "Prepare invitation drafts and the staff guide, verify adult eligibility, run the branch checklist by Thursday at four, and check with Jordan before each Friday batch",
+      "owner": "Priya",
+      "due": null
+    },
+    {
+      "task": "Contact Sam and handle finance approval if needed",
+      "owner": "Maya",
+      "due": null
+    }
+  ],
+  "open_questions": [
+    "Will the privacy reviewer approve the invitation list once children eligibility is verified?",
+    "Can the on-call engineering rotation review and sign off on the rollback checklist promptly?",
+    "Can we get Sam's retention guidance and written privacy sign-off?",
+    "Who will conduct the accessibility audit beyond the small staff test?"
+  ],
+  "recap": [
+    "The team agreed to pilot the booking system with forty invited patrons across two branches under strict conditions.",
+    "Action items were assigned to finalize budgeting, testing, deployment fixes, and stakeholder approvals before launch."
+  ]
+}

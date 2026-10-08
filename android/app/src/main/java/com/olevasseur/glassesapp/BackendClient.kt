@@ -22,10 +22,12 @@ class BackendClient(
 ) {
     private val base = baseUrl.trimEnd('/').toHttpUrl()
 
-    suspend fun token(ptt: Boolean): LiveToken = token(if (ptt) ConversationMode.PTT else ConversationMode.AUTO)
+    suspend fun token(ptt: Boolean, meeting: Boolean = false): LiveToken =
+        token(if (ptt) ConversationMode.PTT else ConversationMode.AUTO, meeting = meeting)
 
-    suspend fun token(mode: ConversationMode, silenceMs: Int = 2000, translationLanguage: String? = null): LiveToken {
-        val body = Translation.tokenRequest(mode, silenceMs, translationLanguage)
+    suspend fun token(mode: ConversationMode, silenceMs: Int = 2000, translationLanguage: String? = null, meeting: Boolean = false): LiveToken {
+        val body = if (meeting) JSONObject().put("mode", "meeting").put("silence_ms", silenceMs.coerceIn(500, 5000))
+            else Translation.tokenRequest(mode, silenceMs, translationLanguage)
         val json = post(listOf("token"), body)
         val local = json.optJSONArray("client_tools")
         return LiveToken(json.getString("token"), json.getString("model"), json.getString("expires_at"),
@@ -52,6 +54,11 @@ class BackendClient(
     }
 
     suspend fun workout(log: JSONObject): JSONObject = post(listOf("workouts"), log)
+    suspend fun startMeeting(id: String, metadata: JSONObject): JSONObject = post(
+        listOf("meetings", "start"), JSONObject(metadata.toString()).put("meeting_id", id),
+    )
+
+    suspend fun endMeeting(id: String): JSONObject = post(listOf("meetings", id, "end"), JSONObject())
 
     private suspend fun post(path: List<String>, body: JSONObject): JSONObject {
         val url = base.newBuilder().apply { path.forEach { addPathSegment(it) } }.build()

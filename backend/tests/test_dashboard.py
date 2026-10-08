@@ -278,7 +278,7 @@ def test_dashboard_default_preserves_merged_token_contract(client, monkeypatch, 
         assert names == ({
             "append_to_doc", "remember", "recall", "forget", "await_gesture_confirmation",
             "look", "set_watch_mode", "codex_task", "deep_research", "job_status", "cancel_job",
-            "start_translation", "stop_translation",
+            "start_translation", "stop_translation", "start_meeting", "stop_meeting",
             "start_workout", "stop_workout", "workout_status", "workout_history",
             "read_text", "submit_reading", "reading_control",
             "write_journal", "read_journal", "morning_brief",
@@ -358,3 +358,66 @@ def test_invalid_optional_journal_settings_fall_back_to_environment(client, monk
     monkeypatch.setenv("JOURNAL_TIME", "22:15")
     dashboard.SETTINGS_PATH.write_text(settings)
     assert app.journal_service().scheduled_time.isoformat() == "22:15:00"
+
+
+@pytest.mark.parametrize("path", ["/meetings", "/meetings?id=private"])
+def test_meetings_require_dashboard_cookie(client, path):
+    response = client.get("/dashboard" + path, headers={"X-App-Secret": SECRET})
+    assert response.status_code == 303
+    assert response.headers["location"] == "/dashboard/login"
+
+
+def test_meetings_registry_empty_and_unknown(client):
+    login(client)
+    response = client.get("/dashboard/meetings")
+    assert response.status_code == 200
+    assert 'href="/dashboard/meetings"' in response.text
+    assert "No meetings recorded yet" in response.text
+    assert client.get("/dashboard/meetings?id=missing").status_code == 404
+
+
+def test_meetings_minutes_transcript_link_and_escaping(client):
+    from meetings import Meetings
+    from test_meetings import summary
+    service = Meetings(memory_api.memory, app.notes)
+    service.start("meeting-one", '<script>alert("title")</script>')
+    turns = [dict(seq=seq, speaker=speaker, text=text, timestamp="2026-10-07T12:00:00Z")
+             for seq, speaker, text in [(1, "model", "Second response"), (0, "user", "First <img src=x onerror=alert(1)>")]]
+    service.memory.ingest("meeting-one", turns)
+    with service.memory.db() as db:
+        meeting = service._load(db, "meeting-one")
+        meeting.update(phase="done", result=summary("Review <script>evil</script>"), document={"id": "doc-one"})
+        service._save(db, meeting)
+    login(client)
+    listing = client.get("/dashboard/meetings")
+    assert 'href="/dashboard/meetings?id=meeting-one"' in listing.text
+    assert "&lt;script&gt;" in listing.text and '<script>alert' not in listing.text
+    detail = client.get("/dashboard/meetings?id=meeting-one")
+    assert detail.status_code == 200
+    assert 'https://docs.google.com/document/d/doc-one/edit' in detail.text
+    assert all(label in detail.text for label in ["Summary", "Decisions", "Action items", "Open questions", "Alex"])
+    assert detail.text.index("First &lt;img") < detail.text.index("Second response")
+    assert "&lt;script&gt;evil&lt;/script&gt;" in detail.text
+    assert '<img src=x' not in detail.text
+    assert detail.headers["cache-control"] == "no-store"
+    with service.memory.db() as db:
+        assert service._load(db, "meeting-one") == meeting  # Viewing never advances processing or writes Docs.
+    assert client.get("/dashboard/meetings?id=' OR 1=1--").status_code == 404
+
+
+def test_meetings_pagination_and_pending_minutes(client):
+    from meetings import Meetings
+    service = Meetings(memory_api.memory, app.notes)
+    for i in range(51):
+        service.start(f"m-{i:02}", f"Meeting {i:02}")
+    login(client)
+    first = client.get("/dashboard/meetings")
+    assert first.text.count('href="/dashboard/meetings?id=') == 50
+    assert 'href="/dashboard/meetings?page=1"' in first.text
+    second = client.get("/dashboard/meetings?page=1")
+    assert second.text.count('href="/dashboard/meetings?id=') == 1
+    assert 'href="/dashboard/meetings?page=0"' in second.text
+    detail = client.get("/dashboard/meetings?id=m-00")
+    assert "Minutes are not ready yet" in detail.text
+    assert "No transcript captured" in detail.text
+    assert "Open Google Doc" not in detail.text

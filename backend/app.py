@@ -24,6 +24,8 @@ import memory_api
 import translation
 import workouts
 from journal import Journal, JournalDateError, schedule_loop
+import meeting_api
+from meetings import Meetings
 from memory import MemoryConflict
 from jobs import Jobs
 from coach import Projects
@@ -74,6 +76,8 @@ async def lifespan(app):
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 app.include_router(memory_api.router)
 app.include_router(workouts.router)
+meeting_api.service = Meetings(memory_api.memory, notes)
+app.include_router(meeting_api.router)
 
 
 @app.exception_handler(sqlite3.Error)
@@ -98,7 +102,7 @@ async def authenticate(request: Request, call_next):
 
 class TokenRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    mode: Literal["auto", "ptt", "over"] = Field(default_factory=dashboard.default_mode)
+    mode: Literal["auto", "ptt", "over", "meeting"] = Field(default_factory=dashboard.default_mode)
     silence_ms: int = Field(default=2000, strict=True)
     persona: Literal["assistant", "translator"] = "assistant"
     language: str | None = Field(default=None, max_length=40)
@@ -107,6 +111,8 @@ class TokenRequest(BaseModel):
     def validate_persona(self):
         if (self.persona == "translator") != (self.language is not None):
             raise ValueError("Translator requires language; assistant must omit language")
+        if self.mode == "meeting" and self.persona != "assistant":
+            raise ValueError("Meeting capture requires the assistant persona")
         if self.language is not None:
             self.language = translation.normalize_language(self.language)
         return self
@@ -126,7 +132,7 @@ def token(request: TokenRequest):
     try:
         return gemini.create_token(
             api_key, model, request.mode,
-            system_instruction=(memory_api.memory.context(gemini.PROMPT_PATH.read_text(encoding="utf-8"))
+            system_instruction=(memory_api.memory.context(gemini.assistant_instruction(request.mode))
                                 if request.persona == "assistant" else None),
             silence_ms=request.silence_ms,
             persona=request.persona, language=request.language,
@@ -147,6 +153,8 @@ async def dispatch_tool(name: str, args: dict | None = None):
         request = request_type.model_validate(args if args is not None else {})
     except ValidationError as exc:
         raise RequestValidationError(exc.errors()) from exc
+    if owner == "meeting_control":
+        return {"status": "ok", "client_action": name, **request.model_dump()}
     if owner == "translation":
         # Validated commands only: persona state belongs to each phone session.
         return getattr(translation, method)(**request.model_dump())

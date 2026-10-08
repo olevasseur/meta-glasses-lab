@@ -17,6 +17,7 @@ class TranscriptMemory(
     private val directory: File,
     private val onError: (String) -> Unit,
 ) {
+    var onMeetingReady: (JSONObject) -> Unit = {}
     private val sessions = linkedMapOf<String, JSONObject>()
     private val sending = Mutex()
     private var activeId: String? = null
@@ -36,11 +37,12 @@ class TranscriptMemory(
         }
     }
 
-    fun begin(): String {
+    fun begin(meeting: JSONObject? = null): String {
         check(activeId == null)
         val id = UUID.randomUUID().toString()
         val session = JSONObject().put("session_id", id).put("next_seq", 0)
             .put("ending", false).put("turns", JSONArray())
+        if (meeting != null) session.put("meeting", meeting)
         sessions[id] = session
         activeId = id
         persist(session)
@@ -71,6 +73,11 @@ class TranscriptMemory(
         for (session in sessions.values.toList()) {
             try {
                 val id = session.getString("session_id")
+                if (session.has("meeting") && !session.optBoolean("registered")) {
+                    backend.startMeeting(id, session.getJSONObject("meeting"))
+                    session.put("registered", true)
+                    persist(session)
+                }
                 var turns = session.getJSONArray("turns")
                 while (turns.length() > 0) {
                     val count = minOf(50, turns.length())
@@ -84,14 +91,18 @@ class TranscriptMemory(
                     turns = remaining
                 }
                 if (session.getBoolean("ending")) {
-                    backend.endSession(id)
+                    val result = if (session.has("meeting")) backend.endMeeting(id) else backend.endSession(id)
+                    if (result.optString("status") == "processing") continue
                     check(File(directory, "$id.json").delete()) { "Cannot remove delivered memory upload" }
                     sessions.remove(id)
+                    if (session.has("meeting")) onMeetingReady(result)
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
-                onError("Memory upload pending; it will retry while the app is open or next launch.")
+                onError(if (session.has("meeting"))
+                    "Meeting saved locally; upload/minutes pending. Check backend, Gemini quota, Google consent and Doc title. Retries while open or next launch."
+                    else "Memory upload pending; it will retry while the app is open or next launch.")
             }
         }
     }

@@ -9,7 +9,7 @@ import gemini
 from tools import CLIENT_TOOL_NAMES, REGISTRY
 
 
-@pytest.mark.parametrize("mode", ["auto", "ptt", "over"])
+@pytest.mark.parametrize("mode", ["auto", "ptt", "over", "meeting"])
 def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
     captured = []
 
@@ -33,14 +33,14 @@ def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
         "append_to_doc", "remember", "recall", "forget",
         "await_gesture_confirmation", "look", "set_watch_mode",
         "codex_task", "deep_research", "job_status", "cancel_job",
-        "start_translation", "stop_translation",
+        "start_translation", "stop_translation", "start_meeting", "stop_meeting",
         "start_workout", "stop_workout", "workout_status", "workout_history",
         "read_text", "submit_reading", "reading_control",
         "write_journal", "read_journal", "morning_brief",
         "start_project", "next_step", "previous_step", "repeat_step", "current_step", "how_much", "scale_project",
         "check_progress", "set_timer", "list_timers", "cancel_timer", "set_nod_navigation",
     }
-    assert len(setup["tools"][0]["functionDeclarations"]) == 35
+    assert len(setup["tools"][0]["functionDeclarations"]) == 37
     for name, field, kind in [("look", "question", "STRING"), ("set_watch_mode", "on", "BOOLEAN")]:
         tool = declarations[name]
         assert "Client-executed" in tool["description"]

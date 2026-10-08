@@ -464,3 +464,17 @@ def test_scheduler_failure_backs_off_and_recovers_without_sensitive_logs(monkeyp
     asyncio.run(run())
     assert timeouts == [30, 300, 30]
     assert "RuntimeError" in caplog.text and "private upstream content" not in caplog.text
+
+
+def test_meeting_participants_keep_provenance_in_journal(service):
+    from meetings import Meetings
+    Meetings(service.memory, service.notes).start('group', 'Team review')
+    ingest(service, text='Maya: I live in Paris.', session='group')
+    ingest(service, text='I live in Toronto.', session='personal')
+    with service.memory.db() as db:
+        db.execute("INSERT INTO summaries VALUES ('group','Maya lives in Paris','2026-10-07T16:10:00Z')")
+    data = service.collect(date(2026, 10, 7))
+    assert data['summaries'][0]['source_kind'] == 'meeting'
+    group, personal = data['transcripts']
+    assert group['session_id'] == 'group' and group['source_kind'] == 'meeting'
+    assert personal['session_id'] == 'personal' and 'source_kind' not in personal

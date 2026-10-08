@@ -97,6 +97,27 @@ FORGET = types.FunctionDeclaration(
     }),
 )
 
+class StartMeetingRequest(Arguments):
+    title: str = Field(default="Untitled", min_length=1, max_length=200)
+    doc_name: str | None = Field(default=None, min_length=1, max_length=1000)
+
+
+class StopMeetingRequest(Arguments):
+    pass
+
+
+START_MEETING = types.FunctionDeclaration(
+    name="start_meeting", description="Start silent meeting or lecture capture on the phone. Optionally name a Google Doc to append minutes to; otherwise create a meeting doc. Requires the glasses Android client.",
+    parameters=types.Schema(type="OBJECT", properties={
+        "title": types.Schema(type="STRING", description="Meeting title; defaults to Untitled."),
+        "doc_name": types.Schema(type="STRING", description="Optional exact document title or alias."),
+    }),
+)
+STOP_MEETING = types.FunctionDeclaration(
+    name="stop_meeting", description="Stop meeting capture and prepare minutes, decisions, actions and questions. The app will send a two-sentence recap when ready. Requires the glasses Android client.",
+    parameters=types.Schema(type="OBJECT", properties={}),
+)
+
 # Name -> (validated args, owner, method, Gemini declaration).
 # Client-owned tools are advertised here but validated/executed on the phone.
 REGISTRY = {
@@ -105,6 +126,8 @@ REGISTRY = {
     "recall": (RecallRequest, "memory", "recall", RECALL),
     "forget": (ForgetRequest, "memory", "forget", FORGET),
     "await_gesture_confirmation": (None, "client", None, AWAIT_GESTURE_CONFIRMATION),
+    "start_meeting": (StartMeetingRequest, "meeting_control", "", START_MEETING),
+    "stop_meeting": (StopMeetingRequest, "meeting_control", "", STOP_MEETING),
 }
 REGISTRY.update({tool.name: (None, "client", None, tool) for tool in CLIENT_TOOLS})
 REGISTRY.update({

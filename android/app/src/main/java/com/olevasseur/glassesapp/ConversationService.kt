@@ -96,7 +96,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
         scope.launch {
             while (true) {
                 delay(1_000)
-                if (controls.shouldRun && model.workout.state.value.active) activity()
+                if (controls.shouldRun && (model.workout.state.value.active || model.state.value.meeting)) activity()
                 if (controls.expired(now(), model.state.value.idleMinutes * 60_000L)) stopAll()
             }
         }
@@ -209,8 +209,12 @@ class ConversationService : Service(), ViewModelStoreOwner {
         }
     }
 
+    fun endConversation() {
+        if (controls.conversation) update(controls.captureHold(now()))
+    }
+
     fun setMode(mode: ConversationMode) {
-        if (!model.state.value.settingsLoaded) return
+        if (!model.state.value.settingsLoaded || model.state.value.meeting) return
         if (controls.mode != mode) {
             activity()
             model.finishTalking()
@@ -219,7 +223,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
     }
 
     fun toggleInput() {
-        if (!controls.shouldRun || !model.state.value.connected) return
+        if (model.state.value.meeting || !controls.shouldRun || !model.state.value.connected) return
         if (controls.ptt) model.toggleGlassesTalking()
         else if (controls.mode == ConversationMode.AUTO) update(controls.toggleMute(now()))
         else return // Over ends only on sign-off, silence, or a pending gesture answer.
@@ -274,6 +278,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
     }
 
     fun stopAll() {
+        model.cancelMeetingTransition()
         if (controls.shouldRun && hasFocus) chime(false)
         update(controls.stop())
         model.glasses.stopInputs()
@@ -293,6 +298,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
         val label = when {
             controls.pauses.isNotEmpty() && controls.conversation -> "Paused: ${controls.pauses.joinToString()}. Open to resume."
             !controls.conversation -> "Glasses controls ready · hold capture to start"
+            state.meeting -> "Meeting capture · ${state.gemini} · say Hey assistant"
             controls.muted -> "Microphone muted · double-tap to unmute"
             controls.mode == ConversationMode.OVER -> "Over · ${state.overStatus}"
             controls.ptt -> if (state.talking) "Listening · double-tap to finish" else "Push-to-talk · double-tap to speak"
@@ -303,9 +309,9 @@ class ConversationService : Service(), ViewModelStoreOwner {
             .setCategory(Notification.CATEGORY_SERVICE).setVisibility(Notification.VISIBILITY_PUBLIC)
             .setContentIntent(PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             .addAction(Notification.Action.Builder(null, "Stop", action(STOP)).build())
-            .addAction(Notification.Action.Builder(null, "${controls.toggleMode(now()).mode.label} mode", action(MODE)).build())
+            .apply { if (!state.meeting) addAction(Notification.Action.Builder(null, "${controls.toggleMode(now()).mode.label} mode", action(MODE)).build()) }
             .apply {
-                if (controls.mode != ConversationMode.OVER) addAction(Notification.Action.Builder(null,
+                if (!state.meeting && controls.mode != ConversationMode.OVER) addAction(Notification.Action.Builder(null,
                     if (controls.ptt) (if (state.talking) "Finish" else "Talk") else (if (controls.muted) "Unmute" else "Mute"), action(INPUT)).build())
             }
             .build()
@@ -316,7 +322,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
         if (!foreground) return
         // Transcripts and the idle clock should not spam NotificationManager.
         val state = model.state.value
-        val key = "${controls.copy(lastActivityMs = 0)}:${state.gemini}:${state.talking}:${state.overStatus}"
+        val key = "${controls.copy(lastActivityMs = 0)}:${state.gemini}:${state.talking}:${state.overStatus}:${state.meeting}"
         if (key != lastNotification) { notifications.notify(NOTIFICATION, notification()); lastNotification = key }
     }
     private fun granted(permission: String) = ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED

@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 fun TranslationControls(state: ConversationState, model: ConversationViewModel) {
     var selected by remember(state.translationLanguage) { mutableStateOf(state.translationLanguage ?: "es") }
     var expanded by remember { mutableStateOf(false) }
-    val enabled = state.settingsLoaded && !state.stopping &&
+    val enabled = !state.meeting && state.settingsLoaded && !state.stopping &&
         (!state.running || (state.connected && state.handsFree.shouldRun))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(selected = state.translationLanguage == null,

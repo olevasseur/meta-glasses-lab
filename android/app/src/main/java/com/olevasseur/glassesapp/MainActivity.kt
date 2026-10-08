@@ -183,13 +183,14 @@ private fun ConversationScreen(
                 OutlinedButton(onClick = model::arm, enabled = state.permissions && state.settingsLoaded) { Text("Enable glasses controls") }
             }
             Text(state.inputs, style = MaterialTheme.typography.bodySmall)
-            if (state.running && state.settings.mode == ConversationMode.AUTO) OutlinedButton(onClick = model::toggleInput) {
+            if (!state.meeting && state.running && state.settings.mode == ConversationMode.AUTO) OutlinedButton(onClick = model::toggleInput) {
                 Text(if (state.handsFree.muted) "Unmute microphone" else "Mute microphone")
             }
-            if (state.settings.mode == ConversationMode.OVER && state.running) {
+            if (!state.meeting && state.settings.mode == ConversationMode.OVER && state.running) {
                 Text(state.overStatus)
             }
-            if (state.ptt) {
+            MeetingControls(state, model)
+            if (state.ptt && !state.meeting) {
                 HoldToTalk(state.connected && state.handsFree.shouldRun, state.talking, model::talk, model::finishTalking)
                 if (state.talking) OutlinedButton(onClick = model::finishTalking) { Text("Finish speaking") }
                 Text(state.inputs, style = MaterialTheme.typography.bodySmall)
@@ -199,7 +200,7 @@ private fun ConversationScreen(
             val gestureState by model.gestures.state.collectAsStateWithLifecycle()
             GestureControls(gestureState, model::setGestures, model.gestures::setSensitivity)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = state.watchMode, onCheckedChange = model::setWatchMode, enabled = state.translationLanguage == null && state.connected && state.handsFree.shouldRun)
+                Switch(checked = state.watchMode, onCheckedChange = model::setWatchMode, enabled = !state.meeting && state.translationLanguage == null && state.connected && state.handsFree.shouldRun)
                 Text("Watch mode · 2 minute limit", modifier = Modifier.padding(start = 8.dp))
             }
             Text("${state.camera}. Ask: What am I looking at?", style = MaterialTheme.typography.bodySmall)

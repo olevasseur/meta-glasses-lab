@@ -189,7 +189,7 @@ def test_context_budget_and_latest_three_summaries(store):
     assert "Session marker 0" not in context and "Session marker 1" not in context
 
 
-@pytest.mark.parametrize("mode", ["auto", "ptt", "over"])
+@pytest.mark.parametrize("mode", ["auto", "ptt", "over", "meeting"])
 def test_token_locks_memory_and_registry_but_not_resumption(client, store, monkeypatch, mode):
     store.remember("The user likes kayaking.")
     monkeypatch.setenv("GEMINI_API_KEY", "fake-key")
@@ -202,13 +202,13 @@ def test_token_locks_memory_and_registry_but_not_resumption(client, store, monke
     live = config.live_connect_constraints.config
     assert "kayaking" in live.system_instruction
     detection = live.realtime_input_config.automatic_activity_detection
-    assert detection.disabled is (mode != "auto")
-    if mode == "auto":
+    assert detection.disabled is (mode in {"ptt", "over"})
+    if mode in {"auto", "meeting"}:
         assert detection.silence_duration_ms == 3250
     assert {t.name for t in live.tools[0].function_declarations} == {
         "append_to_doc", "remember", "recall", "forget", "await_gesture_confirmation", "look", "set_watch_mode",
         "codex_task", "deep_research", "job_status", "cancel_job",
-        "start_translation", "stop_translation",
+        "start_translation", "stop_translation", "start_meeting", "stop_meeting",
         "read_text", "submit_reading", "reading_control",
         "write_journal", "read_journal", "morning_brief",
         "start_project", "next_step", "previous_step", "repeat_step", "current_step", "how_much", "scale_project",

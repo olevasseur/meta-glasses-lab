@@ -132,7 +132,8 @@ class ConversationSettingsTest {
         val file = File(temporary.root, "job-cursors.preferences_pb")
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val expected = ConversationSettings(ConversationMode.OVER, 3250, "your turn", 25, idleMinutes = 42,
-            translationLanguage = "fr", translationPhoneSpeaker = true, workoutSensitivity = 0.8f, coachNodNavigation = false)
+            translationLanguage = "fr", translationPhoneSpeaker = true, workoutSensitivity = 0.8f, coachNodNavigation = false,
+            meetingPhone = false, meetingOver = true)
         try {
             val settings = ConversationSettingsStore(PreferenceDataStoreFactory.create(scope = scope) { file })
             assertEquals(0L, settings.jobCursor("backend-a"))

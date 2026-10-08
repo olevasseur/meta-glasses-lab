@@ -140,6 +140,9 @@ class Memory:
     def end(self, session_id: str) -> dict:
         with self.lock:
             with self.db() as db:
+                if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='meetings'").fetchone():
+                    if db.execute("SELECT 1 FROM meetings WHERE id=?", (session_id,)).fetchone():
+                        raise MemoryConflict("Use the meeting finalization endpoint for this session")
                 session = db.execute("SELECT * FROM sessions WHERE id=?", (session_id,)).fetchone()
                 if not session:
                     # Stopping an empty conversation is a valid, idempotent operation.

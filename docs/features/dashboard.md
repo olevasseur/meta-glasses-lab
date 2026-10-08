@@ -27,6 +27,10 @@ the system light/dark preference; navigation wraps for narrow screens.
   phrases/session IDs, open timestamped transcript chunks in sequence order.
   Search joins chunks so a word split by Gemini still matches. Lists show 50
   sessions per page. This archive can include information subsequently forgotten.
+- **Meetings:** list recordings and processing state, then open minutes, the full
+  ordered transcript and a Google Doc link. Uses the page registry and existing
+  browser authentication. Lists show 50 meetings per page; pending minutes remain
+  visible. Viewing never triggers generation or a Google write.
 - **Memory:** expand **Add a fact**, enter a topic key and fact. **Save fact** edits
   its text while retaining the key. **Delete this fact… → Confirm delete** removes
   that exact fact and adds the existing memory suppression record. Stale edits or

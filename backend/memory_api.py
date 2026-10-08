@@ -42,6 +42,8 @@ def transcripts(request: Transcripts):
 def end_session(session_id: Annotated[str, Path(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")]):
     try:
         return memory.end(session_id)
+    except MemoryConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
     except OSError as exc:
         raise HTTPException(503, "Memory storage unavailable") from exc
     except (APIError, httpx.HTTPError, RuntimeError, ValueError) as exc:
