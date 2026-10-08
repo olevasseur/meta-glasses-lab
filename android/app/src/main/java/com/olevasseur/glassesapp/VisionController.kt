@@ -61,7 +61,12 @@ class VisionController(
         else -> ToolResult(toolError("Client tool is not supported by this app version"))
     }
 
-    suspend fun sendFrame(captureFrame: suspend () -> ByteArray = capture): ByteArray {
+    suspend fun captureForMemory(): ByteArray = captureSerialized(capture, sendToLive = false)
+
+    suspend fun sendFrame(captureFrame: suspend () -> ByteArray = capture): ByteArray =
+        captureSerialized(captureFrame, sendToLive = true)
+
+    private suspend fun captureSerialized(captureFrame: suspend () -> ByteArray, sendToLive: Boolean): ByteArray {
         val current = generation
         return captureLock.withLock {
             cooldown?.join() // The 1 fps limit also applies across look calls and watch frames.
@@ -71,7 +76,7 @@ class VisionController(
                 frame = currentCoroutineContext().job
                 try {
                     val jpeg = withTimeoutOrNull(15_000) { captureFrame() } ?: error("Camera capture timed out")
-                    check(current == generation && send(jpeg)) { "Frame not sent; Gemini disconnected or busy" }
+                    check(current == generation && (!sendToLive || send(jpeg))) { "Frame not sent; Gemini disconnected or busy" }
                     cooldown = scope.launch { delay(FRAME_MS) }
                     jpeg
                 } finally {
@@ -129,7 +134,7 @@ suspend fun routeTool(
 ): ToolResult = when {
     call.name == GestureConfirmation.TOOL || call.name in VisionController.TOOL_NAMES ||
         call.name in WorkoutCoach.TOOL_NAMES || call.name in ReadToMeController.TOOL_NAMES ||
-        call.name in COACH_TOOL_NAMES -> local(call)
+        call.name in COACH_TOOL_NAMES || call.name in VisualMemoryController.TOOL_NAMES -> local(call)
     call.name in clientTools -> ToolResult(toolError("Client tool is not supported by this app version"))
     else -> ToolResult(backend(call))
 }

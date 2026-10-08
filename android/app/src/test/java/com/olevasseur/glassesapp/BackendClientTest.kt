@@ -9,6 +9,38 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class BackendClientTest {
+    @Test fun visualUploadsAndStatusUseAuthenticatedBackendOnly() = runBlocking {
+        MockWebServer().use { server ->
+            server.start()
+            val backend = BackendClient(OkHttpClient(), server.url("/").toString(), "test-secret")
+            server.enqueue(MockResponse().setBody("""{"status":"ok"}"""))
+            backend.visualFrame(byteArrayOf(1, 2), "parking", true, "home")
+            val upload = server.takeRequest()
+            assertEquals("/visual/frames", upload.path)
+            assertEquals("test-secret", upload.getHeader("X-App-Secret"))
+            val body = JSONObject(upload.body.readUtf8())
+            assertEquals("AQI=", body.getString("jpeg"))
+            assertEquals("parking", body.getString("label"))
+            assertEquals("home", body.getString("location_label"))
+            assertTrue(body.getBoolean("pinned"))
+            java.time.OffsetDateTime.parse(body.getString("captured_at"))
+            for (on in listOf(true, false)) {
+                server.enqueue(MockResponse().setBody("""{"status":"ok"}"""))
+                backend.visualStatus(on)
+                val report = server.takeRequest()
+                assertEquals("POST", report.method)
+                assertEquals("/visual/status", report.path)
+                assertEquals("test-secret", report.getHeader("X-App-Secret"))
+                assertEquals(on, JSONObject(report.body.readUtf8()).getBoolean("on"))
+            }
+            server.enqueue(MockResponse().setBody("""{"status":"ok","deleted":1}"""))
+            assertEquals(1, backend.deleteVisual(60).getInt("deleted"))
+            val deletion = server.takeRequest()
+            assertEquals("/visual/delete", deletion.path)
+            assertEquals("test-secret", deletion.getHeader("X-App-Secret"))
+            assertEquals(60, JSONObject(deletion.body.readUtf8()).getInt("minutes"))
+        }
+    }
     @Test fun overAndAutoPatienceUseTheTokenContract() = runBlocking {
         MockWebServer().use { server ->
             server.start()

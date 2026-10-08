@@ -5,7 +5,7 @@ import hmac
 import http.client
 import os
 import sqlite3
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import Literal
 
 import httpx
@@ -26,6 +26,8 @@ import workouts
 from journal import Journal, JournalDateError, schedule_loop
 import meeting_api
 from meetings import Meetings
+import visual_api
+import visual_dashboard  # Registers the extension before dashboard.install includes its router.
 from memory import MemoryConflict
 from jobs import Jobs
 from coach import Projects
@@ -59,6 +61,7 @@ async def lifespan(app):
     task = None
     app.state.jobs = Jobs(notes)
     await app.state.jobs.start()
+    retention = asyncio.create_task(visual_api.retention_loop())
     try:
         if os.getenv("JOURNAL_ENABLED", "true").lower() in {"true", "1", "yes"}:
             journal_service()  # Validate schedule/timezone at startup.
@@ -66,6 +69,9 @@ async def lifespan(app):
         yield
     finally:
         stop.set()
+        retention.cancel()
+        with suppress(asyncio.CancelledError):
+            await retention
         try:
             if task:
                 await task
@@ -75,6 +81,7 @@ async def lifespan(app):
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 app.include_router(memory_api.router)
+app.include_router(visual_api.router)
 app.include_router(workouts.router)
 meeting_api.service = Meetings(memory_api.memory, notes)
 app.include_router(meeting_api.router)
@@ -178,7 +185,7 @@ async def dispatch_tool(name: str, args: dict | None = None):
             raise HTTPException(503, "Check the job configuration and repository allowlist") from None
     try:
         service = (journal_service() if owner == "journal" else notes if owner == "notes"
-                   else workouts if owner == "workouts" else memory_api.memory)
+                   else workouts if owner == "workouts" else visual_api.memory if owner == "visual" else memory_api.memory)
         return await asyncio.to_thread(getattr(service, method), **request.model_dump())
     except JournalDateError as exc:
         raise HTTPException(422, str(exc)) from exc
@@ -187,13 +194,13 @@ async def dispatch_tool(name: str, args: dict | None = None):
     except (FileNotFoundError, ValueError, GoogleAuthError) as exc:
         if owner == "journal":
             raise HTTPException(503, "Journal unavailable; check schedule, Gemini and Google credentials") from exc
-        if owner in {"memory", "workouts"}:
+        if owner in {"memory", "workouts", "visual"}:
             raise HTTPException(503, "Memory storage unavailable") from exc
         raise HTTPException(503, "Check Google credentials and doc_aliases.json; run scripts/google_auth.py if needed") from exc
     except (APIError, httpx.HTTPError, HttpError, OSError, RuntimeError) as exc:
         if owner == "journal":
             raise HTTPException(502, "Journal operation failed; a local draft may be saved. Retrying replaces the same day's entry.") from exc
-        if owner in {"memory", "workouts"}:
+        if owner in {"memory", "workouts", "visual"}:
             raise HTTPException(503, "Memory storage unavailable") from exc
         raise HTTPException(502, "Google Docs operation failed; check the document before retrying") from exc
 

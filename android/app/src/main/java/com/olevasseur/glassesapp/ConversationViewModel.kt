@@ -46,6 +46,8 @@ data class ConversationState(
     val mock: Boolean = false,
     val camera: String = "Camera off",
     val watchMode: Boolean = false,
+    val visualMemory: Boolean = false,
+    val visualCapturing: Boolean = false,
     val transcript: List<TranscriptLine> = emptyList(),
     val lastTool: String = "None",
     val meeting: Boolean = false,
@@ -55,6 +57,8 @@ data class ConversationState(
     val error: String? = null,
     val handsFree: HandsFreeState = HandsFreeState(),
 ) {
+    val canCaptureVisual: Boolean get() = running && !stopping && connected && handsFree.shouldRun &&
+        !meeting && translationLanguage == null
     val meetingPhone: Boolean get() = settings.meetingPhone
     val meetingOver: Boolean get() = settings.meetingOver
     val ptt: Boolean get() = settings.mode == ConversationMode.PTT
@@ -79,7 +83,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         while (isActive) { memory.flush(); speakPendingRecap(); delay(5_000) }
     }
     private val audio = ConversationAudio(application, viewModelScope)
-    val gestures = HeadGestures(application, viewModelScope)
+    val gestures = HeadGestures(application, viewModelScope) { visualMemory.motion(it) }
     val workout = WorkoutCoach(application, viewModelScope, backend, ::error)
     private var pendingRecap: String? = null
     private var transcriptBoundary = true
@@ -108,7 +112,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val gemini: GeminiSession = GeminiSession(
         scope = viewModelScope, backend = backend, audio = audio,
         onState = { label, connected ->
-            if (!connected) { screenTalking = false; glassesTalking = false; overAwaitingReply = false; gestures.disconnected(); reading.pause(); coachNavigation.cancel() }
+            if (!connected) { screenTalking = false; glassesTalking = false; overAwaitingReply = false; gestures.disconnected(); visualMemory.stop(); reading.pause(); coachNavigation.cancel() }
             mutableState.update { it.copy(gemini = label, connected = connected) }
             if (connected) speakPendingRecap()
             if (!state.value.meeting && state.value.settings.mode == ConversationMode.OVER) {
@@ -132,6 +136,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         onFatal = { message -> error(message); stop() },
         onTranslationChanged = { language ->
             transcriptBoundary = true
+            visualMemory.stop()
             reading.clear()
             if (language != null) workout.stop(interrupted = true)
             if (state.value.translationLanguage != language) {
@@ -142,6 +147,11 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             if (!state.value.handsFree.shouldRun || !audioReady) ToolResult(toolError("Conversation is paused"))
             else if (state.value.meeting && call.name == "await_gesture_confirmation")
                 ToolResult(JSONObject().put("status", "unavailable").put("message", "Use spoken confirmation during meeting capture"))
+            else if (call.name in VisualMemoryController.TOOL_NAMES) {
+                if (call.name == "delete_visual_memory" || canCaptureVisual() ||
+                    (call.name == "set_visual_memory" && call.args.opt("on") == false)) visualMemory.tool(call)
+                else ToolResult(toolError("Visual capture requires an active Assistant conversation"))
+            }
             else if (call.name in COACH_TOOL_NAMES) coachTool(call, backend::tool, vision::tool, coachAlarms::tool, ::setNodNavigation)
             else if (call.name in ReadToMeController.TOOL_NAMES) reading.tool(call)
             else (workout.localTool(call) ?: gestures.localTool(call))?.let { ToolResult(it) } ?: vision.tool(call)
@@ -176,6 +186,31 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val reading: ReadToMeController by lazy {
         ReadToMeController({ vision.sendFrame(camera::captureText) }, vision::stop, audio::flush)
     }
+    private var visualLocation: String? = null
+    private val visualMemory: VisualMemoryController by lazy {
+        VisualMemoryController(viewModelScope, vision::captureForMemory, ::visualImageHash,
+            upload = { jpeg, label, pinned -> backend.visualFrame(jpeg, label, pinned, visualLocation) },
+            delete = backend::deleteVisual, now = android.os.SystemClock::elapsedRealtime,
+            onActive = { capturing ->
+                mutableState.update { it.copy(visualMemory = visualMemory.active, visualCapturing = capturing) }
+                gestures.requestMotion(capturing)
+                if (capturing) glasses.startInputs()
+            }, chime = { visualCaptureChime(viewModelScope) }, onError = ::error)
+    }
+    fun setVisualMemory(enabled: Boolean) {
+        if (!enabled || canCaptureVisual()) visualMemory.setEnabled(enabled)
+    }
+    fun setVisualLocation(label: String?) { visualLocation = label?.trim()?.takeIf { it.isNotEmpty() }?.take(100) }
+    private fun canCaptureVisual() = state.value.canCaptureVisual && audioReady
+    fun rememberVisual() { if (canCaptureVisual()) runVisualTool("remember_this") }
+    fun deleteVisualHour() { runVisualTool("delete_visual_memory") }
+    private fun runVisualTool(name: String) {
+        viewModelScope.launch {
+            val result = visualMemory.tool(FunctionCall("screen", name, org.json.JSONObject()))
+            mutableState.update { it.copy(lastTool = result.response.toString()) }
+        }
+    }
+
     val glasses = GlassesController(application, viewModelScope,
         onGlasses = { label -> mutableState.update { it.copy(glasses = label) } },
         onInputs = { label -> mutableState.update { it.copy(inputs = label) } },
@@ -187,6 +222,16 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     )
     private val jobNotifications = JobNotifications(application)
     init {
+        viewModelScope.launch {
+            state.map { it.visualCapturing }.distinctUntilChanged().collectLatest { capturing ->
+                while (isActive) {
+                    try { backend.visualStatus(capturing) }
+                    catch (e: CancellationException) { throw e }
+                    catch (_: Exception) { /* Dashboard reports UNKNOWN when heartbeats expire. */ }
+                    delay(20_000)
+                }
+            }
+        }
         viewModelScope.launch {
             // Load the durable cursor before polling so service recreation cannot replay it.
             val cursor = try { settingsStore.jobCursor(BuildConfig.BACKEND_URL) }
@@ -290,6 +335,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             audioReady = false
             overResumeJob?.cancel(); over.stop()
             workout.stop(interrupted = true)
+            visualMemory.stop()
             gestures.disconnected(); reading.pause()
         }
         gemini.suspendAudio(!value.shouldRun || !audioReady)
@@ -436,6 +482,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         if (state.value.stopping || !state.value.running) return
         mutableState.update { it.copy(stopping = true, connected = false, talking = false) }
         overResumeJob?.cancel(); over.stop()
+        visualMemory.stop()
         vision.stop()
         reading.clear()
         workout.stop(interrupted = true)
@@ -528,6 +575,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     override fun onCleared() {
         coachNavigation.cancel()
         overResumeJob?.cancel(); over.stop()
+        visualMemory.stop()
         vision.stop()
         reading.clear()
         service = null
@@ -541,6 +589,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             memoryUploads.join()
             startJob?.join()
             audio.stop()
+            try { backend.visualStatus(false) } catch (_: Exception) { /* Status expires if offline. */ }
             memory.flush()
             workout.flush()
             http.dispatcher.executorService.shutdown(); http.connectionPool.evictAll()

@@ -331,6 +331,8 @@ async def test_confirmation_bound_to_original_path_and_root(service, processes):
     ("morning_brief", {}, "journal", "morning_brief"),
     ("start_project", {"kind": "cooking", "source": "Test recipe"}, "coach", "run"),
     ("current_step", {}, "coach", "run"),
+    ("find_object", {"query": "keys"}, "visual", "find"),
+    ("when_did_i_see", {"query": "restaurant"}, "visual", "find"),
 ])
 def test_blocking_tools_do_not_block_job_events(monkeypatch, service, name, args, owner, method):
     from concurrent.futures import ThreadPoolExecutor
@@ -351,6 +353,8 @@ def test_blocking_tools_do_not_block_job_events(monkeypatch, service, name, args
     target = app.notes if owner == "notes" else app.workouts if owner == "workouts" else app.memory_api.memory
     if owner == "coach":
         target = app.projects
+    if owner == "visual":
+        target = app.visual_api.memory
     if owner == "journal":
         target = Mock()
         monkeypatch.setattr(app, "journal_service", lambda: target)

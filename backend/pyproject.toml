@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Gemini Live tokens and Google Docs notes for the glasses app"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "pillow>=12,<13",
     "fastapi>=0.142.2,<1",
     "google-genai>=2.28.0,<3",
     "google-api-python-client>=2.201.0,<3",

@@ -1,0 +1,66 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<section id="visual-status" class="notice" aria-live="polite"
+  hx-get="/dashboard/visual-memory" hx-trigger="every 20s" hx-select="#visual-status" hx-swap="outerHTML">
+  <strong>Visual memory is {{ capture_status }}</strong>
+  {% if capture_status == 'UNKNOWN' %}
+  <p>No recent phone status. Open the app and check its capture indicator; OFF cannot be confirmed.</p>
+  {% else %}<p>Reported by the phone within the last minute. ON includes a one-shot capture.</p>{% endif %}
+  <p>Enable or pause capture in the phone app or by voice. <a href="/dashboard/visual-memory">Refresh status</a>.</p>
+</section>
+<form method="get" action="/dashboard/visual-memory" class="search">
+  <label>Capture day <input type="date" name="day" value="{{ day }}" list="capture-days"></label>
+  <datalist id="capture-days">{% for value in days %}<option value="{{ value }}">{% endfor %}</datalist>
+  <label>Search captions, tags and labels <input type="search" name="q" maxlength="500" value="{{ q }}"></label>
+  <button>Search</button>
+</form>
+<p class="muted">Days use the phone's local date at capture. Leave the day blank to search all days.
+  Sightings are historical evidence, not current locations.</p>
+<details class="card"><summary>Retention and deletion</summary>
+  <form method="post" action="/dashboard/visual-memory/retention">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Keep unpinned captures for days <input type="number" name="days" min="1" max="365" required value="{{ retention_days }}"></label>
+    <p>Saving immediately deletes older unpinned captures and thumbnails. Pins survive retention.</p>
+    <button>Save retention</button>
+  </form>
+  <hr>
+  <form method="post" action="/dashboard/visual-memory/delete-range">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>From day (inclusive) <input type="date" name="start" required></label>
+    <label>Through day (inclusive) <input type="date" name="end" required></label>
+    <p>Delete all captures in this range, including pins. This does not pause capture or erase chat transcripts, Google data or backups.</p>
+    <label><input type="checkbox" name="confirm" value="delete" required style="width:auto"> Confirm permanent range deletion</label>
+    <button class="danger">Delete range</button>
+  </form>
+</details>
+{% for capture in captures %}
+  {% if loop.changed(capture.day) %}<h2>{{ capture.day }}</h2>{% endif %}
+  <article>
+    <img src="/dashboard/visual-memory/thumbnails/{{ capture.id }}" alt="Capture: {{ capture.caption }}"
+      loading="lazy" style="max-width:100%;height:auto">
+    <p><time datetime="{{ capture.captured_at }}">{{ capture.captured_at }}</time>{% if capture.pinned %} · Pinned{% endif %}</p>
+    <p class="text">{{ capture.caption }}</p>
+    <p>Tags: {{ capture.objects | join(', ') }} · {{ capture.place_type }}</p>
+    {% if capture.readable_text %}<p>Visible text: {{ capture.readable_text | join(', ') }}</p>{% endif %}
+    {% if capture.label %}<p>Label: {{ capture.label }}</p>{% endif %}
+    {% if capture.location_label %}<p>Place label: {{ capture.location_label }}</p>{% endif %}
+    <form method="post" action="/dashboard/visual-memory/pin">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ capture.id }}">
+      <input type="hidden" name="day" value="{{ day }}"><input type="hidden" name="q" value="{{ q }}">
+      <input type="hidden" name="pinned" value="{{ 0 if capture.pinned else 1 }}">
+      <button>{{ 'Unpin' if capture.pinned else 'Pin' }}</button>
+    </form>
+    <details><summary class="danger">Delete this capture…</summary>
+      <form method="post" action="/dashboard/visual-memory/delete">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ capture.id }}">
+        <input type="hidden" name="day" value="{{ day }}"><input type="hidden" name="q" value="{{ q }}">
+        <button name="confirm" value="delete" class="danger">Confirm delete</button>
+      </form>
+    </details>
+  </article>
+{% else %}<p>No captures match. Enable visual memory or use “Remember this” in the app to save a sighting.</p>{% endfor %}
+<div class="actions">
+  {% if page > 0 %}<a href="/dashboard/visual-memory?{{ previous }}">Previous page</a>{% endif %}
+  {% if has_next %}<a href="/dashboard/visual-memory?{{ next }}">Next page</a>{% endif %}
+</div>
+{% endblock %}

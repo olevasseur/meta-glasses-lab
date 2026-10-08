@@ -59,6 +59,20 @@ class BackendClient(
     )
 
     suspend fun endMeeting(id: String): JSONObject = post(listOf("meetings", id, "end"), JSONObject())
+    suspend fun visualFrame(jpeg: ByteArray, label: String?, pinned: Boolean, location: String?): JSONObject = post(
+        listOf("visual", "frames"), JSONObject()
+            .put("jpeg", java.util.Base64.getEncoder().encodeToString(jpeg))
+            .put("captured_at", java.time.OffsetDateTime.now().toString())
+            .put("label", label).put("pinned", pinned).put("location_label", location),
+    )
+
+    suspend fun deleteVisual(minutes: Int): JSONObject = post(
+        listOf("visual", "delete"), JSONObject().put("minutes", minutes),
+    )
+
+    suspend fun visualStatus(on: Boolean): JSONObject = post(
+        listOf("visual", "status"), JSONObject().put("on", on),
+    )
 
     private suspend fun post(path: List<String>, body: JSONObject): JSONObject {
         val url = base.newBuilder().apply { path.forEach { addPathSegment(it) } }.build()

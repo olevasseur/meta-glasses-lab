@@ -30,7 +30,8 @@ data class HeadGesturesState(
 )
 
 /** Main-thread coordinator; foreground/session lifecycle is owned by the view model. */
-class HeadGestures(context: Context, private val scope: CoroutineScope) {
+class HeadGestures(context: Context, private val scope: CoroutineScope,
+    private val onMotion: (HeadMotionSample) -> Unit = {}) {
     private val preferences = context.getSharedPreferences("head_gestures", Context.MODE_PRIVATE)
     private val mutableState = MutableStateFlow(HeadGesturesState(
         enabled = preferences.getBoolean("enabled", false),
@@ -40,6 +41,9 @@ class HeadGestures(context: Context, private val scope: CoroutineScope) {
     private val detector = HeadGestureDetector(state.value.sensitivity)
     private val confirmation = GestureConfirmation()
     private var lastSampleAt = 0L
+
+    private val motionRequested = MutableStateFlow(false)
+    fun requestMotion(enabled: Boolean) { motionRequested.value = enabled }
 
     private var workoutMotion = false
 
@@ -51,15 +55,16 @@ class HeadGestures(context: Context, private val scope: CoroutineScope) {
         navigate: (HeadGesture) -> Boolean = { false },
     ) {
         scope.launch {
-            combine(sessions, state.map { it.enabled }.distinctUntilChanged(), workoutDemand) { session, enabled, workout ->
+            combine(sessions, state.map { it.enabled }.distinctUntilChanged(), workoutDemand, motionRequested) { session, enabled, workout, requested ->
                 workoutMotion = workout
-                session.takeIf { enabled || workout }
+                session.takeIf { enabled || workout || requested }
             }.distinctUntilChanged().collectLatest { session ->
                 onWorkoutUnavailable()
                 unavailable(if (!state.value.enabled) "Off" else "Start a conversation with connected glasses")
                 if (session == null) return@collectLatest
                 try {
                     collectGlassesMotion(session, onSample = { sample ->
+                        onMotion(sample)
                         lastSampleAt = SystemClock.elapsedRealtime()
                         onWorkoutSample(sample)
                         if (workoutMotion || !state.value.enabled) {

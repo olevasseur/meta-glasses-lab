@@ -192,4 +192,34 @@ class VisionControllerTest {
         assertEquals(0, inFlight)
         controller.stop()
     }
+    @Test fun memoryCaptureSharesCameraWithoutSendingToLive() = runTest {
+        var sent = 0
+        val controller = VisionController(this, { byteArrayOf(9) }, { sent++; true }, {}, {}, {})
+        assertArrayEquals(byteArrayOf(9), controller.captureForMemory())
+        assertEquals(0, sent)
+        assertEquals("frame_sent", controller.tool(look()).response.getString("status"))
+        assertEquals(1, sent)
+        controller.stop()
+    }
+
+    @Test fun memoryReadingAndWatchShareSerializationAndRateLimit() = runTest {
+        val captures = mutableListOf<Long>()
+        val sent = mutableListOf<Int>()
+        val controller = VisionController(this,
+            { captures += testScheduler.currentTime; delay(100); byteArrayOf(9) },
+            { sent += it[0].toInt(); true }, {}, {}, {})
+        val memory = async { controller.captureForMemory() }
+        runCurrent()
+        val reading = async { controller.sendFrame { captures += testScheduler.currentTime; byteArrayOf(42) } }
+        controller.setWatchMode(true)
+        advanceTimeBy(2_300); runCurrent()
+        assertArrayEquals(byteArrayOf(9), memory.await())
+        assertArrayEquals(byteArrayOf(42), reading.await())
+        assertEquals(listOf(0L, 1100L, 2100L), captures)
+        assertEquals(listOf(42, 9), sent) // Memory JPEG never enters Live.
+        controller.stop()
+        advanceTimeBy(10_000); runCurrent()
+        assertEquals(3, captures.size)
+    }
+
 }

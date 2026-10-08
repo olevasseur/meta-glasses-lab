@@ -182,6 +182,7 @@ def test_context_budget_and_latest_three_summaries(store):
     assert len(context.encode()) <= 8000
     assert "submit_reading" in context
     assert "start_project" in context
+    assert "set_visual_memory" in context and "find_object" in context
     assert "Pending yes/no questions" in context
     assert "at most twice" in context
     assert "What you know about the user" in context
@@ -214,6 +215,7 @@ def test_token_locks_memory_and_registry_but_not_resumption(client, store, monke
         "start_project", "next_step", "previous_step", "repeat_step", "current_step", "how_much", "scale_project",
         "check_progress", "set_timer", "list_timers", "cancel_timer", "set_nod_navigation",
         "start_workout", "stop_workout", "workout_status", "workout_history",
+        "set_visual_memory", "remember_this", "delete_visual_memory", "find_object", "when_did_i_see",
     }
     assert config.lock_additional_fields == [] and live.session_resumption is None
 

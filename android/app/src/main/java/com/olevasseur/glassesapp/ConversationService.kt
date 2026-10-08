@@ -96,7 +96,8 @@ class ConversationService : Service(), ViewModelStoreOwner {
         scope.launch {
             while (true) {
                 delay(1_000)
-                if (controls.shouldRun && (model.workout.state.value.active || model.state.value.meeting)) activity()
+                if (controls.shouldRun && (model.workout.state.value.active || model.state.value.meeting ||
+                    model.state.value.visualCapturing)) activity()
                 if (controls.expired(now(), model.state.value.idleMinutes * 60_000L)) stopAll()
             }
         }
@@ -305,7 +306,8 @@ class ConversationService : Service(), ViewModelStoreOwner {
             else -> "${state.gemini} · automatic microphone"
         }
         return Notification.Builder(this, CHANNEL).setSmallIcon(R.drawable.ic_glasses)
-            .setContentTitle("the glasses app").setContentText(label).setOngoing(true).setOnlyAlertOnce(true)
+            .setContentTitle(if (state.visualCapturing) "Visual memory is ON · the glasses app" else "the glasses app")
+            .setContentText(label).setOngoing(true).setOnlyAlertOnce(true)
             .setCategory(Notification.CATEGORY_SERVICE).setVisibility(Notification.VISIBILITY_PUBLIC)
             .setContentIntent(PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             .addAction(Notification.Action.Builder(null, "Stop", action(STOP)).build())
@@ -322,7 +324,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
         if (!foreground) return
         // Transcripts and the idle clock should not spam NotificationManager.
         val state = model.state.value
-        val key = "${controls.copy(lastActivityMs = 0)}:${state.gemini}:${state.talking}:${state.overStatus}:${state.meeting}"
+        val key = "${controls.copy(lastActivityMs = 0)}:${state.gemini}:${state.talking}:${state.overStatus}:${state.meeting}:${state.visualCapturing}"
         if (key != lastNotification) { notifications.notify(NOTIFICATION, notification()); lastNotification = key }
     }
     private fun granted(permission: String) = ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED

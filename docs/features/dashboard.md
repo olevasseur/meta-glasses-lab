@@ -37,6 +37,11 @@ the system light/dark preference; navigation wraps for narrow screens.
   deletions return 409; reload before retrying. Duplicate keys/text return 409.
   The latest 100 historical summaries appear below the facts. Changes inform new
   Gemini sessions; restart a running conversation to refresh its context.
+- **Visual memory:** browse captures by their phone-local day with thumbnails,
+  captions and tags; search, pin/unpin, delete individual captures or an inclusive
+  date range, and save retention. A phone heartbeat reports ON/OFF; stale status
+  becomes UNKNOWN. Uses the page registry and the same cookie/CSRF boundary.
+  See [visual memory](visual-memory.md) for deletion and retention behavior.
 - **Notes:** latest 100 successful note and background-research writes with timestamps, text,
   and Google Docs links. Say **“Add a note to Inbox”** in the app to create one.
   Only appends after installation are recorded. No Google write happens from

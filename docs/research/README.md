@@ -33,3 +33,8 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 - Firebase AI Logic support for `gemini-3.8-live`.
 - Google Workspace MCP servers with personal @gmail.com.
 - Meta AI Connectors: personal/private connectors, reachable by voice from glasses?
+
+- [visual-memory.md](visual-memory.md) — **2026-10-07**: Flash-Lite image captions,
+  pricing/privacy boundaries, local visual storage, real sample search/deletion and
+  Auto/PTT/Over constrained Live setup checks. **2026-10-08**: merged dashboard
+  browsing/retention/status and shared camera/Motion lifecycle regression checks.

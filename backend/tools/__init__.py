@@ -10,6 +10,7 @@ from read_to_me import READING_TOOLS
 from translation import START_TRANSLATION, STOP_TRANSLATION, StartTranslationRequest, StopTranslationRequest
 from workouts import WORKOUT_REGISTRY
 from coach import COACH_CLIENT_TOOLS, PROJECT_TOOLS, StartRequest, ScaleRequest, IngredientRequest, StrictModel
+from visual_tools import CLIENT_TOOLS as VISUAL_CLIENT_TOOLS, SEARCH_TOOLS
 
 
 class Arguments(BaseModel):
@@ -162,6 +163,8 @@ REGISTRY.update({
     for tool in PROJECT_TOOLS
 })
 REGISTRY.update({tool.name: (None, "client", None, tool) for tool in COACH_CLIENT_TOOLS})
+REGISTRY.update({tool.name: (None, "client", None, tool) for tool in VISUAL_CLIENT_TOOLS})
+REGISTRY.update({tool.name: (RecallRequest, "visual", "find", tool) for tool in SEARCH_TOOLS})
 CLIENT_TOOL_NAMES = [name for name, entry in REGISTRY.items() if entry[1] == "client"]
 
 DECLARATIONS = [entry[3] for entry in REGISTRY.values()]
