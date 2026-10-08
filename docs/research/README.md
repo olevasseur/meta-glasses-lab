@@ -38,3 +38,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   pricing/privacy boundaries, local visual storage, real sample search/deletion and
   Auto/PTT/Over constrained Live setup checks. **2026-10-08**: merged dashboard
   browsing/retention/status and shared camera/Motion lifecycle regression checks.
+
+- [android-review-notes.md](android-review-notes.md) — **2026-10-08**: target-36
+  foreground/audio review, coroutine cleanup, real five-mode constrained setup
+  and same-token resumption acceptance; hardware behavior remains unverified.

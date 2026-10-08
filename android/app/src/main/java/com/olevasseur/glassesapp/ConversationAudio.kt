@@ -25,6 +25,7 @@ import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -32,11 +33,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** OS communication routing, independent of DAT's camera audio capability. */
 @Suppress("DEPRECATION")
-class ConversationAudio(private val context: Context, private val scope: CoroutineScope) {
-    val translationSpeaker = PhoneTranslationPlayer(context, scope)
+class ConversationAudio(private val context: Context, private val scope: CoroutineScope) : LiveAudio {
+    override val translationSpeaker = PhoneTranslationPlayer(context, scope)
     private val manager = context.getSystemService(AudioManager::class.java)
     private var recorder: AudioRecord? = null
     private var track: AudioTrack? = null
@@ -48,6 +51,8 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
     private var routeDevice: AudioDeviceInfo? = null
     private var deviceCallback: AudioDeviceCallback? = null
     private val playbackLock = Any()
+    private val stopLock = Mutex()
+    private var reportError: (String) -> Unit = {}
     private val queue = ArrayDeque<ByteArray>()
     private var queueBytes = 0
     private var headOffset = 0
@@ -57,9 +62,10 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
     suspend fun start(forcePhone: Boolean, onAudio: (ByteArray) -> Unit, onRoute: (String) -> Unit, onError: (String) -> Unit, onBluetoothLost: () -> Unit = {}, roomCapture: Boolean = false) {
         check(!engaged) { "Audio already active" }
         engaged = true
+        reportError = onError
         originalMode = manager.mode
-        manager.mode = AudioManager.MODE_IN_COMMUNICATION
         try {
+            manager.mode = AudioManager.MODE_IN_COMMUNICATION
             val canUseBluetooth = Build.VERSION.SDK_INT < 31 ||
                 ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
             val bluetooth = if (!forcePhone && canUseBluetooth) selectRoute() else { usePhoneRoute(); false }
@@ -197,7 +203,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
         synchronized(playbackLock) { track?.setPreferredDevice(routeDevice) }
     }
 
-    fun enqueue(pcm: ByteArray) = synchronized(playbackLock) {
+    override fun enqueue(pcm: ByteArray) = synchronized(playbackLock) {
         if (pcm.isNotEmpty() && track != null) {
             // ponytail: cap at ~40 seconds; stop on overflow instead of growing without bound.
             check(queueBytes + pcm.size <= 1_920_000) { "Audio playback fell behind" }
@@ -207,16 +213,17 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
         }
     }
 
-    fun flush() = synchronized(playbackLock) {
+    override fun flush() = synchronized(playbackLock) {
         queue.clear()
         queueBytes = 0
         headOffset = 0
         writtenFrames = 0
         track?.let { output -> output.pause(); output.flush(); output.play() }
+        Unit
     }
 
     /** turnComplete means generation finished; wait for queued AND device-buffered speech. */
-    val playbackIdle: Boolean get() = synchronized(playbackLock) {
+    override val playbackIdle: Boolean get() = synchronized(playbackLock) {
         val output = track
         !translationSpeaker.playing && (output == null ||
             (queueBytes == 0 && (output.playbackHeadPosition.toLong() and 0xffffffffL) >= writtenFrames))
@@ -226,30 +233,35 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
         while (!playbackIdle) delay(20)
     }
 
-    suspend fun stop() {
-        translationSpeaker.stop()
-        if (!engaged) return
-        deviceCallback?.let { manager.unregisterAudioDeviceCallback(it) }
+    suspend fun stop() = withContext(NonCancellable) { stopLock.withLock {
+        var failed = false
+        fun release(action: () -> Unit) { try { action() } catch (_: Exception) { failed = true } }
+        release { translationSpeaker.stop() }
+        if (!engaged) return@withLock
+        release { deviceCallback?.let { manager.unregisterAudioDeviceCallback(it) } }
         deviceCallback = null
         captureJob?.cancel()
-        withContext(Dispatchers.IO) { runCatching { recorder?.stop() } }
+        withContext(Dispatchers.IO) { release { recorder?.stop() } }
         captureJob?.cancelAndJoin()
         captureJob = null
         playbackJob?.cancelAndJoin()
         playbackJob = null
-        recorder?.release()
-        recorder = null
-        echoCanceler?.release()
+        release { echoCanceler?.release() }
         echoCanceler = null
+        release { recorder?.release() }
+        recorder = null
         synchronized(playbackLock) {
-            track?.let { runCatching { it.pause(); it.flush() }; it.release() }
+            track?.let { release { it.pause(); it.flush() }; release { it.release() } }
             track = null
             queue.clear(); queueBytes = 0; headOffset = 0; writtenFrames = 0
         }
-        if (Build.VERSION.SDK_INT >= 31) manager.clearCommunicationDevice()
-        else { manager.stopBluetoothSco(); manager.isBluetoothScoOn = false }
-        manager.mode = originalMode
+        release {
+            if (Build.VERSION.SDK_INT >= 31) manager.clearCommunicationDevice()
+            else { manager.stopBluetoothSco(); manager.isBluetoothScoOn = false }
+        }
+        release { manager.mode = originalMode }
         routeDevice = null
         engaged = false
-    }
+        if (failed) reportError("Audio cleanup failed; reopen the app if the microphone or route remains active.")
+    } }
 }

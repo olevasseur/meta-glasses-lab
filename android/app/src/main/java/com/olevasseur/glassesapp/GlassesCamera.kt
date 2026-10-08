@@ -28,6 +28,7 @@ class GlassesCamera(
     private val scope: CoroutineScope,
     private val glasses: GlassesController,
     private val onState: (String) -> Unit,
+    private val onError: (String) -> Unit,
 ) {
     private var session: DeviceSession? = null
     private var camera: Camera? = null
@@ -58,9 +59,12 @@ class GlassesCamera(
                 added.stream.start().fold(onSuccess = { }, onFailure = { error, _ -> error(error.description) })
                 added.stream.state.first { it == StreamState.STREAMING }
                 monitor = scope.launch {
-                    launch { added.stream.errorStream.collect { onState("Camera: ${it.description}"); stop() } }
+                    launch { added.stream.errorStream.collect { stop(); onError("Camera: ${it.description}") } }
                     added.stream.state.collect {
-                        if (it == StreamState.STOPPED || it == StreamState.CLOSED || it == StreamState.PAUSED) stop()
+                        if (it == StreamState.STOPPED || it == StreamState.CLOSED || it == StreamState.PAUSED) {
+                            stop()
+                            onError("Glasses camera stopped ($it); check the connection and DAT camera permission before retrying.")
+                        }
                     }
                 }
                 onState("Camera active")

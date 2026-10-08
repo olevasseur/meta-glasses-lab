@@ -16,6 +16,9 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
@@ -57,6 +60,7 @@ data class ConversationState(
     val error: String? = null,
     val handsFree: HandsFreeState = HandsFreeState(),
 ) {
+    val motionAllowed: Boolean get() = running && !stopping && handsFree.shouldRun && !meeting && translationLanguage == null
     val canCaptureVisual: Boolean get() = running && !stopping && connected && handsFree.shouldRun &&
         !meeting && translationLanguage == null
     val meetingPhone: Boolean get() = settings.meetingPhone
@@ -143,19 +147,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                 saveSettings(state.value.settings.copy(translationLanguage = language))
             }
         },
-        localTool = { call ->
-            if (!state.value.handsFree.shouldRun || !audioReady) ToolResult(toolError("Conversation is paused"))
-            else if (state.value.meeting && call.name == "await_gesture_confirmation")
-                ToolResult(JSONObject().put("status", "unavailable").put("message", "Use spoken confirmation during meeting capture"))
-            else if (call.name in VisualMemoryController.TOOL_NAMES) {
-                if (call.name == "delete_visual_memory" || canCaptureVisual() ||
-                    (call.name == "set_visual_memory" && call.args.opt("on") == false)) visualMemory.tool(call)
-                else ToolResult(toolError("Visual capture requires an active Assistant conversation"))
-            }
-            else if (call.name in COACH_TOOL_NAMES) coachTool(call, backend::tool, vision::tool, coachAlarms::tool, ::setNodNavigation)
-            else if (call.name in ReadToMeController.TOOL_NAMES) reading.tool(call)
-            else (workout.localTool(call) ?: gestures.localTool(call))?.let { ToolResult(it) } ?: vision.tool(call)
-        },
+        localTool = { featureTools.tool(it) },
         onEvent = { event ->
             if (event.interrupted || !event.inputText.isNullOrBlank() || !event.outputText.isNullOrBlank() || event.calls.isNotEmpty()) coachNavigation.cancel()
             if (!state.value.meeting && state.value.handsFree.shouldRun && audioReady) gestures.onEvent(event)
@@ -167,6 +159,15 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             }
         },
     )
+    private val featureTools by lazy {
+        ConversationToolController(
+            access = { FeatureAccess(!state.value.handsFree.shouldRun || !audioReady || state.value.stopping,
+                state.value.meeting, state.value.translationLanguage != null) },
+            visual = visualMemory::tool,
+            coach = { coachTool(it, backend::tool, vision::tool, coachAlarms::tool, ::setNodNavigation) },
+            reading = reading::tool, workout = workout::localTool, gestures = gestures::localTool, vision = vision::tool,
+        )
+    }
     private val coachAlarms by lazy { CoachAlarm(application) }
     private val coachNavigation by lazy {
         CoachNavigation(viewModelScope,
@@ -177,7 +178,8 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             onResult = { result -> mutableState.update { it.copy(lastTool = result) } })
     }
     private val camera: GlassesCamera by lazy {
-        GlassesCamera(viewModelScope, glasses) { label -> mutableState.update { it.copy(camera = label) } }
+        GlassesCamera(viewModelScope, glasses,
+            onState = { label -> mutableState.update { it.copy(camera = label) } }, onError = ::error)
     }
     private val vision: VisionController by lazy {
         VisionController(viewModelScope, camera::capture, gemini::sendImage, camera::stop,
@@ -284,7 +286,10 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         workout.bind { text ->
             gestures.state.value.question == null && gemini.sendWorkoutCue(text)
         }
-        gestures.observe(glasses.activeSession, ::sendGesture,
+        val motionSessions = combine(glasses.activeSession, state.map { it.motionAllowed }.distinctUntilChanged()) { session, allowed ->
+            session.takeIf { allowed }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+        gestures.observe(motionSessions, ::sendGesture,
             workout.state.map { it.needsMotion }.distinctUntilChanged(), workout::onSample, workout::motionUnavailable,
             navigate = coachNavigation::gesture)
         viewModelScope.launch {

@@ -124,22 +124,25 @@ class ConversationService : Service(), ViewModelStoreOwner {
         if (!model.state.value.permissions && controls.armed) stopAll()
         if (Build.VERSION.SDK_INT < 31 || granted(Manifest.permission.BLUETOOTH_CONNECT)) {
             if (model.glasses.initialize() && voiceStream == null) {
-                val stream = Wearables.startVoiceInvocationsStream(AutoDeviceSelector())
-                voiceStream = stream
-                scope.launch {
-                    stream.invocations.collect { invocation ->
-                        if (invocation is LaunchApp) {
-                            // Meta can deliver the action before the launched Activity reaches onResume.
-                            val visible = foreground || withTimeoutOrNull(10_000) { uiResumed.first { it } } == true
-                            val loaded = withTimeoutOrNull(10_000) { model.state.first { it.settingsLoaded } } != null
-                            val accepted = visible && loaded && startConversation()
-                            val delivered = if (accepted) invocation.responseHandle.sendSuccess(null)
-                                else invocation.responseHandle.sendFailure("Open the app, grant permissions, and retry when audio is available")
-                            if (!delivered) model.error("Voice launch acknowledgement could not be delivered.")
+                val stream = try { Wearables.startVoiceInvocationsStream(AutoDeviceSelector()) }
+                catch (_: Exception) { model.error("Voice launch unavailable; use Start or the launcher shortcut."); null }
+                if (stream != null) {
+                    voiceStream = stream
+                    scope.launch {
+                        stream.invocations.collect { invocation ->
+                            if (invocation is LaunchApp) {
+                                // Meta can deliver the action before the launched Activity reaches onResume.
+                                val visible = foreground || withTimeoutOrNull(10_000) { uiResumed.first { it } } == true
+                                val loaded = withTimeoutOrNull(10_000) { model.state.first { it.settingsLoaded } } != null
+                                val accepted = visible && loaded && startConversation()
+                                val delivered = if (accepted) invocation.responseHandle.sendSuccess(null)
+                                    else invocation.responseHandle.sendFailure("Open the app, grant permissions, and retry when audio is available")
+                                if (!delivered) model.error("Voice launch acknowledgement could not be delivered.")
+                            }
                         }
                     }
+                    scope.launch { stream.errors.collect { model.error("Voice invocation: ${it.description}") } }
                 }
-                scope.launch { stream.errors.collect { model.error("Voice invocation: ${it.description}") } }
             }
         }
         if (!phoneListening && granted(Manifest.permission.READ_PHONE_STATE)) {
@@ -163,8 +166,10 @@ class ConversationService : Service(), ViewModelStoreOwner {
             true
         } catch (_: RuntimeException) {
             model.error("Android blocked microphone startup. Open the app and tap Start.")
+            if (wakeLock.isHeld) wakeLock.release()
             stopForeground(STOP_FOREGROUND_REMOVE)
             foreground = false
+            stopSelf()
             false
         }
     }
