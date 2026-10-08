@@ -115,6 +115,7 @@ private fun ConversationScreen(
             }
             Text(if (state.ptt) "Hold on screen to speak. On glasses, hold capture once to start, again to finish."
                 else "Speak naturally. Gemini uses the backend’s patient voice detection.", style = MaterialTheme.typography.bodyMedium)
+            TranslationControls(state, model)
             Button(onClick = { if (state.running) model.stop() else model.start() }, enabled = !state.stopping && state.permissions, modifier = Modifier.fillMaxWidth()) {
                 Text(if (state.stopping) "Stopping…" else if (state.running) "Stop" else "Start")
             }

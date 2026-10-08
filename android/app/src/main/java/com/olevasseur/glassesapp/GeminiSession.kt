@@ -27,6 +27,7 @@ class GeminiSession(
     private val onTool: (String) -> Unit,
     private val onTalking: (Boolean) -> Unit,
     private val onFatal: (String) -> Unit,
+    private val onTranslationChanged: (String?) -> Unit = {},
 ) {
     private val client = OkHttpClient.Builder().readTimeout(0, TimeUnit.MILLISECONDS)
         .pingInterval(20, TimeUnit.SECONDS).build()
@@ -47,10 +48,18 @@ class GeminiSession(
     private val responses = mutableMapOf<String, Pair<FunctionCall, JSONObject>>()
     private val pendingResponses = mutableSetOf<String>()
     private val cancelledCalls = mutableSetOf<String>()
+    private var translationLanguage: String? = null
+    private var translationPhoneSpeaker = false
+    private val translationBuffer = TranslationBuffer()
 
-    fun start(pushToTalk: Boolean) {
+    fun start(pushToTalk: Boolean, language: String? = null, phoneSpeaker: Boolean = false) {
         stop()
+        translationLanguage = language
+        translationPhoneSpeaker = phoneSpeaker
+        onTranslationChanged(language)
         synchronized(sendLock) { active = true; ptt = pushToTalk }
+        onTalking(false)
+        onState("Switching session…", false)
         reconnectJob = scope.launch { connect() }
     }
 
@@ -61,7 +70,7 @@ class GeminiSession(
             val reusable = token?.takeIf {
                 handle != null && runCatching { Instant.parse(it.expiresAt).isAfter(Instant.now().plusSeconds(30)) }.getOrDefault(false)
             }
-            val credentials = reusable ?: backend.token(ptt).also { token = it }
+            val credentials = reusable ?: backend.token(ptt, translationLanguage).also { token = it }
             if (!active) return
             val request = Request.Builder().url(LiveProtocol.ENDPOINT)
                 .header("Authorization", "Token ${credentials.token}").build()
@@ -137,7 +146,23 @@ class GeminiSession(
         }
         // Interruption wins over stale audio if both ever occur in the same event.
         synchronized(sendLock) {
-            if (!event.interrupted && generation == audioGeneration.get()) event.audio.forEach(audio::enqueue)
+            if (generation == audioGeneration.get()) {
+                if (event.interrupted) {
+                    translationBuffer.clear()
+                    audio.translationSpeaker.stop()
+                } else if (translationLanguage != null && translationPhoneSpeaker) {
+                    translationBuffer.accept(event, translationLanguage!!)?.let { utterance ->
+                        if (utterance.phone && utterance.pcm.isNotEmpty()) {
+                            audio.flush()
+                            if (ptt) setTalking(false)
+                            if (!ptt) socket?.send("""{"realtimeInput":{"audioStreamEnd":true}}""")
+                            audio.translationSpeaker.play(utterance.pcm) {
+                                onFatal("Phone translation playback failed; stop and retry with phone speaker off")
+                            }
+                        } else audio.enqueue(utterance.pcm)
+                    }
+                } else event.audio.forEach(audio::enqueue)
+            }
         }
         event.inputText?.takeIf { it.isNotEmpty() }?.let { onTranscript("You", it) }
         event.outputText?.takeIf { it.isNotEmpty() }?.let { onTranscript("Gemini", it) }
@@ -169,6 +194,12 @@ class GeminiSession(
                 responses[call.id] = call to result
                 onTool("${call.name}: $result")
                 deliver(call, result)
+                if (result.optString("status") == "ok" && call.name in setOf("start_translation", "stop_translation")) {
+                    val language = Translation.switchedLanguage(call, result)
+                    // start() clears token, handle, old tool jobs and playback. Never resume across personas.
+                    start(ptt, language, translationPhoneSpeaker)
+                    return@launch
+                }
             }
             toolJobs.remove(call.id)
         }
@@ -180,7 +211,7 @@ class GeminiSession(
     }
 
     fun sendAudio(pcm: ByteArray) = synchronized(sendLock) {
-        if (active && ready && (!ptt || talking)) {
+        if (active && ready && !audio.translationSpeaker.playing && (!ptt || talking)) {
             val ws = socket ?: return@synchronized
             // Don't accumulate stale microphone data behind a stalled connection.
             if (ws.queueSize() > 256_000 || !ws.send(LiveProtocol.audio(pcm))) {
@@ -192,7 +223,7 @@ class GeminiSession(
 
     fun setTalking(value: Boolean) {
         val changed = synchronized(sendLock) {
-            if (!active || !ready || !ptt || talking == value) false
+            if (!active || !ready || !ptt || talking == value || (value && audio.translationSpeaker.playing)) false
             else if (socket?.send(LiveProtocol.activity(value)) == true) { talking = value; true }
             else false
         }
@@ -214,6 +245,8 @@ class GeminiSession(
             socket?.cancel(); socket = null
         }
         audio.flush()
+        audio.translationSpeaker.stop()
+        translationBuffer.clear()
         onTalking(false)
         if (++attempts > 8) { onFatal("$reason. Reconnect limit reached; tap Start to retry."); return }
         onState("$reason · reconnecting${if (handle == null) " (new session)" else ""}", false)
@@ -235,6 +268,10 @@ class GeminiSession(
         toolJobs.values.forEach { it.cancel() }; toolJobs.clear()
         responses.clear(); pendingResponses.clear(); cancelledCalls.clear()
         token = null; handle = null; attempts = 0
+        audioGeneration.incrementAndGet()
+        translationBuffer.clear()
+        audio.translationSpeaker.stop()
+        audio.flush()
     }
 
     fun close() { stop(); client.dispatcher.executorService.shutdown(); client.connectionPool.evictAll() }

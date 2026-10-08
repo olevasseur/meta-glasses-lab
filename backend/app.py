@@ -12,10 +12,11 @@ from fastapi.responses import JSONResponse
 from google.auth.exceptions import GoogleAuthError
 from google.genai.errors import APIError
 from googleapiclient.errors import HttpError
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 import gemini
 from notes import BACKEND_DIR, Notes
+from translation import normalize_language
 
 load_dotenv(BACKEND_DIR.parent / ".env")  # Explicit environment values take precedence.
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -38,6 +39,30 @@ async def authenticate(request: Request, call_next):
 class TokenRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     mode: Literal["auto", "ptt"] = "auto"
+    persona: Literal["assistant", "translator"] = "assistant"
+    language: str | None = Field(default=None, max_length=40)
+
+    @model_validator(mode="after")
+    def validate_persona(self):
+        if (self.persona == "translator") != (self.language is not None):
+            raise ValueError("Translator requires language; assistant must omit language")
+        if self.language is not None:
+            self.language = normalize_language(self.language)
+        return self
+
+
+class StartTranslationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    other_language: str = Field(min_length=1, max_length=40)
+
+    @field_validator("other_language")
+    @classmethod
+    def language_code(cls, value: str) -> str:
+        return normalize_language(value)
+
+
+class StopTranslationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
 
 class AppendRequest(BaseModel):
@@ -61,7 +86,7 @@ def token(request: TokenRequest):
         raise HTTPException(503, "GEMINI_API_KEY is not configured")
     model = os.getenv("GEMINI_LIVE_MODEL") or gemini.DEFAULT_MODEL
     try:
-        return gemini.create_token(api_key, model, request.mode)
+        return gemini.create_token(api_key, model, request.mode, request.persona, request.language)
     except (APIError, httpx.HTTPError, RuntimeError) as exc:
         # Upstream exception text can contain credentials or request contents.
         raise HTTPException(502, "Gemini token creation failed") from exc
@@ -69,6 +94,16 @@ def token(request: TokenRequest):
 
 @app.post("/tools/{name}")
 def dispatch_tool(name: str, args: dict | None = None):
+    # These describe a client-local transition; no shared server persona state.
+    if name in ("start_translation", "stop_translation"):
+        try:
+            if name == "start_translation":
+                request = StartTranslationRequest.model_validate(args)
+                return {"status": "ok", "persona": "translator", "language": request.other_language}
+            StopTranslationRequest.model_validate(args)
+            return {"status": "ok", "persona": "assistant"}
+        except ValidationError as exc:
+            raise RequestValidationError(exc.errors()) from exc
     if name != "append_to_doc":
         raise HTTPException(404, "Unknown tool")
     try:

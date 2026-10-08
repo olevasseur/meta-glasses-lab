@@ -6,6 +6,8 @@ from pathlib import Path
 from google import genai
 from google.genai import types
 
+from translation import START_TRANSLATION, STOP_TRANSLATION, translator_instruction
+
 DEFAULT_MODEL = "gemini-3.8-live"
 PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
 
@@ -33,7 +35,9 @@ APPEND_TO_DOC = types.FunctionDeclaration(
 )
 
 
-def token_config(model: str, mode: str) -> types.CreateAuthTokenConfig:
+def token_config(model: str, mode: str, persona: str = "assistant", language: str | None = None) -> types.CreateAuthTokenConfig:
+    if persona not in ("assistant", "translator") or (persona == "translator") != (language is not None):
+        raise ValueError("Translator persona requires a language; assistant does not")
     now = datetime.now(UTC)
     detection = (
         {"disabled": True}
@@ -57,7 +61,8 @@ def token_config(model: str, mode: str) -> types.CreateAuthTokenConfig:
         live_connect_constraints=types.LiveConnectConstraints(
             model=model,
             config=types.LiveConnectConfig(
-                system_instruction=PROMPT_PATH.read_text(encoding="utf-8"),
+                system_instruction=(translator_instruction(language) if persona == "translator"
+                                    else PROMPT_PATH.read_text(encoding="utf-8")),
                 response_modalities=["AUDIO"],
                 speech_config={
                     "voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}
@@ -66,14 +71,17 @@ def token_config(model: str, mode: str) -> types.CreateAuthTokenConfig:
                 output_audio_transcription={},
                 realtime_input_config={"automatic_activity_detection": detection},
                 context_window_compression={"sliding_window": {}},
-                tools=[types.Tool(function_declarations=[APPEND_TO_DOC])],
+                tools=[types.Tool(function_declarations=(
+                    [START_TRANSLATION, STOP_TRANSLATION] if persona == "translator"
+                    else [APPEND_TO_DOC, START_TRANSLATION, STOP_TRANSLATION]
+                ))],
             ),
         ),
     )
 
 
-def create_token(api_key: str, model: str, mode: str) -> dict:
-    config = token_config(model, mode)
+def create_token(api_key: str, model: str, mode: str, persona: str = "assistant", language: str | None = None) -> dict:
+    config = token_config(model, mode, persona, language)
     with genai.Client(
         api_key=api_key,
         vertexai=False,

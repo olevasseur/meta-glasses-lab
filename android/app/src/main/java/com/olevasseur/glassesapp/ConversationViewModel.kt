@@ -33,6 +33,8 @@ data class ConversationState(
     val transcript: List<TranscriptLine> = emptyList(),
     val lastTool: String = "None",
     val error: String? = null,
+    val translationLanguage: String? = null,
+    val translationPhoneSpeaker: Boolean = false,
 )
 
 class ConversationViewModel(application: Application) : AndroidViewModel(application) {
@@ -59,6 +61,10 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             mutableState.update { it.copy(talking = value) }
         },
         onFatal = { message -> error(message); stop() },
+        onTranslationChanged = { language ->
+            transcriptBoundary = true
+            mutableState.update { it.copy(translationLanguage = language) }
+        },
     )
     val glasses = GlassesController(application, viewModelScope,
         onGlasses = { label -> mutableState.update { it.copy(glasses = label) } },
@@ -82,6 +88,18 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
     fun error(message: String) { mutableState.update { it.copy(error = message) } }
     fun setMode(ptt: Boolean) { if (!state.value.running) mutableState.update { it.copy(ptt = ptt) } }
+    fun setTranslation(language: String?) {
+        if (state.value.stopping || (state.value.running && !state.value.connected)) return
+        require(language == null || language in Translation.languages)
+        mutableState.update { it.copy(translationLanguage = language) }
+        transcriptBoundary = true
+        if (state.value.running) gemini.start(state.value.ptt, language, state.value.translationPhoneSpeaker)
+    }
+    fun setTranslationSpeaker(enabled: Boolean) {
+        if (state.value.stopping || (state.value.running && !state.value.connected)) return
+        mutableState.update { it.copy(translationPhoneSpeaker = enabled) }
+        setTranslation(state.value.translationLanguage)
+    }
     fun setMock(enabled: Boolean) {
         if (state.value.running || state.value.stopping) return
         if (glasses.setMock(enabled)) mutableState.update { it.copy(mock = enabled) }
@@ -100,7 +118,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                     onRoute = { label -> mutableState.update { it.copy(route = label) } },
                     onError = { message -> viewModelScope.launch { error(message); stop() } },
                 )
-                gemini.start(state.value.ptt)
+                gemini.start(state.value.ptt, state.value.translationLanguage, state.value.translationPhoneSpeaker)
                 if (state.value.ptt) glasses.startInputs()
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { error(e.message ?: "Cannot start audio"); stop() }

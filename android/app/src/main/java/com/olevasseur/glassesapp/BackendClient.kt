@@ -21,8 +21,8 @@ class BackendClient(
 ) {
     private val base = baseUrl.trimEnd('/').toHttpUrl()
 
-    suspend fun token(ptt: Boolean): LiveToken {
-        val json = post(listOf("token"), if (ptt) JSONObject().put("mode", "ptt") else JSONObject())
+    suspend fun token(ptt: Boolean, translationLanguage: String? = null): LiveToken {
+        val json = post(listOf("token"), Translation.tokenRequest(ptt, translationLanguage))
         return LiveToken(json.getString("token"), json.getString("model"), json.getString("expires_at"))
     }
 
