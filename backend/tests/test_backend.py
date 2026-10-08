@@ -96,7 +96,8 @@ def test_token_config_and_response(client, gemini_client, mode):
     assert response.headers["Cache-Control"] == "no-store"
     assert set(response.json()) == {"token", "model", "expires_at", "client_tools"}
     assert response.json()["client_tools"] == ["await_gesture_confirmation", "look", "set_watch_mode",
-                                               "start_workout", "stop_workout", "workout_status"]
+                                               "start_workout", "stop_workout", "workout_status",
+                                               "read_text", "submit_reading", "reading_control"]
     assert response.json()["token"] == "auth_tokens/test"
     assert response.json()["model"] == "gemini-3.8-live"
     client_mock, factory = gemini_client

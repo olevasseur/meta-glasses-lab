@@ -100,7 +100,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val gemini: GeminiSession = GeminiSession(
         scope = viewModelScope, backend = backend, audio = audio,
         onState = { label, connected ->
-            if (!connected) { screenTalking = false; glassesTalking = false; overAwaitingReply = false; gestures.disconnected(); vision.stop() }
+            if (!connected) { screenTalking = false; glassesTalking = false; overAwaitingReply = false; gestures.disconnected(); reading.pause() }
             mutableState.update { it.copy(gemini = label, connected = connected) }
             if (state.value.settings.mode == ConversationMode.OVER) {
                 if (connected) beginOverTurn() else { overResumeJob?.cancel(); over.stop() }
@@ -123,6 +123,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         onFatal = { message -> error(message); stop() },
         onTranslationChanged = { language ->
             transcriptBoundary = true
+            reading.clear()
             if (language != null) workout.stop(interrupted = true)
             if (state.value.translationLanguage != language) {
                 saveSettings(state.value.settings.copy(translationLanguage = language))
@@ -130,6 +131,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         },
         localTool = { call ->
             if (!state.value.handsFree.shouldRun || !audioReady) ToolResult(toolError("Conversation is paused"))
+            else if (call.name in ReadToMeController.TOOL_NAMES) reading.tool(call)
             else (workout.localTool(call) ?: gestures.localTool(call))?.let { ToolResult(it) } ?: vision.tool(call)
         },
         onEvent = { event -> if (state.value.handsFree.shouldRun && audioReady) gestures.onEvent(event) },
@@ -140,6 +142,9 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val vision: VisionController by lazy {
         VisionController(viewModelScope, camera::capture, gemini::sendImage, camera::stop,
             onWatch = { enabled -> mutableState.update { it.copy(watchMode = enabled) } }, onError = ::error)
+    }
+    private val reading: ReadToMeController by lazy {
+        ReadToMeController({ vision.sendFrame(camera::captureText) }, vision::stop, audio::flush)
     }
     val glasses = GlassesController(application, viewModelScope,
         onGlasses = { label -> mutableState.update { it.copy(glasses = label) } },
@@ -236,7 +241,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             audioReady = false
             overResumeJob?.cancel(); over.stop()
             workout.stop(interrupted = true)
-            gestures.disconnected(); vision.stop()
+            gestures.disconnected(); reading.pause()
         }
         gemini.suspendAudio(!value.shouldRun || !audioReady)
     }
@@ -379,6 +384,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         mutableState.update { it.copy(stopping = true, connected = false, talking = false) }
         overResumeJob?.cancel(); over.stop()
         vision.stop()
+        reading.clear()
         workout.stop(interrupted = true)
         gemini.stop()
         memory.stop()
@@ -409,6 +415,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     override fun onCleared() {
         overResumeJob?.cancel(); over.stop()
         vision.stop()
+        reading.clear()
         service = null
         workout.stop(interrupted = true)
         gemini.close(); glasses.close()

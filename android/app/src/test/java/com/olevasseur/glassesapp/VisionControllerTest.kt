@@ -37,15 +37,15 @@ class VisionControllerTest {
     }
 
     @Test fun localToolsNeverHitBackendAndUnknownClientToolsFailClosed() = runTest {
-        for (advertised in listOf(emptySet(), setOf("look", "set_watch_mode", "await_gesture_confirmation", "start_workout", "stop_workout", "workout_status"))) {
+        for (advertised in listOf(emptySet(), setOf("look", "set_watch_mode", "await_gesture_confirmation", "start_workout", "stop_workout", "workout_status", "read_text", "submit_reading", "reading_control"))) {
             val local = mutableListOf<String>()
             val remote = mutableListOf<String>()
-            for (name in listOf("look", "set_watch_mode", "await_gesture_confirmation", "start_workout", "stop_workout", "workout_status", "future_local", "append_to_doc", "remember", "recall", "forget", "workout_history", "codex_task", "deep_research", "job_status", "cancel_job", "start_translation", "stop_translation")) {
+            for (name in listOf("look", "set_watch_mode", "await_gesture_confirmation", "start_workout", "stop_workout", "workout_status", "read_text", "submit_reading", "reading_control", "future_local", "append_to_doc", "remember", "recall", "forget", "workout_history", "codex_task", "deep_research", "job_status", "cancel_job", "start_translation", "stop_translation")) {
                 val result = routeTool(FunctionCall("1", name, JSONObject()), advertised + "future_local",
                     { local += it.name; ToolResult(JSONObject()) }, { remote += it.name; JSONObject() })
                 if (name == "future_local") assertEquals("error", result.getString("status"))
             }
-            assertEquals(listOf("look", "set_watch_mode", "await_gesture_confirmation", "start_workout", "stop_workout", "workout_status"), local)
+            assertEquals(listOf("look", "set_watch_mode", "await_gesture_confirmation", "start_workout", "stop_workout", "workout_status", "read_text", "submit_reading", "reading_control"), local)
             assertEquals(listOf("append_to_doc", "remember", "recall", "forget", "workout_history", "codex_task", "deep_research", "job_status", "cancel_job", "start_translation", "stop_translation"), remote)
         }
     }

@@ -180,6 +180,8 @@ def test_context_budget_and_latest_three_summaries(store):
             db.execute("INSERT INTO summaries VALUES (?,?,?)", (str(i), f"Session marker {i}", str(i)))
     context = store.context(gemini.PROMPT_PATH.read_text())
     assert len(context.encode()) <= 8000
+    assert "submit_reading" in context
+    assert "at most twice" in context
     assert "What you know about the user" in context
     assert "Session marker 4" in context
     assert "Session marker 0" not in context and "Session marker 1" not in context
@@ -205,6 +207,7 @@ def test_token_locks_memory_and_registry_but_not_resumption(client, store, monke
         "append_to_doc", "remember", "recall", "forget", "await_gesture_confirmation", "look", "set_watch_mode",
         "codex_task", "deep_research", "job_status", "cancel_job",
         "start_translation", "stop_translation",
+        "read_text", "submit_reading", "reading_control",
         "write_journal", "read_journal", "morning_brief",
         "start_workout", "stop_workout", "workout_status", "workout_history",
     }

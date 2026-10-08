@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from job_tools import JOB_DECLARATIONS, REQUESTS
 from gesture_tools import AWAIT_GESTURE_CONFIRMATION
 from vision import CLIENT_TOOLS
+from read_to_me import READING_TOOLS
 from translation import START_TRANSLATION, STOP_TRANSLATION, StartTranslationRequest, StopTranslationRequest
 from workouts import WORKOUT_REGISTRY
 
@@ -114,6 +115,7 @@ REGISTRY.update({
     "stop_translation": (StopTranslationRequest, "translation", "stop_translation", STOP_TRANSLATION),
 })
 REGISTRY.update(WORKOUT_REGISTRY)
+REGISTRY.update({tool.name: (None, "client", None, tool) for tool in READING_TOOLS})
 CLIENT_TOOL_NAMES = [name for name, entry in REGISTRY.items() if entry[1] == "client"]
 
 for name, request, description in (

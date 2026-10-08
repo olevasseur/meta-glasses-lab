@@ -16,6 +16,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 | [live-translator.md](live-translator.md) | Live translator (2026-10-07) | Language support, fresh persona sessions, real Spanish↔English checks, and per-utterance phone routing limits. |
 | [dashboard-notes.md](dashboard-notes.md) | Local web dashboard (2026-10-07) | Jinja2/htmx, cookie sessions/CSRF, memory UI, real Gemini token-button check. |
 | [journal-notes.md](journal-notes.md) | Daily Gemini journal + Docs replacement (2026-10-07) | Per-day markers, UTF-16/revision checks, real fake-day generation and seven-tool Live setup. |
+| [read-to-me-notes.md](read-to-me-notes.md) | Read-to-me (2026-10-07) | HIGH-quality DAT photo, blur retry policy, app-owned page/chunk position, real Gemini Live text fixtures. |
 | [google-docs-notes.md](google-docs-notes.md) | Voice → Google Docs | Backend function tool, Desktop OAuth client published to production, Inbox doc + alias map + rapidfuzz. Keep API is Workspace-only. |
 | [head-gestures.md](head-gestures.md) | Head gestures (2026-10-07) | Real DAT Motion 1.0.0, pure Kotlin detector, explicit Gemini confirmation tool; auto/PTT real API smoke passed. Hardware thresholds/axes still need validation. |
 | [workout-coach.md](workout-coach.md) | Workout coach (2026-10-07) | Reuses one DAT motion stream; synthetic rep profiles, monotonic intervals, SQLite workout history. Human accuracy and physical cue latency unverified. |

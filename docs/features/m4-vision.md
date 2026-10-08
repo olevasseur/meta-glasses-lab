@@ -11,7 +11,8 @@ Gemini Live; API keys stay on the backend.
    the Meta permission dialog. This uses the glasses camera, not the phone camera.
 3. Tap **Start**. Say **“What am I looking at?”**, **“Read this”**, or **“What color
    is this?”**. In PTT mode use the screen or touchpad double-tap controls to
-   finish the question. Gemini calls `look(question)` and answers using a fresh photo.
+   finish the question. Gemini calls `look(question)` for scene questions and
+   `read_text(mode)` for visible text, using a fresh photo; see [read-to-me](read-to-me.md).
 4. Say **“Turn on watch mode”** or enable the **Watch mode** switch to send frames
    continuously. Say **“Stop watching”**, disable the switch, or tap **Stop** to end
    it. Watch mode automatically ends after two minutes. Repeating “on” while it is

@@ -56,6 +56,7 @@ def test_assistant_keeps_notes_and_can_switch():
         "look", "set_watch_mode", "codex_task", "deep_research", "job_status", "cancel_job",
         "start_translation", "stop_translation",
         "start_workout", "stop_workout", "workout_status", "workout_history",
+        "read_text", "submit_reading", "reading_control",
         "write_journal", "read_journal", "morning_brief",
     ]
     start = next(d for d in declarations if d.name == "start_translation")
@@ -132,7 +133,8 @@ def test_persona_switch_keeps_assistant_memory_out_of_interpreter(client, monkey
         assert client.post("/token", json=body).status_code == 200
         live = configs[-1].live_connect_constraints.config
         assert ("kayaking" in live.system_instruction) == (persona == "assistant")
-        assert len(live.tools[0].function_declarations) == (20 if persona == "assistant" else 2)
+        assert len(live.tools[0].function_declarations) == (23 if persona == "assistant" else 2)
+        assert ("submit_reading" in live.system_instruction) == (persona == "assistant")
         assert live.realtime_input_config.automatic_activity_detection.disabled == (mode != "auto")
         assert configs[-1].lock_additional_fields == []
         assert live.session_resumption is None
