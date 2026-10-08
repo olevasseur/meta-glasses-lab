@@ -17,7 +17,8 @@ Implemented and verified **2026-10-07**. Runtime AI remains Gemini only.
    require a new confirmation. With head gestures enabled and available, a nod
    to the explicit pending question also confirms. This is saved-fact deletion,
    not raw-history erasure.
-5. Tap **Stop** (backgrounding also stops the existing foreground conversation).
+5. Tap **Stop** (or capture HOLD to stop while leaving controls armed).
+   Backgrounding/rotation keep the service and the same memory session alive.
    Final chunks upload before the backend summarizes. Next **Start** gets updated
    memory in its locked system instruction. No additional memory button is needed.
 
@@ -97,8 +98,8 @@ summary commits are transactional. Invalid/blocked/failed responses commit nothi
   current facts. Full chunks remain stored. Consider incremental summaries/FTS
   if personal history grows. One worker serializes memory operations, including
   the bounded Gemini request, to prevent competing summaries/forget races.
-- Pending requests retry while the app is open, every five seconds after the
-  preceding flush completes. No background service or periodic background worker;
+- Pending requests retry while the conversation service is alive, every five
+  seconds after the preceding flush completes;
   OS termination can interrupt cleanup, and the next launch recovers saved files.
   Storage has no automatic retention or encryption beyond platform permissions.
 - The 8,000-byte prompt budget is an approximation, not a tokenizer guarantee.

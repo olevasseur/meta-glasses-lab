@@ -53,7 +53,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
     private var writtenFrames = 0L
 
     @SuppressLint("MissingPermission") // Activity requests RECORD_AUDIO / BLUETOOTH_CONNECT first.
-    suspend fun start(forcePhone: Boolean, onAudio: (ByteArray) -> Unit, onRoute: (String) -> Unit, onError: (String) -> Unit) {
+    suspend fun start(forcePhone: Boolean, onAudio: (ByteArray) -> Unit, onRoute: (String) -> Unit, onError: (String) -> Unit, onBluetoothLost: () -> Unit = {}) {
         check(!engaged) { "Audio already active" }
         engaged = true
         originalMode = manager.mode
@@ -94,10 +94,10 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
             onRoute(if (bluetooth) "Bluetooth HFP · $rate → 16000 Hz" else "Phone microphone · 16000 Hz")
             deviceCallback = object : AudioDeviceCallback() {
                 override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
-                    if (removedDevices.any { it.id == routeDevice?.id }) {
-                        usePhoneRoute()
-                        preferPhoneMic(record)
-                        onRoute("Phone microphone · Bluetooth disconnected")
+                    if (bluetooth && removedDevices.any { it.id == routeDevice?.id }) {
+                        // Gate uplink immediately; the owner then releases capture/playback.
+                        onBluetoothLost()
+                        captureJob?.cancel()
                     }
                 }
             }.also { manager.registerAudioDeviceCallback(it, Handler(Looper.getMainLooper())) }
@@ -108,7 +108,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
                     while (isActive) {
                         val count = record.read(samples, 0, samples.size, AudioRecord.READ_BLOCKING)
                         if (count < 0) error("Microphone read failed ($count)")
-                        if (count > 0) onAudio(resampler.process(samples, count))
+                        if (count > 0 && isActive) onAudio(resampler.process(samples, count))
                     }
                 } catch (e: Exception) {
                     if (isActive) onError(e.message ?: "Microphone failed")

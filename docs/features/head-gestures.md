@@ -24,8 +24,9 @@ only `[gesture: nod = yes]` or `[gesture: shake = no]` as a complete text turn.
    several unnamed documents; answer that kind of question by voice.
 5. Use **Sensitivity** to calibrate: higher means a smaller angular excursion
    is accepted. Test comfortable movements while watching Last gesture. Turn
-   gestures off to detach Motion immediately. Stop/backgrounding releases the
-   conversation's DAT session. Enablement and sensitivity persist locally.
+   gestures off to detach Motion immediately. Backgrounding retains the service-owned DAT session. Capture HOLD stops
+   the conversation but retains armed controls; app/notification Stop disarms
+   and releases the shared session. Call/focus pauses clear pending confirmations. Enablement and sensitivity persist locally.
 
 There is no voice command to change the setting. The model uses the local
 `await_gesture_confirmation(question)` tool before speaking a yes/no question.

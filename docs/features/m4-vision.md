@@ -10,7 +10,7 @@ Gemini Live; API keys stay on the backend.
 2. Before starting a conversation, tap **Grant DAT camera permission** and approve
    the Meta permission dialog. This uses the glasses camera, not the phone camera.
 3. Tap **Start**. Say **“What am I looking at?”**, **“Read this”**, or **“What color
-   is this?”**. In PTT mode use the existing screen or capture-button controls to
+   is this?”**. In PTT mode use the screen or touchpad double-tap controls to
    finish the question. Gemini calls `look(question)` and answers using a fresh photo.
 4. Say **“Turn on watch mode”** or enable the **Watch mode** switch to send frames
    continuously. Say **“Stop watching”**, disable the switch, or tap **Stop** to end
@@ -34,7 +34,7 @@ HEIC is decoded through Android `ImageDecoder`. No camera audio is requested.
 concurrent look/watch requests) to at most 1 fps, allows 15 seconds for capture,
 and closes the camera five seconds after the last capture when idle. Watch mode
 targets 1 fps, but slow capture/encoding lowers that rate rather than queuing a
-backlog. Stop, disconnect, foreground activity shutdown, or the two-minute timer
+backlog. Conversation Stop, disconnect, call/focus pause, or the two-minute timer
 cancels capture and closes the camera. Ending vision preserves the shared
 Inputs/Motion/Speech session; otherwise the now-unused DAT session is stopped too. Disabling gestures
 detaches Motion while retaining Inputs and the shared session until Stop, so it
@@ -127,9 +127,9 @@ camera/Motion/Speech/HFP behavior still needs physical-device verification.
 - Auto/PTT **token configuration** and visual answers were exercised over the real
   API with a text question. Spoken input, continuous watch over two minutes, and
   camera-enabled connection resumption were not exercised against real devices/API.
-- The app retains its current foreground lifecycle. Backgrounding stops the
-  conversation and camera. Background service and new gesture/voice-launch work
-  belong to other features.
+- The foreground service retains conversation/camera work across backgrounding
+  and rotation. A call/focus pause ends watch and clears captures; enable watch
+  again after resuming. See [hands-free operation](hands-free.md).
 - Watch mode supplies context; it does not promise a spoken description of every
   frame. A connection failure ends watch mode; the user must enable it again.
 - Fine text and distant details may be lost at the chosen resolution/compression.

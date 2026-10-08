@@ -11,7 +11,6 @@ import com.meta.wearable.dat.core.session.DeviceSession
 import com.meta.wearable.dat.core.types.LinkState
 import com.meta.wearable.dat.inputs.addInputs
 import com.meta.wearable.dat.inputs.types.CapturePressType
-import com.meta.wearable.dat.inputs.types.InputEvent
 import com.meta.wearable.dat.inputs.types.InputSource
 import com.meta.wearable.dat.inputs.types.InputsConfiguration
 import com.meta.wearable.dat.inputs.types.InputsState
@@ -26,6 +25,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
@@ -37,6 +37,8 @@ class GlassesController(
     private val onInputs: (String) -> Unit,
     private val onHold: () -> Unit,
     private val onInputLost: () -> Unit,
+    private val onDoubleTap: () -> Unit = {},
+    private val onInputReady: () -> Unit = {},
     private val onError: (String) -> Unit,
 ) {
     private var initialized = false
@@ -90,8 +92,7 @@ class GlassesController(
     }
 
     fun startInputs() {
-        if (inputsJob?.isActive == true) return
-        if (!initialized) return
+        if (inputsJob?.isActive == true || !initialized) return
         inputsJob = scope.launch {
             AutoDeviceSelector().activeDeviceFlow().collectLatest { id ->
                 if (id == null) { onInputs("No glasses; use on-screen talk"); return@collectLatest }
@@ -102,7 +103,7 @@ class GlassesController(
                         withTimeout(15_000) { session.state.first { it == DeviceSessionState.STARTED } }
                         mutableSession.value = session
                         // Motion can remain usable even if capture inputs are unavailable.
-                        val inputs = session.addInputs(InputsConfiguration(sources = setOf(InputSource.CAPTURE_BUTTON)))
+                        val inputs = session.addInputs(InputsConfiguration(sources = setOf(InputSource.CAPTURE_BUTTON, InputSource.CAPTOUCH), consumeBack = false))
                             .fold(onSuccess = { it }, onFailure = { error, _ -> onInputs(error.description); null })
                         launch { session.errors.collect { onInputs(it.description); onInputLost() } }
                         launch {
@@ -116,15 +117,21 @@ class GlassesController(
                             }
                         }
                         launch {
-                            inputs?.state?.collect {
-                                onInputs("Capture button: $it")
-                                if (it != InputsState.ACTIVE) onInputLost()
-                            }
+                            if (inputs != null) combine(session.state, inputs.state) { sessionState, inputState -> sessionState to inputState }
+                                .collect { (sessionState, inputState) ->
+                                    onInputs("Glasses controls: $sessionState · $inputState")
+                                    if (sessionState == DeviceSessionState.STARTED && inputState == InputsState.ACTIVE) onInputReady()
+                                    else onInputLost()
+                                }
                         }
                         launch { inputs?.errors?.collect { error -> error?.let { onInputs(it.description); onInputLost() } } }
                         launch {
                             inputs?.events?.collect { event ->
-                                if (event is InputEvent.Capture && event.source == InputSource.CAPTURE_BUTTON && event.pressType == CapturePressType.HOLD) onHold()
+                                when (glassesTrigger(event)) {
+                                    GlassesTrigger.CONVERSATION -> onHold()
+                                    GlassesTrigger.TALK_OR_MUTE -> onDoubleTap()
+                                    null -> Unit
+                                }
                             }
                         }
                         awaitCancellation()
@@ -168,5 +175,6 @@ class GlassesController(
     }
 
     fun mockHold() { mock?.services?.input?.capture(CapturePressType.HOLD) }
+    fun mockDoubleTap() { mock?.services?.input?.select(InputSource.CAPTOUCH) }
     fun close() { stopInputs(); monitorJob?.cancel(); if (mock != null) setMock(false) }
 }

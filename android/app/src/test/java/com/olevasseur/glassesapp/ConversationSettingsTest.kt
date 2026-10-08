@@ -100,4 +100,29 @@ class ConversationSettingsTest {
         } finally { scope.coroutineContext[Job]!!.cancelAndJoin() }
     }
 
+    @Test fun idleAndNotificationModeChangesPreserveOverPreferencesOnDisk() = runBlocking {
+        val file = File(temporary.root, "hands-free.preferences_pb")
+        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val expected = ConversationSettings(ConversationMode.OVER, 3250, "your turn", 25, idleMinutes = 42)
+        try {
+            val store = PreferenceDataStoreFactory.create(scope = scope) { file }
+            val settings = ConversationSettingsStore(store)
+            settings.save(expected)
+            for (mode in listOf(ConversationMode.AUTO, ConversationMode.PTT, ConversationMode.OVER)) {
+                settings.save(settings.settings.first().copy(mode = mode))
+                assertEquals(expected.copy(mode = mode), settings.settings.first())
+            }
+            store.edit { it[intPreferencesKey("idle_minutes")] = -1 }
+            assertEquals(expected.copy(idleMinutes = 1), settings.settings.first())
+            settings.save(expected.copy(idleMinutes = 999))
+            assertEquals(expected.copy(idleMinutes = 60), settings.settings.first())
+            settings.save(expected)
+        } finally { scope.coroutineContext[Job]!!.cancelAndJoin() }
+        val reopenedScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        try {
+            val reopened = ConversationSettingsStore(PreferenceDataStoreFactory.create(scope = reopenedScope) { file })
+            assertEquals(expected, reopened.settings.first())
+        } finally { reopenedScope.coroutineContext[Job]!!.cancelAndJoin() }
+    }
+
 }

@@ -23,7 +23,7 @@ fun ConversationSettingsControls(settings: ConversationSettings, enabled: Boolea
             Slider(value = settings.silenceMs.toFloat(), onValueChange = { onChange(settings.copy(silenceMs = it.roundToInt())) },
                 valueRange = 500f..5000f, steps = 17, enabled = enabled)
         }
-        ConversationMode.PTT -> Text("Hold on screen to speak. On glasses, hold capture once to start, again to finish.")
+        ConversationMode.PTT -> Text("Hold on screen to speak. Double-tap the glasses touchpad to start/finish speech; capture HOLD starts/stops the conversation.")
         ConversationMode.OVER -> {
             Text("End your turn with:")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -10,7 +10,7 @@ timeout persist locally in Preferences DataStore.
 
 - **Auto:** set **Patience** from 500–5000 ms (default 2000 ms). Gemini waits for
   this much silence using the existing low-sensitivity automatic detection.
-- **Push-to-talk:** existing screen hold/release and glasses capture HOLD toggle
+- **Push-to-talk:** screen hold/release and glasses touchpad double-tap toggle
   remain available, including the existing 60-second limit.
 - **Over:** wait for the status to say **Listening for sign-off**. Speak for as
   long as you like; finish with the selected phrase: **over** (default), **go ahead**,
@@ -168,7 +168,12 @@ Android SDK, with writable Gradle/Android-user/uv caches under `/tmp`.
 - A text-only manual-activity probe closed after `activityEnd`; PCM is the
   verified path and the committed smoke script uses PCM. The text-only failure
   was not diagnosed; the Android app does not use that path.
-- Foreground conversations only. Settings take effect on the next Start.
+- Conversations continue in the foreground service with the screen off. Settings
+  take effect on the next Start; the notification can cycle all three modes by
+  restarting Gemini. Capture HOLD starts/stops the conversation. Call/focus
+  pauses stop recognition and retain an open Over activity; resuming restarts
+  the silence interval. Double-tap has no Over turn-control action. See
+  [hands-free operation](hands-free.md).
 
 ## Verified sources (2026-10-07)
 
