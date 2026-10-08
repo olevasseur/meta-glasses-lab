@@ -71,4 +71,48 @@ class GestureConfirmationTest {
         assertEquals("user", turn.getString("role"))
         assertEquals(HeadGesture.NOD.text, turn.getJSONArray("parts").getJSONObject(0).getString("text"))
     }
+
+    @Test fun overGestureClosesActivityBeforeSendingTheConfirmedAnswer() {
+        val gate = GestureConfirmation()
+        gate.request(request(), true, 0)
+        gate.onEvent(ServerEvent(turnComplete = true))
+        val sent = mutableListOf<String>()
+        var talking = true
+        assertTrue(gate.answer(HeadGesture.NOD, 100) { text ->
+            sendGestureTurn(text, ConversationMode.OVER, talking, { message ->
+                if (sent.isNotEmpty()) assertFalse(talking)
+                sent.add(message)
+            }) { talking = false }
+        })
+        assertFalse(talking)
+        assertEquals(2, sent.size)
+        assertTrue(JSONObject(sent[0]).getJSONObject("realtimeInput").has("activityEnd"))
+        assertEquals(gestureTextTurn(HeadGesture.NOD.text), sent[1])
+        assertFalse(gate.answer(HeadGesture.NOD, 200) { fail("Duplicate answer"); true })
+    }
+
+    @Test fun gesturesPreservePttOwnershipAndSendDirectlyWhenNoActivityIsOpen() {
+        assertFalse(sendGestureTurn(HeadGesture.NOD.text, ConversationMode.PTT, true,
+            { fail("Held PTT cannot send a gesture"); true }, { fail("Held PTT cannot end") }))
+        for (mode in ConversationMode.entries) {
+            val sent = mutableListOf<String>()
+            assertTrue(sendGestureTurn(HeadGesture.SHAKE.text, mode, false, { sent.add(it) },
+                { fail("No activity to close") }))
+            assertEquals(listOf(gestureTextTurn(HeadGesture.SHAKE.text)), sent)
+        }
+    }
+
+    @Test fun failedActivityEndDoesNotSendGestureAndFailedTextDoesNotReopenActivity() {
+        var talking = true
+        val sent = mutableListOf<String>()
+        assertFalse(sendGestureTurn(HeadGesture.NOD.text, ConversationMode.OVER, talking,
+            { sent.add(it); false }, { talking = false }))
+        assertTrue(talking)
+        assertEquals(listOf(LiveProtocol.activity(false)), sent)
+        sent.clear()
+        assertFalse(sendGestureTurn(HeadGesture.NOD.text, ConversationMode.OVER, talking,
+            { sent.add(it); sent.size == 1 }, { talking = false }))
+        assertFalse(talking)
+        assertEquals(listOf(LiveProtocol.activity(false), gestureTextTurn(HeadGesture.NOD.text)), sent)
+    }
 }

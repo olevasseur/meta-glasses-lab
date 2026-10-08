@@ -10,7 +10,8 @@ only `[gesture: nod = yes]` or `[gesture: shake = no]` as a complete text turn.
    Developer Center. Register/connect the glasses as usual; there is no extra
    DAT runtime permission dialog for motion.
 2. Turn on **Head gestures · confirmations**, then **Start** a conversation.
-   Works in Auto and Push-to-talk; motion shares the capture-button DAT session.
+   Works in Auto, Push-to-talk and Over; motion shares the capture-button DAT
+   session with Over speech recognition.
 3. Wait for **● Live · nod yes / shake no**. Hold still for at least a quarter
    second, then nod down and back, or shake left–right–center. Either direction
    works. Pause briefly at the end. **Last gesture** shows detection and whether
@@ -29,8 +30,8 @@ only `[gesture: nod = yes]` or `[gesture: shake = no]` as a complete text turn.
 There is no voice command to change the setting. The model uses the local
 `await_gesture_confirmation(question)` tool before speaking a yes/no question.
 Its response says ready/unavailable; it never writes or deletes anything. The
-backend prompt also describes how a future forget tool should use it, but this
-branch does not implement memory deletion.
+backend's `forget` tool also accepts a valid nod to its specific pending
+confirmation before deleting the selected saved facts.
 
 ## Configuration and behavior
 
@@ -57,7 +58,10 @@ one second without them, it drops to an unavailable status and clears the questi
 Confirmation clears on speech, interruption, tool cancellation, a different tool
 call, disconnect, motion loss, disabling, or timeout. A gesture is consumed even
 if WebSocket enqueue fails, and is never queued for reconnect. PTT gestures do
-not require holding Talk; an active Talk press prevents a gesture send. No token
+not require holding Talk; an active Talk press prevents a gesture send. In
+Over, a valid gesture closes the open audio activity and sends the complete text
+answer, then waits for the reply and playback drain before listening again.
+Sent gesture answers are included in the transcript memory outbox. No token
 locking or resumption config was changed.
 
 ## Validation

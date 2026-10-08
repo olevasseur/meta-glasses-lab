@@ -4,7 +4,7 @@ Implemented and verified **2026-10-07**. Runtime AI remains Gemini only.
 
 ## Use it
 
-1. Start a conversation normally (automatic listening or PTT). User and Gemini
+1. Start a conversation normally (Auto, PTT or Over). User and Gemini
    transcript chunks upload every five seconds, up to 50 chunks per request.
 2. Say “Remember that my dog is named Maple.” `remember` immediately saves the
    fact. For a correction, say “Actually, I moved to Montreal; remember that.”
@@ -14,7 +14,9 @@ Implemented and verified **2026-10-07**. Runtime AI remains Gemini only.
 4. Say “Forget that” or “Forget my dog's name.” Gemini resolves the topic, reads
    the matching saved facts, and asks for confirmation. Say yes to delete exactly
    those candidates. The confirmation expires after five minutes; changed facts
-   require a new confirmation. This is saved-fact deletion, not raw-history erasure.
+   require a new confirmation. With head gestures enabled and available, a nod
+   to the explicit pending question also confirms. This is saved-fact deletion,
+   not raw-history erasure.
 5. Tap **Stop** (backgrounding also stops the existing foreground conversation).
    Final chunks upload before the backend summarizes. Next **Start** gets updated
    memory in its locked system instruction. No additional memory button is needed.

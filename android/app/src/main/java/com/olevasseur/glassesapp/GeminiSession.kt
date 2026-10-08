@@ -38,6 +38,7 @@ class GeminiSession(
     private var ready = false
     private var active = false
     private var ptt = false
+    private var settings = ConversationSettings()
     private var talking = false
     private var token: LiveToken? = null
     private var handle: String? = null
@@ -51,8 +52,15 @@ class GeminiSession(
     private val cancelledCalls = mutableSetOf<String>()
 
     fun start(pushToTalk: Boolean) {
+        start(ConversationSettings(mode = if (pushToTalk) ConversationMode.PTT else ConversationMode.AUTO))
+    }
+
+    fun start(options: ConversationSettings) {
         stop()
-        synchronized(sendLock) { active = true; ptt = pushToTalk }
+        synchronized(sendLock) {
+            settings = options.normalized()
+            active = true; ptt = settings.mode != ConversationMode.AUTO
+        }
         reconnectJob = scope.launch { connect() }
     }
 
@@ -63,7 +71,7 @@ class GeminiSession(
             val reusable = token?.takeIf {
                 handle != null && runCatching { Instant.parse(it.expiresAt).isAfter(Instant.now().plusSeconds(30)) }.getOrDefault(false)
             }
-            val credentials = reusable ?: backend.token(ptt).also { token = it }
+            val credentials = reusable ?: backend.token(settings.mode, settings.silenceMs).also { token = it }
             if (!active) return
             val request = Request.Builder().url(LiveProtocol.ENDPOINT)
                 .header("Authorization", "Token ${credentials.token}").build()
@@ -182,8 +190,18 @@ class GeminiSession(
         if (sent) pendingResponses -= call.id else pendingResponses += call.id
     }
 
-    fun sendGestureText(text: String): Boolean = synchronized(sendLock) {
-        active && ready && !talking && socket?.let { it.queueSize() <= 256_000 && it.send(gestureTextTurn(text)) } == true
+    fun sendGestureText(text: String): Boolean {
+        var endedActivity = false
+        val sent = synchronized(sendLock) {
+            val ws = socket
+            if (!active || !ready || ws == null || ws.queueSize() > 256_000) return@synchronized false
+            sendGestureTurn(text, settings.mode, talking, ws::send) {
+                talking = false
+                endedActivity = true
+            }
+        }
+        if (endedActivity) onTalking(false)
+        return sent
     }
 
     fun sendAudio(pcm: ByteArray) = synchronized(sendLock) {
@@ -208,7 +226,9 @@ class GeminiSession(
         talkTimeout?.cancel()
         if (value) {
             audio.flush()
-            talkTimeout = scope.launch { delay(60_000); setTalking(false) }
+            if (settings.mode == ConversationMode.PTT) {
+                talkTimeout = scope.launch { delay(60_000); setTalking(false) }
+            }
         }
     }
 

@@ -12,17 +12,19 @@ DEFAULT_MODEL = "gemini-3.8-live"
 PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
 
 
-def token_config(model: str, mode: str, system_instruction: str | None = None) -> types.CreateAuthTokenConfig:
+def token_config(
+    model: str, mode: str, system_instruction: str | None = None, *, silence_ms: int = 2000,
+) -> types.CreateAuthTokenConfig:
     now = datetime.now(UTC)
     detection = (
         {"disabled": True}
-        if mode == "ptt"
+        if mode in ("ptt", "over")
         else {
             "disabled": False,
             "start_of_speech_sensitivity": "START_SENSITIVITY_LOW",
             "end_of_speech_sensitivity": "END_SENSITIVITY_LOW",
             "prefix_padding_ms": 300,
-            "silence_duration_ms": 1200,
+            "silence_duration_ms": max(500, min(5000, silence_ms)),
         }
     )
     return types.CreateAuthTokenConfig(
@@ -51,8 +53,10 @@ def token_config(model: str, mode: str, system_instruction: str | None = None) -
     )
 
 
-def create_token(api_key: str, model: str, mode: str, system_instruction: str | None = None) -> dict:
-    config = token_config(model, mode, system_instruction)
+def create_token(
+    api_key: str, model: str, mode: str, system_instruction: str | None = None, *, silence_ms: int = 2000,
+) -> dict:
+    config = token_config(model, mode, system_instruction, silence_ms=silence_ms)
     with genai.Client(
         api_key=api_key,
         vertexai=False,

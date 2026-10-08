@@ -185,15 +185,22 @@ def test_context_budget_and_latest_three_summaries(store):
     assert "Session marker 0" not in context and "Session marker 1" not in context
 
 
-def test_token_locks_memory_and_registry_but_not_resumption(client, store, monkeypatch):
+@pytest.mark.parametrize("mode", ["auto", "ptt", "over"])
+def test_token_locks_memory_and_registry_but_not_resumption(client, store, monkeypatch, mode):
     store.remember("The user likes kayaking.")
     monkeypatch.setenv("GEMINI_API_KEY", "fake-key")
     factory = Mock(return_value={"token": "redacted", "model": gemini.DEFAULT_MODEL})
     monkeypatch.setattr(gemini, "create_token", factory)
-    assert client.post("/token", json={}).status_code == 200
-    config = gemini.token_config(gemini.DEFAULT_MODEL, "auto", factory.call_args.args[3])
+    assert client.post("/token", json={"mode": mode, "silence_ms": 3250}).status_code == 200
+    assert factory.call_args.args == ("fake-key", gemini.DEFAULT_MODEL, mode)
+    assert factory.call_args.kwargs["silence_ms"] == 3250
+    config = gemini.token_config(gemini.DEFAULT_MODEL, mode, **factory.call_args.kwargs)
     live = config.live_connect_constraints.config
     assert "kayaking" in live.system_instruction
+    detection = live.realtime_input_config.automatic_activity_detection
+    assert detection.disabled is (mode != "auto")
+    if mode == "auto":
+        assert detection.silence_duration_ms == 3250
     assert {t.name for t in live.tools[0].function_declarations} == {
         "append_to_doc", "remember", "recall", "forget", "await_gesture_confirmation",
     }

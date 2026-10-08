@@ -49,7 +49,21 @@ class GestureConfirmation {
     fun clear() { question = null; callId = null; waiting = false; deadline = 0 }
 }
 
-/** A complete text turn also works when automatic activity detection is disabled (PTT). */
+/** Call inside the audio send gate so PCM cannot follow the activityEnd. */
+internal fun sendGestureTurn(
+    text: String, mode: ConversationMode, talking: Boolean,
+    send: (String) -> Boolean, onActivityEnd: () -> Unit,
+): Boolean {
+    if (talking) {
+        // Over keeps an activity open while waiting for either voice or a gesture.
+        // A held PTT button still owns its turn and must not be interrupted by motion.
+        if (mode != ConversationMode.OVER || !send(LiveProtocol.activity(false))) return false
+        onActivityEnd()
+    }
+    return send(gestureTextTurn(text))
+}
+
+/** A complete text turn also works when automatic activity detection is disabled. */
 fun gestureTextTurn(text: String): String = JSONObject().put("clientContent", JSONObject()
     .put("turns", JSONArray().put(JSONObject().put("role", "user")
         .put("parts", JSONArray().put(JSONObject().put("text", text)))))

@@ -3,7 +3,7 @@ import pytest
 from gemini import DEFAULT_MODEL, token_config
 
 
-@pytest.mark.parametrize("mode", ["auto", "ptt"])
+@pytest.mark.parametrize("mode", ["auto", "ptt", "over"])
 def test_gesture_confirmation_is_advertised_without_changing_resumption(mode):
     config = token_config(DEFAULT_MODEL, mode)
     live = config.live_connect_constraints.config
