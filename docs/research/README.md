@@ -84,3 +84,5 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 - [Long-session soak](long-session-soak.md) — **2026-10-08**: opt-in sequential
   meeting/Auto Live runner, transcript persistence checks, backend load and
   visual/log retention measurements; see the linked evaluation for outcomes.
+
+- [meeting-chunked.md](meeting-chunked.md) — **2026-10-08**: durable local meeting WAV chunks, non-Live Gemini transcription, overlap stitching, short on-device wake handoff; replaces continuous Live scribe capture.

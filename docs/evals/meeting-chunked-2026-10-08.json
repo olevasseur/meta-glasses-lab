@@ -1,0 +1,680 @@
+{
+  "audio_seconds": 1200.0,
+  "chunks": 21,
+  "wav_bytes": 39680924,
+  "live_sessions": 0,
+  "models": [
+    {
+      "name": "models/gemini-2.5-flash",
+      "methods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "input_limit": 1048576
+    },
+    {
+      "name": "models/gemini-3.5-flash-lite",
+      "methods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "input_limit": 1048576
+    },
+    {
+      "name": "models/gemini-3.8-flash",
+      "methods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "input_limit": 1048576
+    }
+  ],
+  "latencies": [
+    11.02333112503402,
+    18.042689624940977,
+    18.460372625035234,
+    10.667212750064209,
+    19.545933540910482,
+    21.361773249926046,
+    12.954227625043131,
+    16.881263082963414,
+    23.564442833070643,
+    17.756335707963444,
+    17.767331458977424,
+    8.622559958021156,
+    13.978562791948207,
+    21.63680895906873,
+    12.14307666698005,
+    26.696997916908003,
+    14.066254958044738,
+    0.009267749963328242,
+    0.012263874989002943,
+    0.013306709006428719,
+    0.008062709006480873
+  ],
+  "status": "minutes ready; no Docs export",
+  "minutes": {
+    "summary": "The team reviewed the library booking pilot, discussing success criteria, metrics, budget caps, and a launch timeline. They decided to proceed with a conditional two-branch pilot on Friday, October 9th, covering Harbor and Cedar branches with 40 total invited adult patrons. Success metrics include a 10-day observation window, at least 30 completed patron bookings, zero double bookings, and a maximum of 5% needing help with the basic flow. The pilot has a $200 budget cap for the first month, and invitations will only be sent upon receiving written privacy approval and completing staff tests.",
+    "decisions": [
+      "Launch the invited two-branch pilot on Friday, October 9th, starting with Harbor at 10:00 and Cedar at noon, conditional on written privacy approval and passing staff tests.",
+      "Approve a $200 budget cap for the first month of the two-branch pilot.",
+      "Adopt success criteria of 10 days of observation, at least 30 completed patron bookings, zero double bookings, and at most 5% needing help with basic booking.",
+      "Schedule a review of the pilot results for Monday, October 19th, at 10:00 AM.",
+      "Pause new invitations if support tickets exceed five per day, while keeping existing reservations active unless data integrity issues arise."
+    ],
+    "action_items": [
+      {
+        "task": "Fix the dashboard wording and link the underlying inquiry in the launch checklist",
+        "owner": null,
+        "due": "today"
+      },
+      {
+        "task": "Review staff guide for plain language",
+        "owner": "Jordan",
+        "due": "tomorrow morning"
+      },
+      {
+        "task": "Send comments on staff guide",
+        "owner": null,
+        "due": "tomorrow before lunch"
+      },
+      {
+        "task": "Produce test export and add a short rollback checklist",
+        "owner": null,
+        "due": "tomorrow"
+      },
+      {
+        "task": "Ask Sam about the retention policy number of days",
+        "owner": null,
+        "due": "tomorrow noon"
+      },
+      {
+        "task": "Verify the 40 invitees against eligibility rules and tell Sam directly",
+        "owner": null,
+        "due": "tomorrow morning"
+      },
+      {
+        "task": "Send the itemized budget to finance and copy Maya",
+        "owner": null,
+        "due": "October 8th"
+      },
+      {
+        "task": "Learn staff test checklist and record results in the shared pilot document",
+        "owner": null,
+        "due": "Thursday at 4"
+      },
+      {
+        "task": "Ask on-call team about supporting the rollback checklist this weekend and report their answer",
+        "owner": null,
+        "due": null
+      }
+    ],
+    "open_questions": [
+      "What is the exact number of days for the library's data retention policy regarding the fallback spreadsheet?",
+      "Will written privacy sign-off be received in time for the Friday launch?",
+      "Can the on-call team support the rollback checklist over the weekend?"
+    ],
+    "recap": [
+      "The team agreed to launch a restricted two-branch pilot on Friday if privacy approval and staff tests pass.",
+      "A review meeting is scheduled for October 19th to evaluate the pilot results before any further expansion."
+    ]
+  },
+  "calls": {
+    "attempts": 35,
+    "audio_attempts": 34,
+    "failures": 12,
+    "last_error": {
+      "type": "ServerError",
+      "code": 503
+    }
+  },
+  "wall_seconds": 1306.2728441668442,
+  "transcribed_chunks": 21,
+  "lexical": {
+    "reference_words": 2230,
+    "recognized_words": 2223,
+    "substitutions": 90,
+    "deletions": 40,
+    "insertions": 33,
+    "wer": 0.07309417040358744
+  },
+  "transcript": [
+    "Thanks for making time. We have 20 minutes to decide whether the library booking pilot is ready for a small external release.",
+    "Agree who owns the remaining work and settle the budget question.",
+    "I would like us to finish with an actual decision rather than another list of things to investigate.",
+    "The proposal in yesterday's document was a public launch on Monday, October 12th, across all 12 branches.",
+    "That was a proposal, not a commitment.",
+    "Please flag anything in that document that is out of date before we use it as the basis for today's decision.",
+    "The main booking flow is deployed in staging and the branch staff can complete it without help.",
+    "We fixed the time zone issue from last week.",
+    "A booking made near midnight now lands on the correct calendar date, including up to the daylight saving change.",
+    "I still have two concerns.",
+    "Confirmation emails occasionally arrive late.",
+    "and the cancellation link is confusing on older phones.",
+    "Neither loses a reservation, but both could produce support calls.",
+    "I can show the current flow if that helps us decide how much of a pilot we can support.",
+    "12 branches on the first day feels too large.",
+    "We only have trained staff at Harbor and Cedar.",
+    "The other 10 have watched the introduction video, but have not practiced canceling a reservation or checking someone in without their email.",
+    "My recommendation is 20 invited patrons at each of those two trained branches.",
+    "That gives us 40 people, a manageable support load, and two different staffing patterns.",
+    "I am comfortable coordinating those invitations if the product team gives me the final wording and a clear list of things patrons should try.",
+    "That seems reasonable, before we commit, let's look at the error chart.",
+    "Alex, can you share the dashboard? I see an overall failure rate of 4% on this screenshot, which sounds worse than what you just described.",
+    "Is that the latest build? Also, are those actual booking failures, or does the chart count a patron pressing the submit button twice as two attempts?",
+    "We should agree on what success means before arguing about a percentage that mixes his different behaviors.",
+    "The screenshot is from Monday, today's build is the blue line.",
+    "We count duplicate submissions separately in that old chart, even though the server safely reuses the original reservation.",
+    "The corrected calculation is 0.8% for completed booking attempts over the last two days.",
+    "There were two genuine failures out of 250 attempts.",
+    "both while the email service was unavailable.",
+    "The reservations themselves were saved.",
+    "We should label that as notification failure, not booking failure.",
+    "I'll fix the dashboard wording today and link the underly inquiry in the launch checklist.",
+    "I tried it on my mother's old Android phone last night.",
+    "The booking part was fine, but the cancellation button looks like a decorative heading.",
+    "I tapped the date three times before I found it.",
+    "Could we make it look like the other buttons and put a confirmation screen after it?",
+    "I would rather deal with a few late emails than accidentally canceled reservations.",
+    "We also need the booking reference visible immediately on the success page so that somebody can call us without waiting for an email.",
+    "The reference is already visible.",
+    "but small. I can enlarge it and change the cancellation button today.",
+    "Adding a confirmation screen touches another route and would need more regression testing.",
+    "We do have a browser confirmation dialogue, which is not beautiful, but does prevent an accidental single tap from canceling.",
+    "I suggest shipping the clearer button and reference in the pilot, then scheduling a proper confirmation screen after we see usage.",
+    "Does anybody see that as a launch blocker for 40 invited patrons?",
+    "No, provided the invitation explains that this is a pilot and gives the support number.",
+    "The staff at both branches can recover a canceled slot if it has not been taken by somebody else.",
+    "Please do not promise a recovery guarantee in the email.",
+    "I will write a one page staff guide covering cancellation, a missing email, and checking the reference.",
+    "Jordan, could you review it for plain language tomorrow morning? I want us to use the same words as the actual screens rather than internal terms like reservation object.",
+    "Yes, send it by 10 tomorrow and I will return comments before lunch.",
+    "I will also take first line support during the pilot.",
+    "Our normal Q can handle 40 invitations, but I do not have people for an unrestricted public launch next week.",
+    "If we see more than five pilot tickets in a day, I want us to pause new invitations and review the cause.",
+    "That is not necessarily a rollback, it could just mean a confusing instruction.",
+    "We should separate a pause in enrollment from shutting down reservations that already exist.",
+    "Agreed, let's capture that distinction.",
+    "we pause invitations if we get more than five pilot support tickets in a day and keep existing reservations available unless there is a data integrity issue.",
+    "For actual rollback, I propose any confirmed double booking or exposure of another patron's details triggers an immediate stop to new bookings.",
+    "Existing reservations would move to the staff managed spreadsheet while engineering investigates.",
+    "Pria,",
+    "is that fall back workable?",
+    "Or would it create",
+    "workable as long as the spreadsheet export includes the booking reference and does not include unnecessary personal information.",
+    "We need the patron's chosen name, contact number and reserved slot.",
+    "We do not need their whole account history.",
+    "I can rehearse the fall back with one person at each branch on Thursday afternoon.",
+    "I do not want the first export to happen during",
+    "an incident.",
+    "Please make an export from test data before then so that staff can see the columns without handling real patron details in training.",
+    "I will produce that test export tomorrow and add a short roll back checklist.",
+    "I can own the technical stop switch during office hours.",
+    "After hours, our usual on call engineer is responsible.",
+    "I should not be the only person who knows where it is.",
+    "I'll ask the on call rotation to review the checklist,",
+    "but I cannot promise their sign off before I have spoken to them.",
+    "That is still an open dependency.",
+    "Also, the spreadsheet needs a deletion date.",
+    "Let's not accidentally create a permanent second customer database.",
+    "Good point, we will retain a fallback spreadsheet only for the incident and delete it after r",
+    "for the incident and deleted after reconciliation.",
+    "Following the library's retention policy,",
+    "I do not know that policy's exact number of days,",
+    "so do not put a number into the minutes.",
+    "Sam and privacy can confirm it.",
+    "I will ask Sam by tomorrow noon.",
+    "We also need the privacy review signed before sending invitations.",
+    "Is that already approved, or did the last email just say the reviewer had received the checklist?",
+    "Those are different things.",
+    "only received.",
+    "Sam asked whether the pilot invitation list includes children,",
+    "and nobody has answered yet.",
+    "The current staff list is adults only,",
+    "but I need to verify the exported invitation list rather than assuming they match.",
+    "I'll verify the 40 invitees against the eligibility rules tomorrow morning and tell Sam directly.",
+    "Until we have written approval, the invitation stay as drafts.",
+    "We can prepare the",
+    "release and staff training without sending anything.",
+    "Can we keep the condition explicit in the launch decision?",
+    "Absolutely, let's pause for two minutes while everyone reads the budget table in the shared document.",
+    "The original estimate was $600 per month because it assumed all 12 branches and paid monitoring from day one.",
+    "For the small pilot, we have a lower estimate from Alex, and I want us to distinguish the pilot cap from a permanent operating budget.",
+    "Please also check whether the support cost line is incremental cash or just time within our existing staffing allocation.",
+    "The two-branch version is about $85 for hosting and $20 for transactional email for one month, under the usage assumptions in the table.",
+    "I left $50 of contingency.",
+    "for spikes, monitoring uses our existing plan.",
+    "So there is no new subscription.",
+    "This is an estimate, not a fixed vendor quote.",
+    "A $200 pilot cap would cover the expected spend with some margin.",
+    "If we exceed $150, I can alert Maya before enabling any extra paid capacity.",
+    "Let's approve a $200 cap for the first month of the two-branch pilot.",
+    "That is the actual decision.",
+    "The $600 number stays in the document only as a discarded all-branch estimate.",
+    "No commitment beyond the pilot month.",
+    "Alex, please send the itemized budget to finance tomorrow, October 8th, and copy me.",
+    "I will handle approval if finance needs a signature.",
+    "We are not purchasing the premium analytics package.",
+    "We can measure the pilot with the dashboard and a short staff survey.",
+    "For success criteria, I suggest at least 30 completed bookings, no double bookings, and no more than 5% of patrons needing help with the basic booking flow.",
+    "We should include cancellation usability in the survey even if that is not a numerical launch gate.",
+    "The number of support tickets is not the same as the number of patrons needing help, because one person might open three tickets.",
+    "I'll label repeat contacts in the support sheet so that we do not inflate the rate.",
+    "30 bookings sounds achievable over a week, but some invited people may never need a room during that week.",
+    "I would prefer a 10-day observation window so we include two weekends.",
+    "I also want at least one cancellation and one rescheduling attempt per branch in the start",
+    "ling attempt to branch in the staff test before opening invitations. Those test attempts should not count toward the 30 patron bookings.",
+    "I learn the staff test checklist and record the results in the shared pilot document by Thursday at 4.",
+    "accepted, 10 days of observation, at least 30 completed patron bookings, zero double bookings, and at most 5% needing help with basic booking.",
+    "Staff test bookings do not count. Let's review results on Monday, October 19th at 10:00 in the morning.",
+    "That meeting is a review of evidence, not automatic approval for all 12 branches.",
+    "We can extend the pilot if the sample is too small.",
+    "I will put the review on the calendar after this call.",
+    "The remaining engineering changes in the test export are straightforward, but Monday is a holiday",
+    "forward, but Monday is a holiday for part of our support team.",
+    "Could we start invitations on Friday, October 9th?",
+    "At 10:00 instead, that gives us staff hours to catch early issues and avoids the first launch on a partially staffed Monday.",
+    "I can deploy the interface fixes Thursday afternoon after the branch tests, provided the privacy approval has arrived.",
+    "If privacy is still pending, we keep the deployment internal and send no invitations.",
+    "Friday at 10:00 works for support.",
+    "I can be on the queue until 5:00 and our regular weekend coverage can handle existing bookings.",
+    "Please make the invitation batches staggered.",
+    "20 Harbor patrons at 10:00, then 20 Cedar patrons at noon if the first batch looks healthy.",
+    "I will tell Mayo if we hit the ticket threshold.",
+    "I don't want the second batch sent.",
+    "automatically if the first one uncovers a confusing screen.",
+    "Somebody should explicitly check the dashboard and support queue first.",
+    "Then the earlier Monday proposal is superseded, we will launch the invited to branch pilot Friday.",
+    "October 9th, with Harbor at 10:00 and Cedar at noon.",
+    "Conditional on written privacy approval and passing staff tests.",
+    "P on sending each batch and checks with Jordan before sending Cedar.",
+    "Alex owns the dashboard fixed today.",
+    "The UI fixes before Thursday's tests.",
+    "And the itemized budget tomorrow.",
+    "The $200 cap in the paws and roll back threshold stand.",
+    "Does anybody disagree with that decision or hear an owner assigned incorrectly?",
+    "One correction, deploy the interface fixes before the staff tests.",
+    "not after them.",
+    "I will have the staging build ready Thursday morning and the production build ready after the tests pass.",
+    "The privacy sign-off still gates invitations, not the ability to test with fake data.",
+    "Everything else matches my understanding.",
+    "My remaining question is whether the on-call team can support the rollback checklist this weekend.",
+    "I'll ask them today and report their answer in the pilot document.",
+    "That correction works. I'll prepare invitation drafts and the staff guide.",
+    "Verify adult eligibility tomorrow morning, run the branch checklist by Thursday at 4:",
+    "and check with Jordan before each Friday batch.",
+    "We still need Sam's retention guidance and written privacy sign-off.",
+    "Please leave both in open questions until Sam answers. We should not infer approval from",
+    "silence, we have no owner yet for the accessibility audit beyond our small staff test, so let's discuss who can do that at the review rather than pretending today's checks are a full audit.",
+    "Thanks, I will contact Sam, get the review meeting on the calendar and deal with finance approval if needed. Please use the shared pilot document for updates so the branch team C1 source, we have a conditional Friday pilot, clear spending limits and a deliberate review before any expansion. Let's finish here at 20 past, no one needs to stay for another discussion unless the privacy response changes our assumptions."
+  ],
+  "repeated_boundary_words": 0,
+  "usage": [
+    {
+      "model": "gemini-2.5-flash",
+      "kind": "text",
+      "calls": 4,
+      "failed": 3,
+      "input_tokens": 2062,
+      "output_tokens": 576,
+      "total_tokens": 2881
+    },
+    {
+      "model": "gemini-3.5-flash-lite",
+      "kind": "text",
+      "calls": 32,
+      "failed": 10,
+      "input_tokens": 40798,
+      "output_tokens": 14330,
+      "total_tokens": 55128
+    }
+  ],
+  "attempt_ledger": [
+    {
+      "ordinal": 1,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1614,
+      "output_tokens": 661,
+      "total_tokens": 2275
+    },
+    {
+      "ordinal": 2,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1614,
+      "output_tokens": 549,
+      "total_tokens": 2163
+    },
+    {
+      "ordinal": 3,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1614,
+      "output_tokens": 613,
+      "total_tokens": 2227
+    },
+    {
+      "ordinal": 4,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1614,
+      "output_tokens": 631,
+      "total_tokens": 2245
+    },
+    {
+      "ordinal": 5,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null
+    },
+    {
+      "ordinal": 6,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null
+    },
+    {
+      "ordinal": 7,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1626,
+      "output_tokens": 748,
+      "total_tokens": 2374
+    },
+    {
+      "ordinal": 8,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1626,
+      "output_tokens": 603,
+      "total_tokens": 2229
+    },
+    {
+      "ordinal": 9,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1626,
+      "output_tokens": 564,
+      "total_tokens": 2190
+    },
+    {
+      "ordinal": 10,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null
+    },
+    {
+      "ordinal": 11,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1626,
+      "output_tokens": 693,
+      "total_tokens": 2319
+    },
+    {
+      "ordinal": 12,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1626,
+      "output_tokens": 611,
+      "total_tokens": 2237
+    },
+    {
+      "ordinal": 13,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1626,
+      "output_tokens": 549,
+      "total_tokens": 2175
+    },
+    {
+      "ordinal": 14,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1626,
+      "output_tokens": 615,
+      "total_tokens": 2241
+    },
+    {
+      "ordinal": 15,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1626,
+      "output_tokens": 706,
+      "total_tokens": 2332
+    },
+    {
+      "ordinal": 16,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1626,
+      "output_tokens": 773,
+      "total_tokens": 2399
+    },
+    {
+      "ordinal": 17,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1626,
+      "output_tokens": 1002,
+      "total_tokens": 2628
+    },
+    {
+      "ordinal": 18,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1626,
+      "output_tokens": 554,
+      "total_tokens": 2180
+    },
+    {
+      "ordinal": 19,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1626,
+      "output_tokens": 741,
+      "total_tokens": 2367
+    },
+    {
+      "ordinal": 20,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null
+    },
+    {
+      "ordinal": 21,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null
+    },
+    {
+      "ordinal": 22,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null
+    },
+    {
+      "ordinal": 23,
+      "model": "gemini-2.5-flash",
+      "failed": 0,
+      "input_tokens": 2062,
+      "output_tokens": 576,
+      "total_tokens": 2881
+    },
+    {
+      "ordinal": 24,
+      "model": "gemini-2.5-flash",
+      "failed": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null
+    },
+    {
+      "ordinal": 25,
+      "model": "gemini-2.5-flash",
+      "failed": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null
+    },
+    {
+      "ordinal": 26,
+      "model": "gemini-2.5-flash",
+      "failed": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null
+    },
+    {
+      "ordinal": 27,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null
+    },
+    {
+      "ordinal": 28,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1641,
+      "output_tokens": 571,
+      "total_tokens": 2212
+    },
+    {
+      "ordinal": 29,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1641,
+      "output_tokens": 724,
+      "total_tokens": 2365
+    },
+    {
+      "ordinal": 30,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null
+    },
+    {
+      "ordinal": 31,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1641,
+      "output_tokens": 748,
+      "total_tokens": 2389
+    },
+    {
+      "ordinal": 32,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1641,
+      "output_tokens": 640,
+      "total_tokens": 2281
+    },
+    {
+      "ordinal": 33,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null
+    },
+    {
+      "ordinal": 34,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 1641,
+      "output_tokens": 238,
+      "total_tokens": 1879
+    },
+    {
+      "ordinal": 35,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null
+    },
+    {
+      "ordinal": 36,
+      "model": "gemini-3.5-flash-lite",
+      "failed": 0,
+      "input_tokens": 6625,
+      "output_tokens": 796,
+      "total_tokens": 7421
+    }
+  ],
+  "successful_final_audio_ordinals": [
+    7,
+    8,
+    9,
+    11,
+    12,
+    13,
+    15,
+    16,
+    17,
+    18,
+    19,
+    23,
+    28,
+    29,
+    31,
+    32,
+    34
+  ],
+  "cost_estimates_usd": {
+    "whole_evaluation_paid_equivalent": 0.0521739,
+    "final_audio_only_paid_equivalent": 0.0380993,
+    "final_minutes_paid_equivalent": 0.0039775,
+    "two_hours_125_nonsilent_chunks_audio": 0.28014191176470593
+  },
+  "latency_summary": {
+    "successful_nonsilent_chunk_median_s": 17.756335707963444,
+    "successful_nonsilent_chunk_mean_s": 16.774657345582348,
+    "successful_nonsilent_chunk_max_s": 26.696997916908003,
+    "two_hour_125_chunks_serial_seconds": 2096.8321681977936
+  },
+  "audio_sha256": "b9bcb4982b87ed7acbb75ed7fb7c6f3b1cb033ba112a9ef634023d8a7fc32996",
+  "reference_sha256": "039babf34e08946a79f1bedad26b0320a07b6f73c6505cade977e9f594a4d75c",
+  "digital_silence_chunks": [
+    17,
+    18,
+    19,
+    20
+  ],
+  "validation": {
+    "backend": "585 passed, 3 warnings in 8.14s",
+    "android": "BUILD SUCCESSFUL in 24s; 251 tests, zero failures/errors/skips"
+  },
+  "notes": [
+    "Four successful pilot calls discarded after fixing seconds/milliseconds schema; one further response failed timing validation.",
+    "Twelve real provider failures: nine 503 and three 429; local reservation rejection counted once by meter but sent no provider request.",
+    "Core audio cost derived from serial SDK attempt ordinals mapped to durable completion logs; all evaluation overhead remains in total.",
+    "Final minutes resumed with process-only USAGE_EVAL_PERCENT=11 after conservative reservations exhausted default 10%; no production env changed.",
+    "Model catalog confirmed gemini-3.8-flash, but no inference used it.",
+    "Word errors include numeral formatting and spelling variants; boundary metric counts exact repeats of at least three normalized words.",
+    "No real Live, Google Docs write, phone/glasses hardware or two-hour real-time session."
+  ]
+}

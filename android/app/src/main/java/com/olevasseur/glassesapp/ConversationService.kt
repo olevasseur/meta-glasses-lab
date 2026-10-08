@@ -207,6 +207,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
 
     fun captureHold() {
         if (!controls.armed) return
+        if (model.state.value.meeting) { model.askMeetingAssistant(); return }
         if (!controls.conversation) startConversation()
         else {
             if (controls.shouldRun && hasFocus) chime(false)
@@ -311,7 +312,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
         val label = when {
             controls.pauses.isNotEmpty() && controls.conversation -> "Paused: ${controls.pauses.joinToString()}. Open to resume."
             !controls.conversation -> "Glasses controls ready · hold capture to start"
-            state.meeting -> "Meeting capture · ${state.gemini} · say Hey assistant"
+            state.meeting -> "Meeting capture · ${state.gemini} · say ${state.settings.meetingWakePhrase}"
             controls.muted -> "Microphone muted · double-tap to unmute"
             controls.mode == ConversationMode.OVER -> "Over · ${state.overStatus}"
             controls.ptt -> if (state.talking) "Listening · double-tap to finish" else "Push-to-talk · double-tap to speak"

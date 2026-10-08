@@ -83,6 +83,33 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         .retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).build()
     private val backend = BackendClient(http, BuildConfig.BACKEND_URL, BuildConfig.APP_SHARED_SECRET)
     private val memory = TranscriptMemory(backend, File(application.noBackupFilesDir, "memory-outbox"), ::error).apply { onMeetingReady = ::meetingReady; onApproval = { approvals.offer(it) } }
+    private val meetingCapture = MeetingCapture(File(application.noBackupFilesDir, "meeting-audio"), ::error)
+    private val meetingWake by lazy {
+        OverSpeechRecognizer(application, viewModelScope, glasses.activeSession,
+            onText = { text, final ->
+                if (state.value.meeting && audioReady && !state.value.stopping && state.value.handsFree.shouldRun)
+                    meetingAssistant.recognized(text, final, state.value.settings.meetingWakePhrase)
+            }, onStatus = { label -> mutableState.update { it.copy(overStatus = label.replace("sign-off", "wake phrase")) } },
+            onError = { error("Meeting wake phrase unavailable; use Ask assistant or capture HOLD. Recording continues.") })
+    }
+    private val meetingAssistant: MeetingAssistant by lazy {
+        MeetingAssistant(viewModelScope,
+            open = { gemini.start(state.value.settings.copy(mode = ConversationMode.AUTO, translationLanguage = null), meetingInteraction = true); gemini.suspendAudio(false) },
+            close = { gemini.stop(); mutableState.update { it.copy(gemini = "Recording locally", connected = false) } },
+            send = { gemini.sendRecap(it) }, playbackIdle = { audio.awaitPlaybackIdle() },
+            listening = { enabled ->
+                if (enabled && state.value.meeting && audioReady && !state.value.stopping && state.value.handsFree.shouldRun) meetingWake.startOnDevice()
+                else meetingWake.stop()
+            })
+    }
+    fun askMeetingAssistant() {
+        if (state.value.meeting && audioReady && state.value.handsFree.shouldRun && !state.value.stopping) {
+            service?.activity(); meetingAssistant.begin()
+        }
+    }
+    private val meetingUploads = viewModelScope.launch {
+        while (isActive) { meetingCapture.flush(backend, ::meetingReady) { approvals.offer(it) }; delay(5_000) }
+    }
     private val memoryUploads = viewModelScope.launch {
         while (isActive) { memory.flush(); speakPendingRecap(); delay(5_000) }
     }
@@ -158,7 +185,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             if (!connected) { screenTalking = false; glassesTalking = false; overAwaitingReply = false; gestures.disconnected(); visualMemory.stop(); reading.pause(); coachNavigation.cancel() }
             mutableState.update { it.copy(gemini = label, connected = connected) }
             updateOffline(unavailable = !connected && label.contains("retry in"))
-            if (connected) { sendApprovalResults(); speakPendingRecap() }
+            if (connected) { sendApprovalResults(); speakPendingRecap(); if (state.value.meeting) meetingAssistant.ready() }
             if (!state.value.meeting && state.value.settings.mode == ConversationMode.OVER) {
                 if (connected) beginOverTurn() else { overResumeJob?.cancel(); over.stop() }
             }
@@ -178,7 +205,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             if (!value) { screenTalking = false; glassesTalking = false }
             mutableState.update { it.copy(talking = value) }
         },
-        onFatal = { message -> error(message); stop() },
+        onFatal = { message -> error(message); if (state.value.meeting) meetingAssistant.stop() else stop() },
         onTranslationChanged = { language ->
             transcriptBoundary = true
             visualMemory.stop()
@@ -190,6 +217,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         },
         localTool = { featureTools.tool(it) },
         onEvent = { event ->
+            if (state.value.meeting && event.turnComplete && !event.interrupted && event.calls.isEmpty()) meetingAssistant.turnEnded()
             if (event.interrupted) offline.interrupted()
             else if (event.turnComplete) offline.turnComplete()
             if (event.interrupted || !event.inputText.isNullOrBlank() || !event.outputText.isNullOrBlank() || event.calls.isNotEmpty()) coachNavigation.cancel()
@@ -469,11 +497,14 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                 try {
                     // Warm token + Live setup while Android negotiates the communication route.
                     if (!sessionStarted) {
-                        val metadata = if (state.value.meeting) JSONObject().put("title", state.value.meetingTitle.ifBlank { "Untitled" })
-                            .apply { if (state.value.meetingDoc.isNotBlank()) put("doc_name", state.value.meetingDoc) } else null
-                        memory.begin(metadata)
+                        if (state.value.meeting) {
+                            meetingCapture.begin(state.value.meetingTitle.ifBlank { "Untitled" }, state.value.meetingDoc)
+                            mutableState.update { it.copy(gemini = "Recording locally") }
+                        } else {
+                            memory.begin()
+                            gemini.start(state.value.settings)
+                        }
                         transcriptBoundary = true
-                        gemini.start(state.value.settings, meeting = state.value.meeting)
                         sessionStarted = true
                         gemini.suspendAudio(true)
                     }
@@ -481,8 +512,16 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                     var voicedSamples = 0
                     audio.start(forcePhone = state.value.mock || (state.value.meeting && state.value.meetingPhone), onAudio = { pcm ->
                         val localSound = offline.speaking || System.nanoTime() < thinkingUntilNs
-                        gemini.sendAudio(if (muted || localSound) ByteArray(pcm.size) else pcm)
-                        if (!muted && !localSound) { over.audio(pcm); offline.audio(pcm) }
+                        if (state.value.meeting) {
+                            if (!muted) {
+                                meetingCapture.audio(pcm)
+                                meetingWake.audio(pcm)
+                                if (meetingAssistant.active) gemini.sendAudio(pcm)
+                            }
+                        } else {
+                            gemini.sendAudio(if (muted || localSound) ByteArray(pcm.size) else pcm)
+                            if (!muted && !localSound) { over.audio(pcm); offline.audio(pcm) }
+                        }
                         // Over may have no transcript until sign-off; sustained speech is not idle.
                         if (!muted && !localSound && speechActivity.accept(pcm)) {
                             lastVoicedNs = System.nanoTime()
@@ -502,6 +541,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                         roomCapture = state.value.meeting,
                     )
                     audioReady = true
+                    if (state.value.meeting) meetingWake.startOnDevice()
                     updateOffline()
                     gemini.suspendAudio(false)
                     service?.audioStarted()
@@ -514,6 +554,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                 catch (e: Exception) { error(e.message ?: "Cannot start audio"); stop() }
                 finally {
                     audioReady = false
+                    if (state.value.meeting) { meetingWake.stop(); meetingAssistant.stop(resumeListening = false) }
                     updateOffline()
                     gemini.suspendAudio(true)
                     overResumeJob?.cancel(); over.stop()
@@ -588,17 +629,15 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         workout.stop(interrupted = true)
         coachNavigation.cancel()
         val wasMeeting = state.value.meeting
-        if (!wasMeeting) { gemini.stop(); memory.stop() }
+        if (wasMeeting) { meetingWake.stop(); meetingAssistant.stop(resumeListening = false) }
+        else { gemini.stop(); memory.stop() }
         gestures.disconnected()
         screenTalking = false; glassesTalking = false
         stopJob = viewModelScope.launch {
             startJob?.cancelAndJoin(); startJob = null
             audio.stop()
             if (wasMeeting) {
-                gemini.finishInput()
-                delay(3_000) // Bounded drain for final transcription; no audio is sent after stream end.
-                gemini.stop()
-                memory.stop()
+                withContext(Dispatchers.IO) { meetingCapture.stop() }
             }
             if (!wasMeeting) memory.flush()
             workout.flush()
@@ -611,10 +650,11 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun meetingOptions(title: String = state.value.meetingTitle, doc: String = state.value.meetingDoc,
-                       phone: Boolean = state.value.meetingPhone, over: Boolean = state.value.meetingOver) {
+                       phone: Boolean = state.value.meetingPhone, over: Boolean = state.value.meetingOver,
+                       wakePhrase: String = state.value.settings.meetingWakePhrase) {
         if (!state.value.meeting && !state.value.stopping && state.value.settingsLoaded) {
             mutableState.update { it.copy(meetingTitle = title.take(200), meetingDoc = doc.take(1000)) }
-            saveSettings(state.value.settings.copy(meetingPhone = phone, meetingOver = over))
+            saveSettings(state.value.settings.copy(meetingPhone = phone, meetingOver = over, meetingWakePhrase = wakePhrase))
         }
     }
 
@@ -624,7 +664,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         meetingTransitionJob = viewModelScope.launch {
             if (state.value.running) { service?.endConversation(); stopJob?.join() }
             mutableState.update { it.copy(meeting = true, meetingTitle = title.ifBlank { "Untitled" },
-                meetingDoc = doc, meetingResult = "Recording meeting — say ‘assistant’ to address me.") }
+                meetingDoc = doc, meetingResult = "Recording locally — say ‘${state.value.settings.meetingWakePhrase}’ or use Ask assistant.") }
             saveSettings(state.value.settings.copy(translationLanguage = null))
             start()
             if (!state.value.handsFree.conversation) mutableState.update { it.copy(meeting = false) }
@@ -672,7 +712,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private fun appendTranscript(speaker: String, text: String) {
-        memory.append(if (speaker == "You") "user" else "model", text)
+        if (!state.value.meeting) memory.append(if (speaker == "You") "user" else "model", text)
         service?.activity()
         mutableState.update { state ->
             val previous = state.transcript.lastOrNull()
@@ -686,6 +726,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
 
     override fun onCleared() {
         offline.close()
+        meetingWake.stop(); meetingAssistant.stop(resumeListening = false)
         approvals.close()
         coachNavigation.cancel()
         overResumeJob?.cancel(); over.stop()
@@ -703,6 +744,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             memoryUploads.join()
             startJob?.join()
             audio.stop()
+            withContext(Dispatchers.IO) { meetingCapture.stop() }
             try { backend.visualStatus(false) } catch (_: Exception) { /* Status expires if offline. */ }
             memory.flush()
             workout.flush()

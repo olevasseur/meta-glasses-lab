@@ -1,6 +1,8 @@
 package com.olevasseur.glassesapp
 
 import java.io.IOException
+import java.io.File
+import okhttp3.RequestBody.Companion.asRequestBody
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -93,6 +95,19 @@ class BackendClient(
     suspend fun startMeeting(id: String, metadata: JSONObject): JSONObject = post(
         listOf("meetings", "start"), JSONObject(metadata.toString()).put("meeting_id", id),
     )
+
+    suspend fun meetingChunk(id: String, index: Int, startMs: Long, file: File) {
+        val url = base.newBuilder().addPathSegment("meetings").addPathSegment(id)
+            .addPathSegment("chunks").addPathSegment(index.toString()).addQueryParameter("start_ms", startMs.toString()).build()
+        val result = execute(Request.Builder().url(url).header("X-App-Secret", secret)
+            .post(file.asRequestBody("audio/wav".toMediaType())).build())
+        check(result.optString("status") == "ok" && result.getInt("index") == index)
+    }
+    suspend fun processMeeting(id: String) { post(listOf("meetings", id, "process"), JSONObject()) }
+    suspend fun endChunkedMeeting(id: String, count: Int): JSONObject = execute(Request.Builder()
+        .url(base.newBuilder().addPathSegment("meetings").addPathSegment(id).addPathSegment("end")
+            .addQueryParameter("chunk_count", count.toString()).build())
+        .header("X-App-Secret", secret).post("{}".toRequestBody("application/json".toMediaType())).build())
 
     suspend fun endMeeting(id: String): JSONObject = post(listOf("meetings", id, "end"), JSONObject())
     suspend fun visualFrame(jpeg: ByteArray, label: String?, pinned: Boolean, location: String?): JSONObject = post(
