@@ -164,9 +164,12 @@ class Notes:
                     "text": f"\n{timestamp}\n{text}\n",
                 }}]},
             ).execute()  # No automatic retries: an append is not idempotent.
-            if self.on_append:
-                self.on_append(document, text)
-            return {"status": "ok", "doc_title": document["title"]}
+        # Journal publishing holds memory before acquiring the Google transport.
+        # Release this lock before callbacks acquire memory to avoid deadlock.
+        result = {"status": "ok", "doc_title": document["title"]}
+        if self.on_append:
+            result.update(self.on_append(document, text) or {})
+        return result
 
     def append_research(self, doc_name: str, text: str) -> dict:
         """Create only the default research document; keep normal alias/fuzzy policy."""

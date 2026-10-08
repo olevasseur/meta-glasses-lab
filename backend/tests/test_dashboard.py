@@ -2,6 +2,7 @@ import json
 import re
 import sqlite3
 from contextlib import closing
+from datetime import datetime
 from unittest.mock import Mock
 
 import pytest
@@ -30,7 +31,7 @@ def client(monkeypatch, tmp_path):
     aliases = tmp_path / "aliases.json"
     aliases.write_text('{"inbox": null}')
     monkeypatch.setattr(app, "notes", Notes(token_path=tmp_path / "token.json", aliases_path=aliases,
-                                         on_append=dashboard.record_note))
+                                         on_append=app.record_note))
     dashboard.sessions.clear()
     dashboard.recent_errors.clear()
     with TestClient(app.app, follow_redirects=False) as browser:
@@ -279,6 +280,7 @@ def test_dashboard_default_preserves_merged_token_contract(client, monkeypatch, 
             "look", "set_watch_mode", "codex_task", "deep_research", "job_status", "cancel_job",
             "start_translation", "stop_translation",
             "start_workout", "stop_workout", "workout_status", "workout_history",
+            "write_journal", "read_journal", "morning_brief",
         } if persona == "assistant" else {"start_translation", "stop_translation"})
         detection = live.realtime_input_config.automatic_activity_detection
         assert detection.disabled == (mode != "auto")
@@ -325,3 +327,31 @@ def test_research_notes_share_dashboard_history(client, monkeypatch):
     page = client.get("/dashboard/notes")
     assert "A sourced research report" in page.text
     assert "https://docs.google.com/document/d/research-doc/edit" in page.text
+    with memory_api.memory.db() as db:
+        events = db.execute("SELECT payload FROM journal_events WHERE kind='note_appended'").fetchall()
+    assert [json.loads(row[0]) for row in events] == [
+        {"text": "A sourced research report", "doc_title": "Glasses Research"},
+    ]
+
+
+def test_saved_journal_time_changes_next_scheduled_tick(client, monkeypatch):
+    token = login(client)
+    monkeypatch.setenv("JOURNAL_TIME", "21:30")
+    monkeypatch.setenv("JOURNAL_TIMEZONE", "America/Toronto")
+    monkeypatch.setattr(app.Journal, "now", lambda self: datetime(2026, 10, 8, 19, 59, tzinfo=self.timezone))
+    write = Mock()
+    monkeypatch.setattr(app.Journal, "write_journal", write)
+    assert app.journal_service().scheduled_time.isoformat() == "21:30:00"
+    for schedule, days in [("20:00", ["2026-10-07"]), ("19:00", ["2026-10-07", "2026-10-08"])]:
+        assert post(client, "/settings/preferences", token, journal_time=schedule, default_mode="over").status_code == 303
+        write.reset_mock()
+        app.journal_service().scheduled_tick()
+        assert [call.args[0] for call in write.call_args_list] == days
+        assert dashboard.default_mode() == "over"
+
+
+@pytest.mark.parametrize("settings", ['{broken', '[]', '{"journal_time": null}', '{"journal_time": "25:00"}'])
+def test_invalid_optional_journal_settings_fall_back_to_environment(client, monkeypatch, settings):
+    monkeypatch.setenv("JOURNAL_TIME", "22:15")
+    dashboard.SETTINGS_PATH.write_text(settings)
+    assert app.journal_service().scheduled_time.isoformat() == "22:15:00"

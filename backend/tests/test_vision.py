@@ -33,8 +33,9 @@ def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
         "codex_task", "deep_research", "job_status", "cancel_job",
         "start_translation", "stop_translation",
         "start_workout", "stop_workout", "workout_status", "workout_history",
+        "write_journal", "read_journal", "morning_brief",
     }
-    assert len(setup["tools"][0]["functionDeclarations"]) == 17
+    assert len(setup["tools"][0]["functionDeclarations"]) == 20
     for name, field, kind in [("look", "question", "STRING"), ("set_watch_mode", "on", "BOOLEAN")]:
         tool = declarations[name]
         assert "Client-executed" in tool["description"]

@@ -60,7 +60,7 @@ and optional `GEMINI_LIVE_MODEL`. No new key or runtime AI provider is needed.
 | --- | --- |
 | `backend/doc_aliases.json` | Name → document ID, e.g. `{"inbox":null,"work":"document-id"}`. Only Inbox may be null. Notes reads it on each append. |
 | `backend/codex_repos.json` | Name → absolute repository directory, e.g. `{"glasses":"/path/to/repo"}`. Missing/empty means no allowlisted repos. The running jobs service reads this file for requests and rechecks it before queued work starts. Directory existence is not checked. |
-| `backend/data/dashboard_settings.json` | `{"journal_time":"20:00","default_mode":"auto"}`. `journal_time` is local wall-clock `HH:MM`, saved for the journal feature; this dashboard does not schedule reminders. `default_mode` is `auto`, `ptt`, or `over`, used by `/token` only when mode is omitted. Android's explicit mode takes precedence. Invalid/unreadable optional preferences fall back to automatic for token requests. |
+| `backend/data/dashboard_settings.json` | `{"journal_time":"21:30","default_mode":"auto"}`. Saved `journal_time` overrides `JOURNAL_TIME` for the journal scheduler on its next check, in the configured journal timezone. Without a saved value, the default is `JOURNAL_TIME` or 21:30. `default_mode` is `auto`, `ptt`, or `over`, used by `/token` only when mode is omitted. Android's explicit mode takes precedence. Invalid/unreadable optional preferences fall back to automatic for token requests and the environment default for journal scheduling. |
 | `backend/data/memory.db` | Existing memory tables, plus `note_history(id,doc_id,title,text,created_at)`. Private `backend/data/` remains gitignored. |
 
 Sessions and recent errors are bounded, process-local state. Restart signs everyone
@@ -106,8 +106,9 @@ must submit hidden `csrf={{ csrf }}` fields; validated form values are available
 as `request.state.form`. Never register user-supplied templates or loaders.
 
 The merged Codex jobs service consumes the allowlist above and shares the Notes
-instance, so successful research appends appear in Notes history. Journal time
-remains a stored preference; no scheduler is implemented by this dashboard.
+instance, so successful research appends appear in Notes history and journal
+activity. Journal time is consumed by the merged journal scheduler; the backend
+must be running with `JOURNAL_ENABLED=true`. Dashboard saves do not enable it.
 
 ## Combined merge verification
 

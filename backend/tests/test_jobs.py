@@ -326,6 +326,9 @@ async def test_confirmation_bound_to_original_path_and_root(service, processes):
     ("append_to_doc", {"text": "test note"}, "notes", "append"),
     ("recall", {"query": "test memory"}, "memory", "recall"),
     ("workout_history", {"period": "all"}, "workouts", "history"),
+    ("write_journal", {}, "journal", "write_journal"),
+    ("read_journal", {"date": "yesterday"}, "journal", "read_journal"),
+    ("morning_brief", {}, "journal", "morning_brief"),
 ])
 def test_blocking_tools_do_not_block_job_events(monkeypatch, service, name, args, owner, method):
     from concurrent.futures import ThreadPoolExecutor
@@ -344,6 +347,9 @@ def test_blocking_tools_do_not_block_job_events(monkeypatch, service, name, args
     monkeypatch.setenv("APP_SHARED_SECRET", "test")
     monkeypatch.setattr(app, "Jobs", lambda _: service)
     target = app.notes if owner == "notes" else app.workouts if owner == "workouts" else app.memory_api.memory
+    if owner == "journal":
+        target = Mock()
+        monkeypatch.setattr(app, "journal_service", lambda: target)
     monkeypatch.setattr(target, method, blocking_tool)
     with TestClient(app.app, headers={"X-App-Secret": "test"}) as client, ThreadPoolExecutor() as pool:
         tool = pool.submit(client.post, f"/tools/{name}", json=args)

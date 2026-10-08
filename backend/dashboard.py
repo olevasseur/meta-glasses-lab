@@ -311,7 +311,18 @@ def preferences():
     values = read_json(SETTINGS_PATH, {})
     if not isinstance(values, dict):
         raise ValueError("Invalid dashboard settings")
-    return {"journal_time": "20:00", "default_mode": "auto", **values}
+    return {"journal_time": os.getenv("JOURNAL_TIME", "21:30"), "default_mode": "auto", **values}
+
+
+def journal_time():
+    # Saved dashboard settings take precedence; reread them on each scheduler tick.
+    try:
+        value = preferences()["journal_time"]
+        if isinstance(value, str) and re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", value):
+            return value
+    except (OSError, ValueError, TypeError):
+        pass
+    return os.getenv("JOURNAL_TIME", "21:30")
 
 
 def default_mode():
