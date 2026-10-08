@@ -39,6 +39,7 @@ class VisualMemoryController(
     private var lastSample: Long? = null
     private var lastMoved = Long.MIN_VALUE
     private var lastSaved: Long? = null
+    private var intervalMs = INTERVAL_MS
     private var generation = 0
     var active = false
         private set
@@ -53,6 +54,7 @@ class VisualMemoryController(
         if (!enabled) { stop(); return }
         if (active) return
         active = true
+        intervalMs = INTERVAL_MS
         previousHash = null; lastSaved = null
         onActive(true)
         try { chime() } catch (_: Exception) { stop(); onError("Could not play capture chime; visual memory stayed off"); return }
@@ -64,7 +66,7 @@ class VisualMemoryController(
                     val recentMotion = lastSample?.let { now() - it <= 2_000 } == true
                     val still = recentMotion && lastSaved?.let { lastMoved <= it } == true
                     if (!still) snapshot(null, false)
-                    delay(INTERVAL_MS)
+                    delay(intervalMs)
                 }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { onError("Visual memory capture/upload failed; mode paused") }
@@ -85,6 +87,7 @@ class VisualMemoryController(
                         return@withTimeout JSONObject().put("status", "skipped_duplicate")
                     }
                     val result = upload(bytes, label, pinned)
+                    intervalMs = captureIntervalMs(result)
                     if (result.optString("status") == "ok") {
                         previousHash = fingerprint
                         lastSaved = capturedAt

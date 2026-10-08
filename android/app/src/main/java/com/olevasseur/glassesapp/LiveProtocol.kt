@@ -65,6 +65,7 @@ object LiveProtocol {
         val cancelled = root.optJSONObject("toolCallCancellation")?.optJSONArray("ids")
         val resumption = root.optJSONObject("sessionResumptionUpdate")
         return ServerEvent(
+            usage = root.optJSONObject("usageMetadata"),
             setupComplete = root.has("setupComplete"),
             audio = audio,
             interrupted = content?.optBoolean("interrupted") == true,
@@ -88,6 +89,7 @@ object LiveProtocol {
 
 data class FunctionCall(val id: String, val name: String, val args: JSONObject)
 data class ServerEvent(
+    val usage: JSONObject? = null,
     val setupComplete: Boolean = false,
     val audio: List<ByteArray> = emptyList(),
     val interrupted: Boolean = false,

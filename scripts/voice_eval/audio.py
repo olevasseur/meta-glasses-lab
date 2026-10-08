@@ -51,12 +51,19 @@ def synthesize(client, text: str, voice: str, model=MODEL, cache=CACHE) -> Path:
     if path.exists():
         read(path)
         return path
-    response = client.models.generate_content(
-        model=model, contents=[{"role": "user", "parts": [{"text": text,
-            "speech_metadata": {"style": STYLE}}]}],
-        config={"automatic_function_calling": {"disable": True}, "response_modalities": ["AUDIO"], "speech_config": {
-            "voice_config": {"prebuilt_voice_config": {"voice_name": voice}}}},
-    )
+    from .quota import reserve_tts, meter
+    reserve_tts(text, model)
+    try:
+        response = client.models.generate_content(
+            model=model, contents=[{"role": "user", "parts": [{"text": text,
+                "speech_metadata": {"style": STYLE}}]}],
+            config={"automatic_function_calling": {"disable": True}, "response_modalities": ["AUDIO"], "speech_config": {
+                "voice_config": {"prebuilt_voice_config": {"voice_name": voice}}}},
+        )
+    except Exception:
+        meter.record(model, kind="tts", failed=True)
+        raise
+    meter.record(model, kind="tts", response=response)
     blobs = [p.inline_data for p in response.candidates[0].content.parts if p.inline_data]
     if not blobs:
         raise ValueError("TTS returned no audio")

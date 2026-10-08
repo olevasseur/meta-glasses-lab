@@ -65,3 +65,5 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   fallback, on-device offline capture, durable text work and cached Live health;
   both Live models completed real constrained setup and text defaults were
   verified through the models list endpoint.
+
+- [gemini-quota.md](gemini-quota.md) — **2026-10-08**: current project-specific quota reality, AI Pro $10/month credits, safe key probe (tier inconclusive), personal-use estimates and local metering limitations.

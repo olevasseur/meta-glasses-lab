@@ -60,8 +60,8 @@ class GeminiSessionTest {
         private val created = Channel<Socket>(Channel.UNLIMITED)
         private val http = OkHttpClient.Builder().addInterceptor { chain ->
             val token = chain.request().url.encodedPath == "/token"
-            if (!token) backendCalls.incrementAndGet()
-            else { val buffer = okio.Buffer(); chain.request().body!!.writeTo(buffer); tokenRequests += JSONObject(buffer.readUtf8()) }
+            if (!token && chain.request().url.encodedPath != "/usage/live") backendCalls.incrementAndGet()
+            if (token) { val buffer = okio.Buffer(); chain.request().body!!.writeTo(buffer); tokenRequests += JSONObject(buffer.readUtf8()) }
             val body = if (token) """{"token":"test","model":"gemini-3.8-live","expires_at":"2099-01-01T00:00:00Z"}"""
                 else """{"status":"ok"}"""
             Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200).message("OK")

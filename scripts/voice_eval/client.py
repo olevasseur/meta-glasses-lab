@@ -7,6 +7,7 @@ import time
 
 from websockets.asyncio.client import connect
 from .simulator import AndroidTools
+from .quota import metered_connection
 
 ENDPOINT = ('wss://generativelanguage.googleapis.com/ws/'
             'google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained')
@@ -66,7 +67,7 @@ async def evaluate(case, pcm, http, secret, timeout=45, settle_seconds=5):
             'response_times':[],'first_audio_s':None,'speech_end_s':len(pcm)/32000,
             'activity_end_s':None,'complete':False,'error':None,'cancelled_calls':[],
             'resumption_updates':0,'usage':[],'max_send_lag_s':0}
-    async with connect(ENDPOINT,additional_headers={'Authorization':'Token '+token['token']},
+    async with metered_connection(connect, token, result, ENDPOINT,additional_headers={'Authorization':'Token '+token['token']},
                        open_timeout=20,max_size=8*1024*1024) as ws:
         await ws.send(json.dumps(setup(token['model'])))
         async with asyncio.timeout(20):
@@ -75,6 +76,7 @@ async def evaluate(case, pcm, http, secret, timeout=45, settle_seconds=5):
                 if 'error' in event:
                     raise RuntimeError('Live setup rejected')
                 if 'setupComplete' in event:
+                    result['_usage_started'] = time.monotonic()
                     break
         if case.get('context'):
             await ws.send(json.dumps(text_turn(case['context'],False)))

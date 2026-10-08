@@ -174,7 +174,11 @@ class GeminiSession(
         }
     }
 
+    private val usageReporter = UsageReporter(scope, backend, elapsedMs)
+
     private fun receive(event: ServerEvent, generation: Int) {
+        if (event.setupComplete) currentModel?.let { usageReporter.start(it) }
+        usageReporter.add(event.usage)
         event.error?.let { recover(GeminiRecovery.classify(event.errorCode, it)); return }
         if (!event.inputText.isNullOrEmpty() || !event.outputText.isNullOrEmpty() || event.audio.isNotEmpty() || event.calls.isNotEmpty()) replyPending = true
         if (event.turnComplete || event.interrupted) replyPending = false
@@ -438,6 +442,7 @@ class GeminiSession(
 
     private fun reconnect(reason: String) {
         if (!active) return
+        usageReporter.stop()
         setupTimeout?.cancel()
         stableConnection?.cancel()
         talkTimeout?.cancel()
@@ -466,6 +471,7 @@ class GeminiSession(
     }
 
     fun stop() {
+        usageReporter.stop()
         synchronized(sendLock) {
             if (talking && ready) socket?.send(LiveProtocol.activity(false))
             active = false; ready = false; talking = false; replyPending = false

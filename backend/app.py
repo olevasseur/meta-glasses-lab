@@ -20,6 +20,7 @@ from googleapiclient.errors import HttpError
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 import gemini
+import usage_api
 import gemini_health
 import resilience_work
 from gemini_resilience import live_model, transient
@@ -96,6 +97,7 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan
 app.include_router(diagnostic_logs.router)
 app.include_router(app_ui.router)
 app.include_router(gemini_health.router)
+app.include_router(usage_api.router)
 app.include_router(memory_api.router)
 app.include_router(visual_api.router)
 app.include_router(workouts.router)

@@ -3,12 +3,14 @@ import json
 import os
 import threading
 import time
+import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter
 from websockets.sync.client import connect
 
 import gemini
+from usage import meter
 from gemini_resilience import models
 
 router = APIRouter()
@@ -22,10 +24,12 @@ def probe(model):
     token = gemini.create_token(os.environ["GEMINI_API_KEY"], model, "auto", timeout_ms=5_000)
     with connect(ENDPOINT, additional_headers={"Authorization": "Token " + token["token"]},
                  open_timeout=3, close_timeout=1) as socket:
+        connected_at = time.monotonic()
         socket.send(json.dumps({"setup": {"model": "models/" + model, "sessionResumption": {}}}))
         result = json.loads(socket.recv(timeout=3))
         if "setupComplete" not in result:
             raise RuntimeError("Live setup did not complete")
+        meter.live(uuid.uuid4().hex, model, time.monotonic() - connected_at)
 
 
 @router.get("/health/gemini")

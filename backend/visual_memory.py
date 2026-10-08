@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Annotated
 
 from gemini_resilience import generate_content, GeminiUnavailable
+from usage import meter
 from google import genai
 from google.genai import types
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -61,6 +62,8 @@ def prepare_image(encoded: str) -> tuple[bytes, bytes]:
 
 
 def caption_image(jpeg: bytes) -> Caption:
+    if meter.visual_interval() >= 300:
+        raise GeminiUnavailable("Visual caption budget exhausted; retry after quota reset")
     key = os.getenv("GEMINI_API_KEY")
     if not key:
         raise RuntimeError("Gemini is not configured")
