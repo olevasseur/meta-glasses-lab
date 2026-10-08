@@ -1,7 +1,9 @@
 """Run from backend/: uv run uvicorn app:app --port 8787."""
 
 import hmac
+import http.client
 import os
+import sqlite3
 from typing import Literal
 
 import httpx
@@ -15,11 +17,13 @@ from googleapiclient.errors import HttpError
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 import gemini
+from coach import PROJECT_TOOL_NAMES, Projects
 from notes import BACKEND_DIR, Notes
 
 load_dotenv(BACKEND_DIR.parent / ".env")  # Explicit environment values take precedence.
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 notes = Notes()
+projects = Projects()
 
 
 @app.middleware("http")
@@ -71,6 +75,15 @@ def token(request: TokenRequest):
 def dispatch_tool(name: str, args: dict | None = None):
     if name in gemini.CLIENT_TOOL_NAMES:
         raise HTTPException(400, "This tool must be executed on the glasses app")
+    if name in PROJECT_TOOL_NAMES:
+        try:
+            return projects.run(name, args or {})
+        except ValidationError as exc:
+            raise HTTPException(422, "Invalid coach arguments or extracted project") from exc
+        except ValueError as exc:
+            raise HTTPException(422, "Invalid project source or URL; use a public HTTPS text page or dictate instructions") from exc
+        except (APIError, httpx.HTTPError, RuntimeError, OSError, sqlite3.Error, http.client.HTTPException) as exc:
+            raise HTTPException(502, "Coach operation failed; check current_step before retrying") from exc
     if name != "append_to_doc":
         raise HTTPException(404, "Unknown tool")
     try:

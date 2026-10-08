@@ -127,7 +127,7 @@ suspend fun routeTool(
     local: suspend (FunctionCall) -> ToolResult,
     backend: suspend (FunctionCall) -> JSONObject,
 ): ToolResult = when {
-    call.name in VisionController.TOOL_NAMES -> local(call)
+    call.name in VisionController.TOOL_NAMES || call.name in COACH_TOOL_NAMES -> local(call)
     call.name in clientTools -> ToolResult(toolError("Client tool is not supported by this app version"))
     else -> ToolResult(backend(call))
 }

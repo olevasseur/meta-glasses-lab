@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 import app
 import gemini
 from vision import CLIENT_TOOL_NAMES
+from coach import COACH_CLIENT_TOOL_NAMES, PROJECT_TOOL_NAMES
 
 
 @pytest.mark.parametrize("mode", ["auto", "ptt"])
@@ -19,14 +20,14 @@ def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
 
     monkeypatch.setattr(httpx.Client, "send", send)
     result = gemini.create_token("fake-key", gemini.DEFAULT_MODEL, mode)
-    assert result["client_tools"] == ["look", "set_watch_mode"]
+    assert result["client_tools"] == ["look", "set_watch_mode", *COACH_CLIENT_TOOL_NAMES]
     body, = captured
     assert "tools" in body["fieldMask"]
     assert "sessionResumption" not in body["fieldMask"]
     setup = body["bidiGenerateContentSetup"]
     assert "contextWindowCompression" in setup
     declarations = {d["name"]: d for d in setup["tools"][0]["functionDeclarations"]}
-    assert set(declarations) == {"append_to_doc", *CLIENT_TOOL_NAMES}
+    assert set(declarations) == {"append_to_doc", *CLIENT_TOOL_NAMES, *COACH_CLIENT_TOOL_NAMES, *PROJECT_TOOL_NAMES}
     for name, field, kind in [("look", "question", "STRING"), ("set_watch_mode", "on", "BOOLEAN")]:
         tool = declarations[name]
         assert "Client-executed" in tool["description"]

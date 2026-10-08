@@ -13,3 +13,5 @@ node_modules/
 token.json
 credentials*.json
 client_secret*.json
+
+backend/data/

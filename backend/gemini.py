@@ -5,7 +5,11 @@ from pathlib import Path
 
 from google import genai
 from google.genai import types
-from vision import CLIENT_TOOLS, CLIENT_TOOL_NAMES
+from vision import CLIENT_TOOLS as VISION_TOOLS
+from coach import COACH_CLIENT_TOOLS, PROJECT_TOOLS
+
+CLIENT_TOOLS = [*VISION_TOOLS, *COACH_CLIENT_TOOLS]
+CLIENT_TOOL_NAMES = [tool.name for tool in CLIENT_TOOLS]
 
 DEFAULT_MODEL = "gemini-3.8-live"
 PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
@@ -67,7 +71,7 @@ def token_config(model: str, mode: str) -> types.CreateAuthTokenConfig:
                 output_audio_transcription={},
                 realtime_input_config={"automatic_activity_detection": detection},
                 context_window_compression={"sliding_window": {}},
-                tools=[types.Tool(function_declarations=[APPEND_TO_DOC, *CLIENT_TOOLS])],
+                tools=[types.Tool(function_declarations=[APPEND_TO_DOC, *CLIENT_TOOLS, *PROJECT_TOOLS])],
             ),
         ),
     )

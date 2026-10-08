@@ -10,6 +10,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 | [m2-backend-notes.md](m2-backend-notes.md) | google-genai ephemeral tokens + Docs API (verified while building M2) | `gemini-3.8-live` works with ephemeral tokens; `lock_additional_fields` semantics. |
 | [m4-vision-notes.md](m4-vision-notes.md) | DAT camera + Gemini Live vision (2026-10-07) | Photo-from-stream, mock media, realtime JPEG and image-bound tool responses verified with real auto/PTT tokens. |
 | [google-docs-notes.md](google-docs-notes.md) | Voice → Google Docs | Backend function tool, Desktop OAuth client published to production, Inbox doc + alias map + rapidfuzz. Keep API is Workspace-only. |
+| [cooking-diy-coach.md](cooking-diy-coach.md) | Cooking/DIY projects and app timers (2026-10-07) | Real Gemini extraction schema, Android exact alarms/TTS, DAT nod-event limitation. |
 
 ## Reconciled conflicts
 - **Token locking vs resumption (2026-10-06):** the backend initially locked the whole setup, which would make Gemini ignore the app's resumption handle. Fixed: `lock_additional_fields=[]` and `sessionResumption` left client-owned. See docs/architecture.md.

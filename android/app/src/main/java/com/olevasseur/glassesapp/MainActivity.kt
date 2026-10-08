@@ -83,11 +83,13 @@ class MainActivity : ComponentActivity() {
             }
         }
         requestPermissions()
+        CoachAlarm(this).restore()
     }
 
     private fun requestPermissions() {
         val requested = mutableListOf(Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= 31) requested += Manifest.permission.BLUETOOTH_CONNECT
+        if (Build.VERSION.SDK_INT >= 33) requested += Manifest.permission.POST_NOTIFICATIONS
         androidPermissions.launch(requested.toTypedArray())
     }
     private fun updatePermissions() {
@@ -153,6 +155,8 @@ private fun ConversationScreen(
                 if (state.mock && state.ptt) OutlinedButton(onClick = model.glasses::mockHold, enabled = state.connected) { Text("Simulate capture hold") }
                 if (state.mock) Text("Vision uses the sample image: a blue mug and an orange.", style = MaterialTheme.typography.bodySmall)
             }
+            TextButton(onClick = { CoachAlarm.openAlarms(model.getApplication()) }) { Text("Allow precise timers") }
+            Text("Ask: Start a cooking project, next step, double the recipe, or set a pasta timer for 8 minutes.", style = MaterialTheme.typography.bodySmall)
             Text("Live transcript", style = MaterialTheme.typography.titleMedium)
             if (state.transcript.isEmpty()) Text("Your conversation will appear here.")
             state.transcript.forEach { line -> Text("${line.speaker}: ${line.text}") }

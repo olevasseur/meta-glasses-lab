@@ -61,8 +61,12 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             mutableState.update { it.copy(talking = value) }
         },
         onFatal = { message -> error(message); stop() },
-        localTool = { vision.tool(it) },
+        localTool = { call ->
+            if (call.name in COACH_TOOL_NAMES) coachTool(call, backend::tool, vision::tool, coachAlarms::tool)
+            else vision.tool(call)
+        },
     )
+    private val coachAlarms by lazy { CoachAlarm(application) }
     private val camera: GlassesCamera by lazy {
         GlassesCamera(viewModelScope, glasses) { label -> mutableState.update { it.copy(camera = label) } }
     }
