@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -20,7 +21,7 @@ import org.json.JSONObject
 class GeminiSession(
     private val scope: CoroutineScope,
     private val backend: BackendClient,
-    private val audio: ConversationAudio,
+    private val audio: LiveAudio,
     private val onState: (String, Boolean) -> Unit,
     private val onTranscript: (String, String) -> Unit,
     private val onTurnEnd: () -> Unit,
@@ -31,9 +32,9 @@ class GeminiSession(
     private val localTool: suspend (FunctionCall) -> ToolResult = { ToolResult(toolError("Client tool is unavailable")) },
     private val onTranslationChanged: (String?) -> Unit = {},
     private val onClientTool: (String, JSONObject) -> Unit = { _, _ -> },
+    private val sockets: WebSocket.Factory = OkHttpClient.Builder().readTimeout(0, TimeUnit.MILLISECONDS)
+        .pingInterval(20, TimeUnit.SECONDS).build(),
 ) {
-    private val client = OkHttpClient.Builder().readTimeout(0, TimeUnit.MILLISECONDS)
-        .pingInterval(20, TimeUnit.SECONDS).build()
     private val sendLock = Any()
     private val audioGeneration = AtomicInteger()
     private var socket: WebSocket? = null
@@ -90,7 +91,7 @@ class GeminiSession(
             if (!active) return
             val request = Request.Builder().url(LiveProtocol.ENDPOINT)
                 .header("Authorization", "Token ${credentials.token}").build()
-            synchronized(sendLock) { socket = client.newWebSocket(request, listener(credentials.model)) }
+            synchronized(sendLock) { socket = sockets.newWebSocket(request, listener(credentials.model)) }
             setupTimeout = scope.launch {
                 delay(20_000)
                 if (!ready) reconnect("Gemini setup timed out")
@@ -114,12 +115,15 @@ class GeminiSession(
                 scope.launch { if (webSocket === socket && active) onFatal("Invalid Gemini message; stop and retry") }
                 return
             }
-            val generation = synchronized(sendLock) {
+            val generation = try { synchronized(sendLock) {
                 if (webSocket !== socket || !active) return
                 if (event.interrupted) {
                     audio.flush()
                     audioGeneration.incrementAndGet()
                 } else audioGeneration.get()
+            } } catch (_: Exception) {
+                scope.launch { if (webSocket === socket && active) onFatal("Audio interruption failed; stop and retry") }
+                return
             }
             // Flush on the socket callback, before waiting for the UI thread. The generation
             // also invalidates audio events already queued for delivery to that thread.
@@ -230,8 +234,14 @@ class GeminiSession(
             pendingResponses -= id
         }
         event.calls.forEach { call ->
-            if (meetingGate.mayRespond && (!meetingGate.active || !audioSuspended)) callTool(call)
-            else deliver(call, JSONObject().put("status", "ignored").put("message", "Meeting is silent; no direct address."))
+            if (!audioSuspended && meetingGate.mayRespond) callTool(call)
+            else {
+                val result = JSONObject().put("status", "ignored").put("message",
+                    if (audioSuspended) "Conversation is paused; repeat the request after resuming."
+                    else "Meeting is silent; no direct address.")
+                onTool("${call.name}: $result")
+                deliver(call, result)
+            }
         }
         if (event.turnComplete && !replayingWake) meetingGate.endTurn()
         if (event.goAway) reconnect("Gemini is renewing the connection")
@@ -242,7 +252,8 @@ class GeminiSession(
         responses[call.id]?.let { deliver(it.first, it.second); return }
         if (toolJobs.containsKey(call.id)) return
         onTool("${call.name}: running…")
-        toolJobs[call.id] = scope.launch {
+        // Register before execution: local tools can complete or switch sessions without suspending.
+        val job = scope.launch(start = CoroutineStart.LAZY) {
             val result = try {
                 if (meetingGate.active && call.name in setOf("start_translation", "stop_translation")) {
                     ToolResult(toolError("Stop the meeting before starting translation"))
@@ -274,6 +285,8 @@ class GeminiSession(
             }
             toolJobs.remove(call.id)
         }
+        toolJobs[call.id] = job
+        job.start()
     }
 
     private fun deliver(call: FunctionCall, result: JSONObject, jpeg: ByteArray? = null) {
@@ -337,7 +350,7 @@ class GeminiSession(
             if (ws.queueSize() > (if (meetingGate.active) 2_000_000 else 1_000_000) || !ws.send(LiveProtocol.audio(pcm))) {
                 if (meetingGate.active) meetingAudio.add(pcm)
                 ready = false
-                scope.launch { reconnect("Audio uplink stalled") }
+                scope.launch { if (active && socket === ws) reconnect("Audio uplink stalled") }
             }
         }
     }
@@ -360,7 +373,7 @@ class GeminiSession(
                 wakeFallback?.cancel(); replayingWake = false
                 meetingGate.endTurn()
                 meetingAudio.clear()
-                audio.flush()
+                if (!flushAudio()) return
                 if (replyPending) translationBuffer.discardTurn() else translationBuffer.clear()
                 audio.translationSpeaker.stop()
             }
@@ -378,7 +391,7 @@ class GeminiSession(
         onTalking(value)
         talkTimeout?.cancel()
         if (value) {
-            audio.flush()
+            if (!flushAudio()) return
             if (settings.mode == ConversationMode.PTT) {
                 talkTimeout = scope.launch { delay(60_000); setTalking(false) }
             }
@@ -393,7 +406,7 @@ class GeminiSession(
             ready = false; talking = false; replyPending = false
             socket?.cancel(); socket = null
         }
-        audio.flush()
+        if (!flushAudio()) return
         audio.translationSpeaker.stop()
         translationBuffer.clear()
         wakeFallback?.cancel(); replayingWake = false
@@ -424,9 +437,16 @@ class GeminiSession(
         token = null; handle = null; attempts = 0
         audioGeneration.incrementAndGet()
         translationBuffer.clear()
-        audio.translationSpeaker.stop()
-        audio.flush()
+        // Native playback may be broken; the owner must still reach AudioRecord/Track release.
+        runCatching { audio.translationSpeaker.stop() }
+        runCatching { audio.flush() }
     }
 
-    fun close() { stop(); client.dispatcher.executorService.shutdown(); client.connectionPool.evictAll() }
+    private fun flushAudio(): Boolean = try { audio.flush(); true }
+        catch (_: Exception) { onFatal("Speaker reset failed; stop and retry"); false }
+
+    fun close() {
+        stop()
+        (sockets as? OkHttpClient)?.let { it.dispatcher.executorService.shutdown(); it.connectionPool.evictAll() }
+    }
 }

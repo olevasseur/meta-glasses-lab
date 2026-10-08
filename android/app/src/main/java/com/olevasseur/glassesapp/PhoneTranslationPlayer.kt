@@ -15,17 +15,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
 /** Main-thread lifecycle. The microphone thread only reads [playing]. */
-class PhoneTranslationPlayer(context: Context, private val scope: CoroutineScope) {
+class PhoneTranslationPlayer(context: Context, private val scope: CoroutineScope) : TranslationPlayback {
     private val manager = context.getSystemService(AudioManager::class.java)
     private var job: Job? = null
     private var track: AudioTrack? = null
     private var previous: AudioDeviceInfo? = null
     private var routeSelected = false
     private var generation = 0
-    @Volatile var playing = false
+    @Volatile override var playing = false
         private set
 
-    fun play(pcm: ByteArray, onError: () -> Unit) {
+    override fun play(pcm: ByteArray, onError: () -> Unit) {
         stop()
         if (pcm.isEmpty()) return
         if (Build.VERSION.SDK_INT < 31) { onError(); return }
@@ -98,7 +98,7 @@ class PhoneTranslationPlayer(context: Context, private val scope: CoroutineScope
         }
     }
 
-    fun stop() {
+    override fun stop() {
         generation++
         job?.cancel(); job = null
         releaseTrack(); restoreRoute()

@@ -43,7 +43,7 @@ class GlassesController(
 ) {
     private var initialized = false
     private var monitorJob: Job? = null
-    private var inputsJob: Job? = null
+    private val inputsJob = SerialSessionJob(scope)
     private val mutableSession = MutableStateFlow<DeviceSession?>(null)
     val activeSession = mutableSession.asStateFlow()
     private var deviceSession: DeviceSession? = null
@@ -86,14 +86,14 @@ class GlassesController(
     }
 
     fun releaseCameraSession(session: DeviceSession) {
-        if (inputsJob?.isActive != true && deviceSession === session) {
+        if (!inputsJob.active && deviceSession === session) {
             session.stop(); deviceSession = null
         }
     }
 
     fun startInputs() {
-        if (inputsJob?.isActive == true || !initialized) return
-        inputsJob = scope.launch {
+        if (!initialized) return
+        inputsJob.start { isCurrent ->
             AutoDeviceSelector().activeDeviceFlow().collectLatest { id ->
                 if (id == null) { onInputs("No glasses; use on-screen talk"); return@collectLatest }
                 val session = try { acquireSession(com.meta.wearable.dat.core.selectors.SpecificDeviceSelector(id)) }
@@ -145,13 +145,13 @@ class GlassesController(
                     if (mutableSession.value === session) mutableSession.value = null
                     session.stop()
                     if (deviceSession === session) deviceSession = null
-                    onInputLost()
+                    if (isCurrent()) onInputLost()
                 }
             }
         }
     }
 
-    fun stopInputs() { mutableSession.value = null; inputsJob?.cancel(); inputsJob = null; onInputLost(); onInputs("Inactive") }
+    fun stopInputs() { mutableSession.value = null; inputsJob.stop(); onInputLost(); onInputs("Inactive") }
 
     fun setMock(enabled: Boolean): Boolean {
         if (!BuildConfig.DEBUG) return false
