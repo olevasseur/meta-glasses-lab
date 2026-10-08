@@ -196,6 +196,7 @@ def test_token_locks_memory_and_registry_but_not_resumption(client, store, monke
     assert "kayaking" in live.system_instruction
     assert {t.name for t in live.tools[0].function_declarations} == {
         "append_to_doc", "remember", "recall", "forget", "await_gesture_confirmation",
+        "start_workout", "stop_workout", "workout_status", "workout_history",
     }
     assert config.lock_additional_fields == [] and live.session_resumption is None
 

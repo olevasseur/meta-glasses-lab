@@ -127,6 +127,8 @@ private fun ConversationScreen(
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             val gestureState by model.gestures.state.collectAsStateWithLifecycle()
             GestureControls(gestureState, model::setGestures, model.gestures::setSensitivity)
+            val workoutState by model.workout.state.collectAsStateWithLifecycle()
+            WorkoutControls(workoutState, { model.workout.stop() }, model.workout::setSensitivity)
             if (BuildConfig.DEBUG) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(checked = state.mock, onCheckedChange = model::setMock, enabled = !state.running && !state.stopping)

@@ -66,6 +66,12 @@ class Memory:
                 CREATE TABLE IF NOT EXISTS confirmations (
                     token TEXT PRIMARY KEY, query TEXT NOT NULL, candidates TEXT NOT NULL,
                     expires_at REAL NOT NULL);
+                CREATE TABLE IF NOT EXISTS workouts (
+                    workout_id TEXT PRIMARY KEY, exercise TEXT NOT NULL,
+                    started_at TEXT NOT NULL, ended_at TEXT NOT NULL,
+                    total_reps INTEGER NOT NULL, completed_sets INTEGER NOT NULL,
+                    active_seconds INTEGER NOT NULL, payload TEXT NOT NULL);
+                CREATE INDEX IF NOT EXISTS workouts_started_at ON workouts(started_at);
             """)
             with connection:
                 yield connection

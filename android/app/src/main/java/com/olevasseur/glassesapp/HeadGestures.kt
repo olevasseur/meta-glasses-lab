@@ -6,6 +6,8 @@ import com.meta.wearable.dat.core.session.DeviceSession
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,32 +41,50 @@ class HeadGestures(context: Context, private val scope: CoroutineScope) {
     private val confirmation = GestureConfirmation()
     private var lastSampleAt = 0L
 
-    fun observe(sessions: StateFlow<DeviceSession?>, send: (String) -> Boolean) {
+    private var workoutMotion = false
+
+    fun observe(
+        sessions: StateFlow<DeviceSession?>, send: (String) -> Boolean,
+        workoutDemand: Flow<Boolean> = flowOf(false),
+        onWorkoutSample: (HeadMotionSample) -> Unit = {},
+        onWorkoutUnavailable: () -> Unit = {},
+    ) {
         scope.launch {
-            combine(sessions, state.map { it.enabled }.distinctUntilChanged()) { session, enabled ->
-                session.takeIf { enabled }
-            }.collectLatest { session ->
+            combine(sessions, state.map { it.enabled }.distinctUntilChanged(), workoutDemand) { session, enabled, workout ->
+                workoutMotion = workout
+                session.takeIf { enabled || workout }
+            }.distinctUntilChanged().collectLatest { session ->
+                onWorkoutUnavailable()
                 unavailable(if (!state.value.enabled) "Off" else "Start a conversation with connected glasses")
                 if (session == null) return@collectLatest
                 try {
                     collectGlassesMotion(session, onSample = { sample ->
                         lastSampleAt = SystemClock.elapsedRealtime()
+                        onWorkoutSample(sample)
+                        if (workoutMotion || !state.value.enabled) {
+                            confirmation.clear(); detector.reset()
+                            mutableState.update { it.copy(live = true, question = null,
+                                status = if (workoutMotion) "Workout motion · confirmations paused" else "Off") }
+                            return@collectGlassesMotion
+                        }
                         mutableState.update { it.copy(live = true, status = "Live · nod yes / shake no") }
                         val gesture = detector.add(sample)
                         if (gesture != null) {
                             val sent = confirmation.answer(gesture, lastSampleAt, send)
                             mutableState.update { it.copy(lastGesture = "${gesture.name.lowercase()} · ${if (sent) "sent" else "no pending answer"}", question = confirmation.question) }
                         }
-                    }, onStatus = ::unavailable)
+                    }, onStatus = { label -> onWorkoutUnavailable(); unavailable(label) })
                 } catch (e: CancellationException) { throw e }
-                catch (_: Exception) { unavailable("Motion unavailable; toggle gestures to retry") }
+                catch (_: Exception) { onWorkoutUnavailable(); unavailable("Motion unavailable; toggle gestures to retry") }
             }
         }
         scope.launch {
             while (isActive) {
                 delay(500)
                 val now = SystemClock.elapsedRealtime()
-                if (state.value.live && now - lastSampleAt > 1_000) unavailable("No recent IMU samples")
+                if (state.value.live && now - lastSampleAt > 1_000) {
+                    onWorkoutUnavailable(); unavailable("No recent IMU samples")
+                }
                 confirmation.expire(now)
                 mutableState.update { it.copy(question = confirmation.question) }
             }
@@ -87,7 +107,7 @@ class HeadGestures(context: Context, private val scope: CoroutineScope) {
 
     fun localTool(call: FunctionCall): JSONObject? {
         val now = SystemClock.elapsedRealtime()
-        val result = confirmation.request(call, state.value.enabled && state.value.live && now - lastSampleAt <= 1_000, now)
+        val result = confirmation.request(call, !workoutMotion && state.value.enabled && state.value.live && now - lastSampleAt <= 1_000, now)
         if (result != null) {
             detector.reset() // A motion begun before the question cannot answer it.
             mutableState.update { it.copy(question = confirmation.question) }

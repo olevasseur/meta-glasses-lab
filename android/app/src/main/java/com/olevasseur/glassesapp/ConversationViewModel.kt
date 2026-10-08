@@ -15,6 +15,8 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -50,6 +52,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
     private val audio = ConversationAudio(application, viewModelScope)
     val gestures = HeadGestures(application, viewModelScope)
+    val workout = WorkoutCoach(application, viewModelScope, backend, ::error)
     private var transcriptBoundary = true
     private var screenTalking = false
     private var glassesTalking = false
@@ -67,7 +70,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             mutableState.update { it.copy(talking = value) }
         },
         onFatal = { message -> error(message); stop() },
-        onLocalTool = gestures::localTool,
+        onLocalTool = { call -> workout.localTool(call) ?: gestures.localTool(call) },
         onEvent = gestures::onEvent,
     )
     val glasses = GlassesController(application, viewModelScope,
@@ -85,12 +88,24 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private var startJob: Job? = null
     private var stopJob: Job? = null
 
-    init { gestures.observe(glasses.activeSession, gemini::sendGestureText) }
+    init {
+        workout.bind(gemini::sendGestureText)
+        gestures.observe(glasses.activeSession, gemini::sendGestureText,
+            workout.state.map { it.needsMotion }.distinctUntilChanged(), workout::onSample, workout::motionUnavailable)
+        viewModelScope.launch {
+            workout.state.map { it.needsMotion }.distinctUntilChanged().collect { needed ->
+                if (state.value.running && !state.value.stopping) {
+                    if (needed || state.value.ptt || gestures.state.value.enabled) glasses.startInputs()
+                    else glasses.stopInputs()
+                }
+            }
+        }
+    }
 
     fun setGestures(enabled: Boolean) {
         gestures.setEnabled(enabled)
         if (state.value.running && !state.value.stopping) {
-            if (enabled || state.value.ptt) glasses.startInputs() else glasses.stopInputs()
+            if (enabled || state.value.ptt || workout.state.value.needsMotion) glasses.startInputs() else glasses.stopInputs()
         }
     }
 
@@ -138,6 +153,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     fun stop() {
         if (state.value.stopping || !state.value.running) return
         mutableState.update { it.copy(stopping = true, connected = false, talking = false) }
+        workout.stop(interrupted = true)
         gemini.stop()
         memory.stop()
         gestures.disconnected()
@@ -147,6 +163,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             startJob?.cancelAndJoin(); startJob = null
             audio.stop()
             memory.flush()
+            workout.flush()
             mutableState.update { it.copy(running = false, stopping = false, gemini = "Stopped", route = "No audio session") }
         }
     }
@@ -164,6 +181,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     override fun onCleared() {
+        workout.stop(interrupted = true)
         gemini.close(); glasses.close()
         memory.stop()
         // viewModelScope is already cancelled; finish releasing platform audio on a cleanup scope.
@@ -173,6 +191,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             memoryUploads.join()
             audio.stop()
             memory.flush()
+            workout.flush()
             http.dispatcher.executorService.shutdown(); http.connectionPool.evictAll()
             cleanup.cancel()
         }

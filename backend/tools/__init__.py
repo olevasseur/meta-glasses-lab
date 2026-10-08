@@ -4,6 +4,7 @@ from google.genai import types
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from gesture_tools import AWAIT_GESTURE_CONFIRMATION
+from workouts import WORKOUT_REGISTRY
 
 
 class Arguments(BaseModel):
@@ -91,5 +92,6 @@ REGISTRY = {
     "recall": (RecallRequest, "memory", "recall", RECALL),
     "forget": (ForgetRequest, "memory", "forget", FORGET),
     "await_gesture_confirmation": (None, "client", None, AWAIT_GESTURE_CONFIRMATION),
+    **WORKOUT_REGISTRY,
 }
 DECLARATIONS = [entry[3] for entry in REGISTRY.values()]
