@@ -5,6 +5,7 @@ import android.content.Context
 import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.selectors.AutoDeviceSelector
 import com.meta.wearable.dat.core.session.DeviceSessionState
+import com.meta.wearable.dat.core.session.DeviceSession
 import com.meta.wearable.dat.core.types.LinkState
 import com.meta.wearable.dat.inputs.addInputs
 import com.meta.wearable.dat.inputs.types.CapturePressType
@@ -21,6 +22,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
@@ -37,6 +40,8 @@ class GlassesController(
     private var initialized = false
     private var monitorJob: Job? = null
     private var inputsJob: Job? = null
+    private val mutableSession = MutableStateFlow<DeviceSession?>(null)
+    val activeSession = mutableSession.asStateFlow()
     private var mock: MockGlasses? = null
     private val kit by lazy { MockDeviceKit.getInstance(context) }
 
@@ -68,7 +73,7 @@ class GlassesController(
     fun register(activity: Activity) { if (initialize()) Wearables.startRegistration(activity) }
 
     fun startInputs() {
-        stopInputs()
+        if (inputsJob?.isActive == true) return
         if (!initialized) return
         inputsJob = scope.launch {
             AutoDeviceSelector().activeDeviceFlow().collectLatest { id ->
@@ -80,26 +85,30 @@ class GlassesController(
                     coroutineScope {
                         session.start()
                         withTimeout(15_000) { session.state.first { it == DeviceSessionState.STARTED } }
+                        mutableSession.value = session
+                        // Motion can remain usable even if capture inputs are unavailable.
                         val inputs = session.addInputs(InputsConfiguration(sources = setOf(InputSource.CAPTURE_BUTTON)))
                             .fold(onSuccess = { it }, onFailure = { error, _ -> onInputs(error.description); null })
-                            ?: return@coroutineScope
                         launch { session.errors.collect { onInputs(it.description); onInputLost() } }
                         launch {
                             session.state.collect { state ->
+                                if (state == DeviceSessionState.STOPPED || state == DeviceSessionState.STOPPING) {
+                                    if (mutableSession.value === session) mutableSession.value = null
+                                }
                                 if (state != DeviceSessionState.STARTED) {
                                     onInputs("Glasses session: $state"); onInputLost()
                                 }
                             }
                         }
                         launch {
-                            inputs.state.collect {
+                            inputs?.state?.collect {
                                 onInputs("Capture button: $it")
                                 if (it != InputsState.ACTIVE) onInputLost()
                             }
                         }
-                        launch { inputs.errors.collect { error -> error?.let { onInputs(it.description); onInputLost() } } }
+                        launch { inputs?.errors?.collect { error -> error?.let { onInputs(it.description); onInputLost() } } }
                         launch {
-                            inputs.events.collect { event ->
+                            inputs?.events?.collect { event ->
                                 if (event is InputEvent.Capture && event.source == InputSource.CAPTURE_BUTTON && event.pressType == CapturePressType.HOLD) onHold()
                             }
                         }
@@ -111,6 +120,7 @@ class GlassesController(
                 } catch (_: Exception) {
                     onInputs("Inputs unavailable; use on-screen talk")
                 } finally {
+                    if (mutableSession.value === session) mutableSession.value = null
                     session.stop()
                     onInputLost()
                 }
@@ -118,7 +128,7 @@ class GlassesController(
         }
     }
 
-    fun stopInputs() { inputsJob?.cancel(); inputsJob = null; onInputLost(); onInputs("Inactive") }
+    fun stopInputs() { mutableSession.value = null; inputsJob?.cancel(); inputsJob = null; onInputLost(); onInputs("Inactive") }
 
     fun setMock(enabled: Boolean): Boolean {
         if (!BuildConfig.DEBUG) return false

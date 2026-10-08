@@ -3,6 +3,8 @@
 from google.genai import types
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from gesture_tools import AWAIT_GESTURE_CONFIRMATION
+
 
 class Arguments(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
@@ -82,10 +84,12 @@ FORGET = types.FunctionDeclaration(
 )
 
 # Name -> (validated args, owner, method, Gemini declaration).
+# Client-owned tools are advertised here but validated/executed on the phone.
 REGISTRY = {
     "append_to_doc": (AppendRequest, "notes", "append", APPEND_TO_DOC),
     "remember": (RememberRequest, "memory", "remember", REMEMBER),
     "recall": (RecallRequest, "memory", "recall", RECALL),
     "forget": (ForgetRequest, "memory", "forget", FORGET),
+    "await_gesture_confirmation": (None, "client", None, AWAIT_GESTURE_CONFIRMATION),
 }
 DECLARATIONS = [entry[3] for entry in REGISTRY.values()]

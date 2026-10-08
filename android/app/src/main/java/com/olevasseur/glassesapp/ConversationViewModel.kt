@@ -49,13 +49,14 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         while (isActive) { memory.flush(); delay(5_000) }
     }
     private val audio = ConversationAudio(application, viewModelScope)
+    val gestures = HeadGestures(application, viewModelScope)
     private var transcriptBoundary = true
     private var screenTalking = false
     private var glassesTalking = false
     private val gemini = GeminiSession(
         scope = viewModelScope, backend = backend, audio = audio,
         onState = { label, connected ->
-            if (!connected) { screenTalking = false; glassesTalking = false }
+            if (!connected) { screenTalking = false; glassesTalking = false; gestures.disconnected() }
             mutableState.update { it.copy(gemini = label, connected = connected) }
         },
         onTranscript = ::appendTranscript,
@@ -66,6 +67,8 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             mutableState.update { it.copy(talking = value) }
         },
         onFatal = { message -> error(message); stop() },
+        onLocalTool = gestures::localTool,
+        onEvent = gestures::onEvent,
     )
     val glasses = GlassesController(application, viewModelScope,
         onGlasses = { label -> mutableState.update { it.copy(glasses = label) } },
@@ -81,6 +84,15 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     )
     private var startJob: Job? = null
     private var stopJob: Job? = null
+
+    init { gestures.observe(glasses.activeSession, gemini::sendGestureText) }
+
+    fun setGestures(enabled: Boolean) {
+        gestures.setEnabled(enabled)
+        if (state.value.running && !state.value.stopping) {
+            if (enabled || state.value.ptt) glasses.startInputs() else glasses.stopInputs()
+        }
+    }
 
     fun permissionsGranted(granted: Boolean) {
         mutableState.update { it.copy(permissions = granted) }
@@ -110,7 +122,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                 memory.begin()
                 transcriptBoundary = true
                 gemini.start(state.value.ptt)
-                if (state.value.ptt) glasses.startInputs()
+                if (state.value.ptt || gestures.state.value.enabled) glasses.startInputs()
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { error(e.message ?: "Cannot start audio"); stop() }
         }
@@ -128,6 +140,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         mutableState.update { it.copy(stopping = true, connected = false, talking = false) }
         gemini.stop()
         memory.stop()
+        gestures.disconnected()
         glasses.stopInputs()
         screenTalking = false; glassesTalking = false
         stopJob = viewModelScope.launch {

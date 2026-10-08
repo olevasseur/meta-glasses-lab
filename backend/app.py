@@ -69,6 +69,8 @@ def dispatch_tool(name: str, args: dict | None = None):
     if name not in REGISTRY:
         raise HTTPException(404, "Unknown tool")
     request_type, owner, method, _ = REGISTRY[name]
+    if owner == "client":
+        raise HTTPException(404, "Tool runs on the phone")
     try:
         request = request_type.model_validate(args)
     except ValidationError as exc:

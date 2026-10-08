@@ -77,6 +77,16 @@ def test_auth_unconfigured_fails_closed(client, monkeypatch):
     assert client.post("/token", json={}).status_code == 503
 
 
+def test_gesture_tool_is_client_owned(client, monkeypatch):
+    notes_mock, memory_mock = Mock(), Mock()
+    monkeypatch.setattr(app, "notes", notes_mock)
+    monkeypatch.setattr(memory_api, "memory", memory_mock)
+    response = client.post("/tools/await_gesture_confirmation", json={"question": "Forget this fact?"})
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Tool runs on the phone"}
+    assert notes_mock.mock_calls == memory_mock.mock_calls == []
+
+
 @pytest.mark.parametrize("mode", ["auto", "ptt"])
 def test_token_config_and_response(client, gemini_client, mode):
     before = datetime.now(UTC)
