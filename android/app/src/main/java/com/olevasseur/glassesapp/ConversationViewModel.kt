@@ -208,7 +208,8 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val reading: ReadToMeController by lazy {
         ReadToMeController({ vision.sendFrame(camera::captureText) }, vision::stop, audio::flush)
     }
-    private var visualLocation: String? = null
+    internal var visualLocation: String? = null
+        private set
     private val visualMemory: VisualMemoryController by lazy {
         VisualMemoryController(viewModelScope, vision::captureForMemory, ::visualImageHash,
             upload = { jpeg, label, pinned -> backend.visualFrame(jpeg, label, pinned, visualLocation) },
@@ -351,6 +352,9 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         if (state.value.running || state.value.stopping || !state.value.settingsLoaded) return
         saveSettings(settings)
         service?.setMode(settings.mode)
+    }
+    fun changeMode(mode: ConversationMode) {
+        if (!state.value.stopping) service?.setMode(mode)
     }
     private fun saveSettings(settings: ConversationSettings) {
         val value = settings.normalized()

@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 import gemini
 import dashboard
 import diagnostic_logs
+import app_ui
 import approvals
 import memory_api
 import translation
@@ -86,6 +87,7 @@ async def lifespan(app):
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 app.include_router(diagnostic_logs.router)
+app.include_router(app_ui.router)
 app.include_router(memory_api.router)
 app.include_router(visual_api.router)
 app.include_router(workouts.router)

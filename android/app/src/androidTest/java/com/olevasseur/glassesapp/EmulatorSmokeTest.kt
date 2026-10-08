@@ -1,5 +1,6 @@
 package com.olevasseur.glassesapp
 
+import com.olevasseur.glassesapp.ui.UiTags
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.SystemClock
@@ -33,8 +34,8 @@ class EmulatorSmokeTest {
         }
     }
     private fun main(action: () -> Unit) = instrumentation.runOnMainSync(action)
-    private fun click(text: String) {
-        ui.onNodeWithText(text, useUnmergedTree = true).performScrollTo().performClick()
+    private fun clickStartStop() {
+        ui.onNodeWithTag(UiTags.START_STOP).performClick()
     }
     private fun inject(name: String, transcript: String? = null) {
         SmokeHooks.inject(instrumentation.context.assets.open("smoke/$name.wav")) {
@@ -52,15 +53,17 @@ class EmulatorSmokeTest {
         small.recycle(); original.recycle()
     }
     private fun stop() {
-        click("Stop")
+        clickStartStop()
         await("Stop", 30_000) { !state.running && !state.stopping && !state.connected }
         assertEquals("Stopped", state.gemini)
         assertEquals("No audio session", state.route)
     }
     private fun isFour(text: String) = text.contains("four", true) || Regex("\\b4\\b").containsMatchIn(text)
     private fun showLatestReply() {
-        ui.onAllNodesWithText("Gemini: ", substring = true, useUnmergedTree = true)
-            .onLast().performScrollTo().assertIsDisplayed()
+        val index = state.transcript.indexOfLast { it.speaker != "You" }
+        check(index >= 0)
+        ui.onNodeWithTag(UiTags.TRANSCRIPT).performScrollToIndex(index)
+        ui.onNodeWithTag("transcript_$index").assertIsDisplayed()
     }
     private fun responseSince(index: Int) = state.transcript.drop(index).filter { it.speaker != "You" }.joinToString(" ") { it.text }
 
@@ -77,11 +80,14 @@ class EmulatorSmokeTest {
                     ::model.isInitialized && state.settingsLoaded && state.mock
                 }
                 assertTrue(state.permissions)
+                if (ui.onAllNodesWithTag(UiTags.SETUP_LATER).fetchSemanticsNodes().isNotEmpty()) {
+                    ui.onNodeWithTag(UiTags.SETUP_LATER).performScrollTo().performClick()
+                }
                 ui.onNodeWithText("the glasses app").assertIsDisplayed()
                 await("DAT connected") { state.glasses.contains("connected") && !state.glasses.contains("no glasses") }
                 main { model.setSettings(ConversationSettings()); model.setGestures(true) }
                 screenshot("01-launch")
-                click("Start")
+                clickStartStop()
                 await("Gemini setupComplete") { state.connected }
                 assertTrue(state.route.startsWith("Debug WAV"))
                 await("DAT Inputs active") { state.inputs.contains("ACTIVE") }
@@ -96,7 +102,7 @@ class EmulatorSmokeTest {
                     state.transcript.any { it.speaker == "You" && (it.text.contains("two", true) || it.text.contains("2")) } &&
                         isFour(responseSince(0)) && SmokeHooks.playedBytes.get() > played
                 }
-                ui.onAllNodesWithText("Gemini: ", substring = true, useUnmergedTree = true).onFirst().performScrollTo()
+                ui.onNodeWithTag(UiTags.GEMINI).assertIsDisplayed()
                 screenshot("02-connected")
                 showLatestReply()
                 screenshot("03-audio-transcript")
@@ -106,12 +112,12 @@ class EmulatorSmokeTest {
                     state.lastTool.contains("look") && state.lastTool.contains("frame_sent") && (responseSince(beforeLook).contains("mug", true) || responseSince(beforeLook).contains("cup", true)) &&
                         responseSince(beforeLook).contains("orange", true)
                 }
-                ui.onNodeWithText("Last tool result").performScrollTo()
+                ui.onNodeWithTag(UiTags.TRANSCRIPT).performScrollToNode(hasTestTag(UiTags.LAST_TOOL))
                 screenshot("04-look")
                 stop()
 
                 main { model.setSettings(ConversationSettings(mode = ConversationMode.OVER, overSilenceSeconds = 30)) }
-                click("Start")
+                clickStartStop()
                 await("Over connected and speech listening") {
                     state.connected && state.talking && model.glasses.mockDevice?.services?.speech?.isListening == true
                 }
@@ -125,7 +131,7 @@ class EmulatorSmokeTest {
                     assertTrue("Over ended before sign-off", state.talking)
                     SystemClock.sleep(100)
                 }
-                ui.onNodeWithText(state.overStatus, useUnmergedTree = true).performScrollTo()
+                ui.onNodeWithTag(UiTags.OVER).assertIsDisplayed()
                 screenshot("05-over-waiting")
                 inject("over", "over")
                 await("Over keyword closes turn") { !state.talking }
