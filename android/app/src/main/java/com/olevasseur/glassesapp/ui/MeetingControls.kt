@@ -1,4 +1,6 @@
-package com.olevasseur.glassesapp
+package com.olevasseur.glassesapp.ui
+
+import com.olevasseur.glassesapp.*
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.*
@@ -13,14 +15,8 @@ fun MeetingControls(state: ConversationState, model: ConversationViewModel) {
             label = { Text("Meeting title (optional)") }, enabled = !state.stopping, singleLine = true)
         OutlinedTextField(value = state.meetingDoc, onValueChange = { model.meetingOptions(doc = it) },
             label = { Text("Append to exact Doc title / alias (optional)") }, enabled = !state.stopping, singleLine = true)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = state.meetingPhone, onCheckedChange = { model.meetingOptions(phone = it) }, enabled = !state.stopping)
-            Text("Phone mic on table")
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = state.meetingOver, onCheckedChange = { model.meetingOptions(over = it) }, enabled = !state.stopping)
-            Text("Allow ‘over’ to address assistant")
-        }
+        LabeledSwitch("Phone mic on table", state.meetingPhone, !state.stopping) { model.meetingOptions(phone = it) }
+        LabeledSwitch("Allow ‘over’ to address assistant", state.meetingOver, !state.stopping) { model.meetingOptions(over = it) }
     }
     Button(onClick = { if (state.meeting) model.stopMeeting() else model.startMeeting() },
         enabled = state.settingsLoaded && state.permissions && !state.stopping) {

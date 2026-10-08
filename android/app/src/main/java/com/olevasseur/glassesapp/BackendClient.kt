@@ -57,6 +57,10 @@ class BackendClient(
         .url(base.newBuilder().addPathSegments("diagnostics/health").build())
         .header("X-App-Secret", secret).get().build())
 
+    suspend fun overview(): JSONObject = execute(Request.Builder()
+        .url(base.newBuilder().addPathSegments("ui/overview").build())
+        .header("X-App-Secret", secret).get().build())
+
     suspend fun uploadLogs(entries: JSONArray): JSONObject = post(listOf("logs"), JSONObject().put("entries", entries))
 
     suspend fun approvalStatus(id: String): JSONObject = execute(Request.Builder()

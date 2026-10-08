@@ -1,4 +1,6 @@
-package com.olevasseur.glassesapp
+package com.olevasseur.glassesapp.ui
+
+import com.olevasseur.glassesapp.*
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row

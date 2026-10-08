@@ -57,3 +57,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   regressions; real Auto/PTT/Over constrained Gemini setup passed.
 
 - [Device approvals](device-approvals.md) — **2026-10-08**: tiered app-owned nod/button/screen approvals, immutable backend payloads, real Gemini confirmation/result turns, and device limitations.
+
+- [App UI](app-ui.md) — **2026-10-08**: four-tab Material 3 phone UI, onboarding,
+  accessibility/test tags, authenticated read-only review snapshot, unchanged
+  service/approval ownership; instrumentation execution remains a device check.

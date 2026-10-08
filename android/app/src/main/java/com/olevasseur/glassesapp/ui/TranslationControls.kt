@@ -1,4 +1,6 @@
-package com.olevasseur.glassesapp
+package com.olevasseur.glassesapp.ui
+
+import com.olevasseur.glassesapp.*
 
 import android.os.Build
 import androidx.compose.foundation.layout.*
@@ -14,7 +16,7 @@ fun TranslationControls(state: ConversationState, model: ConversationViewModel) 
     var expanded by remember { mutableStateOf(false) }
     val enabled = !state.meeting && state.settingsLoaded && !state.stopping &&
         (!state.running || (state.connected && state.handsFree.shouldRun))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(selected = state.translationLanguage == null,
             onClick = { model.setTranslation(null) }, label = { Text("Assistant") }, enabled = enabled)
         FilterChip(selected = state.translationLanguage != null,
@@ -35,12 +37,8 @@ fun TranslationControls(state: ConversationState, model: ConversationViewModel) 
     }
     state.translationLanguage?.let { language ->
         Text("English ↔ ${Translation.languages.getValue(language)}. Say ‘stop translation’ to return.")
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = state.translationPhoneSpeaker,
-                onCheckedChange = model::setTranslationSpeaker,
-                enabled = enabled && Build.VERSION.SDK_INT >= 31)
-            Text("Other-language translation on phone speaker")
-        }
+        LabeledSwitch("Other-language translation on phone speaker", state.translationPhoneSpeaker,
+            enabled && Build.VERSION.SDK_INT >= 31, model::setTranslationSpeaker)
         Text(if (Build.VERSION.SDK_INT < 31) "Phone speaker option requires Android 12+."
             else if (state.translationPhoneSpeaker) "Wait for each translation to finish. Microphone pauses during phone playback; Stop cancels it."
             else "Translations play through glasses when connected.", style = MaterialTheme.typography.bodySmall)

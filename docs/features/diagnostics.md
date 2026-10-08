@@ -5,7 +5,7 @@ Implemented **2026-10-08**. Runtime AI stays Gemini. The first hardware session 
 
 ## Use
 
-Tap **Diagnostics** at the top of the Android conversation screen. It shows:
+Open **Settings → Diagnostics** in the Android app. See the [screen map](app-ui.md). It shows:
 
 - DAT registration/link/compatibility, battery percentage and worn (`donState`)
   from the selected device's metadata. Unavailable state is not inferred as worn.
