@@ -63,6 +63,8 @@ class OverSpeechRecognizer(
         }
     }
 
+    fun startOnDevice() { stop(); startPlatform(generation) }
+
     private suspend fun listenOnGlasses() {
         check(Wearables.checkPermissionStatus(Permission.MICROPHONE).getOrDefault(PermissionStatus.Denied) == PermissionStatus.Granted)
         val session = withTimeout(8000) { sessions.first { it != null } } ?: error("No DAT session")
@@ -108,6 +110,7 @@ class OverSpeechRecognizer(
             }
             val recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
             platform = recognizer
+            var segmentedResultDelivered = false
             fun current() = epoch == generation && platform === recognizer
             fun result(bundle: Bundle?, final: Boolean) {
                 if (current()) bundle?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.let { onText(it, final) }
@@ -124,8 +127,8 @@ class OverSpeechRecognizer(
                 override fun onBufferReceived(buffer: ByteArray?) = Unit
                 override fun onEndOfSpeech() = Unit // The shared-PCM detector owns the silence timeout.
                 override fun onPartialResults(partialResults: Bundle?) = result(partialResults, false)
-                override fun onSegmentResults(segmentResults: Bundle) = result(segmentResults, true)
-                override fun onResults(results: Bundle?) { result(results, true); restart() }
+                override fun onSegmentResults(segmentResults: Bundle) { segmentedResultDelivered = true; result(segmentResults, true) }
+                override fun onResults(results: Bundle?) { if (!segmentedResultDelivered) result(results, true); restart() }
                 override fun onEndOfSegmentedSession() = restart()
                 override fun onEvent(eventType: Int, params: Bundle?) = Unit
                 override fun onError(error: Int) {

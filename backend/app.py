@@ -20,6 +20,9 @@ from googleapiclient.errors import HttpError
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 import gemini
+import gemini_health
+import resilience_work
+from gemini_resilience import live_model, transient
 import dashboard
 import diagnostic_logs
 import approvals
@@ -67,6 +70,7 @@ async def lifespan(app):
     app.state.jobs = Jobs(notes)
     await app.state.jobs.start()
     retention = asyncio.create_task(visual_api.retention_loop())
+    recovery = asyncio.create_task(resilience_work.retry_loop())
     try:
         if os.getenv("JOURNAL_ENABLED", "true").lower() in {"true", "1", "yes"}:
             journal_service()  # Validate schedule/timezone at startup.
@@ -74,6 +78,9 @@ async def lifespan(app):
         yield
     finally:
         stop.set()
+        recovery.cancel()
+        with suppress(asyncio.CancelledError):
+            await recovery
         retention.cancel()
         with suppress(asyncio.CancelledError):
             await retention
@@ -86,6 +93,7 @@ async def lifespan(app):
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 app.include_router(diagnostic_logs.router)
+app.include_router(gemini_health.router)
 app.include_router(memory_api.router)
 app.include_router(visual_api.router)
 app.include_router(workouts.router)
@@ -132,6 +140,7 @@ class TokenRequest(BaseModel):
     silence_ms: int = Field(default=2000, strict=True)
     persona: Literal["assistant", "translator"] = "assistant"
     language: str | None = Field(default=None, max_length=40)
+    avoid_models: list[str] = Field(default_factory=list, max_length=16)
 
     @model_validator(mode="after")
     def validate_persona(self):
@@ -154,7 +163,7 @@ def token(request: TokenRequest):
     api_key = os.getenv("GEMINI_API_KEY", "")
     if not api_key:
         raise HTTPException(503, "GEMINI_API_KEY is not configured")
-    model = os.getenv("GEMINI_LIVE_MODEL") or gemini.DEFAULT_MODEL
+    model = live_model(request.avoid_models)
     try:
         return gemini.create_token(
             api_key, model, request.mode,
@@ -165,11 +174,12 @@ def token(request: TokenRequest):
         )
     except (APIError, httpx.HTTPError, RuntimeError) as exc:
         # Upstream exception text can contain credentials or request contents.
-        raise HTTPException(502, "Gemini token creation failed") from exc
+        status = 503 if transient(exc) else 422 if getattr(exc, "code", None) in (400, 401, 403, 404) else 502
+        raise HTTPException(status, "Gemini token configuration rejected" if status == 422 else "Gemini temporarily unavailable") from exc
 
 
 @app.post("/tools/{name}")
-async def dispatch_tool(name: str, args: dict | None = None):
+async def dispatch_tool(name: str, http_request: Request, args: dict | None = None):
     if name not in REGISTRY:
         raise HTTPException(404, "Unknown tool")
     request_type, owner, method, _ = REGISTRY[name]
@@ -179,6 +189,9 @@ async def dispatch_tool(name: str, args: dict | None = None):
         request = request_type.model_validate(args if args is not None else {})
     except ValidationError as exc:
         raise RequestValidationError(exc.errors()) from exc
+    if http_request.headers.get("X-Offline-Id"):
+        from offline_capture import execute
+        return await execute(http_request.headers["X-Offline-Id"], name, request.model_dump())
     if name == "append_to_doc":
         return await approval_actions.append_note(request.model_dump())
     if name in approvals.SENSITIVE:

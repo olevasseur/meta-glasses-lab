@@ -3,6 +3,7 @@
 import json
 import os
 
+from gemini_resilience import generate_content
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, ConfigDict, Field
@@ -35,7 +36,7 @@ def summarize(turns: list[dict], facts: list[dict], forgotten: list[dict]) -> Su
         recent.append({"speaker": turn["speaker"], "text": turn["text"]})
     with genai.Client(api_key=api_key, vertexai=False,
                       http_options=types.HttpOptions(api_version="v1beta", timeout=20_000)) as client:
-        response = client.models.generate_content(
+        response = generate_content(client,
             model=os.getenv("GEMINI_SUMMARY_MODEL") or DEFAULT_SUMMARY_MODEL,
             contents=json.dumps({"transcript": list(reversed(recent)),
                                  "existing_facts": facts, "forgotten": forgotten}, ensure_ascii=False),

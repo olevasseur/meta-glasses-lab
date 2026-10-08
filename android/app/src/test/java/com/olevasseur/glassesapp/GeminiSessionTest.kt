@@ -56,10 +56,12 @@ class GeminiSessionTest {
         val audio = Audio()
         val errors = mutableListOf<String>()
         val backendCalls = AtomicInteger()
+        val tokenRequests = mutableListOf<JSONObject>()
         private val created = Channel<Socket>(Channel.UNLIMITED)
         private val http = OkHttpClient.Builder().addInterceptor { chain ->
             val token = chain.request().url.encodedPath == "/token"
             if (!token) backendCalls.incrementAndGet()
+            else { val buffer = okio.Buffer(); chain.request().body!!.writeTo(buffer); tokenRequests += JSONObject(buffer.readUtf8()) }
             val body = if (token) """{"token":"test","model":"gemini-3.8-live","expires_at":"2099-01-01T00:00:00Z"}"""
                 else """{"status":"ok"}"""
             Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200).message("OK")
@@ -68,6 +70,7 @@ class GeminiSessionTest {
         val session: GeminiSession = GeminiSession(scope, BackendClient(http, "http://localhost/", "fixture"), audio,
             { _, _ -> }, { _, _ -> }, {}, {}, {}, { errors += it; sessionRef().stop() }, localTool = local,
             onClientTool = { _, _ -> action(sessionRef()) },
+            elapsedMs = { 0L }, retryDelay = { 1L },
             sockets = WebSocket.Factory { request, listener -> Socket(request, listener).also { created.trySend(it) } })
         private fun sessionRef() = session
         suspend fun connected(meeting: Boolean = false): Socket {
@@ -189,4 +192,51 @@ class GeminiSessionTest {
             assertEquals(1, calls)
         }
     }
+    @Test fun transientClosesKeepRetryingBeyondOldLimitAndRequestFallback() = runBlocking {
+        Fixture(this).use { f ->
+            var socket = f.connected()
+            repeat(12) {
+                socket.listener.onClosing(socket, 1011, "Internal error encountered")
+                socket = f.nextSocket()
+            }
+            assertTrue(f.errors.isEmpty())
+            assertTrue(f.tokenRequests.any { it.optJSONArray("avoid_models")?.length() == 1 })
+            f.session.stop()
+            socket.listener.onClosed(socket, 1011, "Internal error encountered")
+            yield()
+            assertTrue(f.errors.isEmpty())
+        }
+    }
+    @Test fun realPolicyConfigurationRejectionIsFatalButQuotaIsRecoverable() = runBlocking {
+        Fixture(this).use { f ->
+            val first = f.connected()
+            first.listener.onClosing(first, 1008, "RESOURCE_EXHAUSTED quota")
+            val next = f.nextSocket()
+            assertTrue(f.errors.isEmpty())
+            next.listener.onClosing(next, 1008, "Invalid token constraints fieldMask")
+            yield()
+            assertEquals(1, f.errors.size)
+            assertTrue(f.errors.single().contains("configuration"))
+        }
+    }
+
+    @Test fun validHandleSurvivesTransientCloseAndExpiredTokenRefresh() = runBlocking {
+        Fixture(this).use { f ->
+            val first = f.connected()
+            first.receive("""{"sessionResumptionUpdate":{"resumable":true,"newHandle":"keep-me"}}""")
+            yield()
+            first.listener.onClosing(first, 1011, "Internal error encountered")
+            val second = f.nextSocket()
+            assertTrue(second.sent.first().contains("keep-me"))
+            assertEquals(1, f.tokenRequests.size)
+            second.listener.onClosing(second, 1008, "token expired")
+            val third = f.nextSocket()
+            assertTrue(third.sent.first().contains("keep-me"))
+            assertEquals(2, f.tokenRequests.size)
+            third.receive("""{"sessionResumptionUpdate":{"resumable":false}}"""); yield()
+            third.listener.onClosing(third, 1011, "Internal error encountered")
+            assertFalse(f.nextSocket().sent.first().contains("keep-me"))
+        }
+    }
+
 }

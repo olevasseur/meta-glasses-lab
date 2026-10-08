@@ -10,6 +10,8 @@ from datetime import UTC, date as Date, datetime, time, timedelta
 from typing import Annotated
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from gemini_resilience import generate_content, GeminiUnavailable
+from resilience_work import defer
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, ConfigDict, Field
@@ -51,7 +53,7 @@ def generate_entry(data: dict) -> Entry:
         raise RuntimeError("GEMINI_API_KEY is not configured")
     with genai.Client(api_key=key, vertexai=False,
                       http_options=types.HttpOptions(api_version="v1beta", timeout=30_000)) as client:
-        response = client.models.generate_content(
+        response = generate_content(client,
             model=os.getenv("GEMINI_JOURNAL_MODEL") or os.getenv("GEMINI_SUMMARY_MODEL") or DEFAULT_SUMMARY_MODEL,
             contents=json.dumps(data, ensure_ascii=False),
             config=types.GenerateContentConfig(
@@ -188,7 +190,11 @@ class Journal:
             return dict(row)
         data = self.collect(day)
         if any(data[k] for k in ("summaries", "transcripts", "notes_appended", "facts_learned", "events", "previous_todos")):
-            entry = generate_entry(data)
+            try:
+                entry = generate_entry(data)
+            except GeminiUnavailable:
+                defer(self.memory, "journal", day.isoformat())
+                raise
         else:
             entry = Entry(diary="I don't have any recorded activity for this day.", highlights=[], people_mentioned=[], todos=[])
         with self.memory.db() as db:

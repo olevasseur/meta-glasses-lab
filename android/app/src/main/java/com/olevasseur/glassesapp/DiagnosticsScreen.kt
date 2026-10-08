@@ -84,6 +84,8 @@ fun DiagnosticsScreen(state: ConversationState, model: ConversationViewModel, ba
     var lastProbeRoute by remember { mutableStateOf("") }
     var level by remember { mutableFloatStateOf(0f) }
     var tick by remember { mutableLongStateOf(0L) }
+    var geminiHealth by remember { mutableStateOf("Gemini backend probe: not checked") }
+    var checkingGemini by remember { mutableStateOf(false) }
     var datPermissions by remember { mutableStateOf("Not checked") }
     var motion by remember { mutableStateOf(false) }
     var frame by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
@@ -183,6 +185,21 @@ fun DiagnosticsScreen(state: ConversationState, model: ConversationViewModel, ba
             Text("Microphone RMS: %.1f%%".format(level * 100))
             LinearProgressIndicator(progress = { level.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
             Text("Gemini: ${state.gemini}\nResumption handle age: ${DiagnosticMetrics.handleUpdatedMs?.let { "${(tick - it).coerceAtLeast(0) / 1000} s" } ?: "none / unavailable"}")
+            Text(geminiHealth)
+            var offlineReview by remember { mutableStateOf("") }
+            Button(onClick = { offlineReview = model.offlineCaptures() }) { Text("Review offline captures") }
+            if (offlineReview.isNotEmpty()) Text(offlineReview)
+            Button(enabled = !checkingGemini, onClick = {
+                checkingGemini = true
+                scope.launch {
+                    try {
+                        val result = model.geminiHealth()
+                        geminiHealth = "Backend Live probe: ${result.optString("status")} · ${result.optString("checked_at")} · cached=${result.optBoolean("cached")}\n${result.optJSONArray("models")}"
+                    } catch (e: CancellationException) { throw e }
+                    catch (_: Exception) { geminiHealth = "Gemini health probe unavailable; check backend connection" }
+                    finally { checkingGemini = false }
+                }
+            }) { Text("Check Gemini health") }
             Text("Speech end → first audio: ${DiagnosticMetrics.latencyMs?.let { "$it ms (local estimate, excludes speaker buffer)" } ?: "Awaiting spoken reply"}")
             Text("Backend: ${DiagnosticLog.uploadStatus}\nRing evictions: ${DiagnosticLog.ring.dropped}")
             Text("Permissions:\n$permissions\nDAT: $datPermissions")

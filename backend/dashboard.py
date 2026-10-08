@@ -441,6 +441,15 @@ def status_page(request):
     return {"storage": storage, "google": google, "errors": list(recent_errors.copy())[::-1]}
 
 
+@router.post("/status/gemini")
+def test_gemini(request: Request):
+    from gemini_health import health
+    result = health()
+    details = "; ".join(f"{item['model']}: {item['status']}" + (f" ({item['code']})" if item.get("code") else "") for item in result["models"])
+    message = f"Live setup: {result['status']} (checked {result['checked_at']}; cached={result['cached']}). {details}"
+    return render(request, "status.html", "Status", token_result=message, **status_page(request))
+
+
 @router.post("/status/token")
 def test_token(request: Request):
     try:

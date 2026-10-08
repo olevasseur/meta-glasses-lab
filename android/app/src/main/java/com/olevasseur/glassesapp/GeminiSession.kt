@@ -33,6 +33,8 @@ class GeminiSession(
     private val onTranslationChanged: (String?) -> Unit = {},
     private val onApproval: suspend (JSONObject) -> Unit = {},
     private val onClientTool: (String, JSONObject) -> Unit = { _, _ -> },
+    private val elapsedMs: () -> Long = android.os.SystemClock::elapsedRealtime,
+    private val retryDelay: (Int) -> Long = { GeminiRecovery.backoff(it) },
     private val sockets: WebSocket.Factory = OkHttpClient.Builder().readTimeout(0, TimeUnit.MILLISECONDS)
         .pingInterval(20, TimeUnit.SECONDS).build(),
 ) {
@@ -56,6 +58,12 @@ class GeminiSession(
     private var setupTimeout: Job? = null
     private var talkTimeout: Job? = null
     private var attempts = 0
+    private var modelFailures = 0
+    private var currentModel: String? = null
+    private val avoidedModels = linkedSetOf<String>()
+    private var stableConnection: Job? = null
+    private var handleReceivedAt: Instant? = null
+    private var handleModel: String? = null
     private val toolJobs = mutableMapOf<String, Job>()
     private val responses = mutableMapOf<String, Pair<FunctionCall, JSONObject>>()
     private val pendingResponses = mutableSetOf<String>()
@@ -85,11 +93,22 @@ class GeminiSession(
         if (!active) return
         onState(if (handle == null) "Connecting…" else "Resuming…", false)
         try {
+            if (handleReceivedAt?.isBefore(Instant.now().minusSeconds(7200)) == true) handle = null
             val reusable = token?.takeIf {
                 handle != null && runCatching { Instant.parse(it.expiresAt).isAfter(Instant.now().plusSeconds(30)) }.getOrDefault(false)
             }
-            val credentials = reusable ?: backend.token(settings.mode, settings.silenceMs, translationLanguage, meetingGate.active).also { token = it }
+            val credentials = reusable ?: backend.token(settings.mode, settings.silenceMs, translationLanguage, meetingGate.active, avoidedModels).also {
+                if (handleModel != null && handleModel != it.model) { handle = null; handleReceivedAt = null }
+                if (it.model in avoidedModels) avoidedModels.clear() // All candidates failed: start a new circuit.
+                currentModel = it.model
+                token = it
+            }
             if (!active) return
+            if (handle == null) {
+                // Tool responses belong to their old Live context, never a replacement session.
+                toolJobs.values.forEach { it.cancel() }; toolJobs.clear()
+                responses.clear(); pendingResponses.clear(); cancelledCalls.clear()
+            }
             val request = Request.Builder().url(LiveProtocol.ENDPOINT)
                 .header("Authorization", "Token ${credentials.token}").build()
             synchronized(sendLock) { socket = sockets.newWebSocket(request, listener(credentials.model)) }
@@ -99,8 +118,8 @@ class GeminiSession(
             }
         } catch (e: CancellationException) {
             throw e
-        } catch (_: Exception) {
-            reconnect("Cannot get backend token; check backend and shared secret")
+        } catch (e: Exception) {
+            recover(GeminiRecovery.classify((e as? BackendHttpException)?.code, (e as? BackendHttpException)?.detail.orEmpty(), backend = true))
         }
     }
 
@@ -139,39 +158,40 @@ class GeminiSession(
             webSocket.close(code, null)
             scope.launch {
                 if (webSocket !== socket || !active) return@launch
-                if (meetingGate.active && handle != null && (code == 1007 || code == 1008)) {
-                    handle = null; token = null
-                    onTranscript("You", " [Capture note: Live context could not resume; starting fresh while retaining the saved meeting transcript.] ")
-                    reconnect("Starting a fresh meeting connection")
-                } else if (code == 1007 || code == 1008) onFatal("Gemini rejected setup ($code); check token constraints and resumption field mask")
-                else reconnect("Gemini disconnected ($code)")
+                recover(GeminiRecovery.classify(code, reason))
             }
         }
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-            scope.launch { if (webSocket === socket && active) reconnect("Gemini disconnected ($code)") }
+            scope.launch { if (webSocket === socket && active) recover(GeminiRecovery.classify(code, reason)) }
         }
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             scope.launch {
                 if (webSocket !== socket || !active) return@launch
-                if (response?.code == 401 || response?.code == 403) token = null
-                reconnect("Gemini connection lost")
+                val reason = runCatching { response?.peekBody(8192)?.string() }.getOrNull().orEmpty()
+                recover(GeminiRecovery.classify(response?.code, reason + " " + t.message.orEmpty()))
             }
         }
     }
 
     private fun receive(event: ServerEvent, generation: Int) {
-        event.error?.let { onFatal("Gemini reported an API error; check the backend session configuration"); return }
+        event.error?.let { recover(GeminiRecovery.classify(event.errorCode, it)); return }
         if (!event.inputText.isNullOrEmpty() || !event.outputText.isNullOrEmpty() || event.audio.isNotEmpty() || event.calls.isNotEmpty()) replyPending = true
         if (event.turnComplete || event.interrupted) replyPending = false
         onEvent(event)
         if (event.resumable == true && event.handle != null) {
             handle = event.handle
-            DiagnosticMetrics.handleUpdatedMs = android.os.SystemClock.elapsedRealtime()
-        } else if (event.resumable == false) DiagnosticMetrics.handleUpdatedMs = null
+            handleReceivedAt = Instant.now()
+            handleModel = token?.model
+            DiagnosticMetrics.handleUpdatedMs = elapsedMs()
+        } else if (event.resumable == false) { handle = null; handleReceivedAt = null; DiagnosticMetrics.handleUpdatedMs = null }
         if (!audioSuspended && !event.interrupted && event.audio.isNotEmpty()) DiagnosticMetrics.response()
         if (event.setupComplete) {
             setupTimeout?.cancel()
-            attempts = 0
+            stableConnection?.cancel()
+            stableConnection = scope.launch {
+                delay(60_000)
+                attempts = 0; modelFailures = 0; avoidedModels.clear()
+            }
             synchronized(sendLock) {
                 ready = true
                 if (meetingGate.active) {
@@ -408,9 +428,17 @@ class GeminiSession(
         }
     }
 
+    private fun recover(failure: GeminiFailure) {
+        if (failure.fatal) { onFatal(failure.message); return }
+        if (failure.refreshToken) token = null
+        if (failure.clearHandle) { handle = null; handleReceivedAt = null }
+        reconnect(failure.message)
+    }
+
     private fun reconnect(reason: String) {
         if (!active) return
         setupTimeout?.cancel()
+        stableConnection?.cancel()
         talkTimeout?.cancel()
         synchronized(sendLock) {
             ready = false; talking = false; replyPending = false
@@ -422,11 +450,16 @@ class GeminiSession(
         wakeFallback?.cancel(); replayingWake = false
         meetingGate.endTurn()
         onTalking(false)
-        if (++attempts > 8) { onFatal("$reason. Reconnect limit reached; tap Start to retry."); return }
-        onState("$reason · reconnecting${if (handle == null) " (new session)" else ""}", false)
+        attempts = (attempts + 1).coerceAtMost(100)
+        if (++modelFailures >= 3 && currentModel != null) {
+            avoidedModels += currentModel!!
+            token = null; handle = null; handleReceivedAt = null; modelFailures = 0
+        }
+        val waitMs = retryDelay(attempts)
+        onState("$reason · retry in ${(waitMs + 999) / 1000}s", false)
         reconnectJob?.cancel()
         reconnectJob = scope.launch {
-            delay(minOf(1000L shl (attempts - 1), 15_000L))
+            delay(waitMs)
             connect()
         }
     }
@@ -444,7 +477,8 @@ class GeminiSession(
         setupTimeout?.cancel(); talkTimeout?.cancel()
         toolJobs.values.forEach { it.cancel() }; toolJobs.clear()
         responses.clear(); pendingResponses.clear(); cancelledCalls.clear()
-        token = null; handle = null; attempts = 0
+        token = null; handle = null; handleReceivedAt = null; attempts = 0; modelFailures = 0
+        avoidedModels.clear(); stableConnection?.cancel(); handleModel = null; currentModel = null
         DiagnosticMetrics.handleUpdatedMs = null
         DiagnosticMetrics.latency.reset()
         DiagnosticMetrics.latencyMs = null

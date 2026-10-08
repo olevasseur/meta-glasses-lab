@@ -163,7 +163,7 @@ def test_token_missing_key_and_sanitized_upstream_error(client, gemini_client, m
     monkeypatch.setenv("GEMINI_API_KEY", "private-key")
     gemini_client[0].auth_tokens.create.side_effect = APIError(403, {"error": {"message": "private-key"}})
     response = client.post("/token", json={})
-    assert response.status_code == 502
+    assert response.status_code == 422
     assert "private-key" not in response.text
 
 

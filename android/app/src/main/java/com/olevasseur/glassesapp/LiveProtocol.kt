@@ -80,7 +80,8 @@ object LiveProtocol {
             goAway = root.has("goAway"),
             resumable = resumption?.optBoolean("resumable"),
             handle = resumption?.optString("newHandle")?.takeIf { it.isNotBlank() },
-            error = root.optJSONObject("error")?.optString("message"),
+            error = root.optJSONObject("error")?.let { it.optString("status") + " " + it.optString("message") },
+            errorCode = root.optJSONObject("error")?.optInt("code"),
         )
     }
 }
@@ -99,4 +100,5 @@ data class ServerEvent(
     val resumable: Boolean? = null,
     val handle: String? = null,
     val error: String? = null,
+    val errorCode: Int? = null,
 )

@@ -57,3 +57,8 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   regressions; real Auto/PTT/Over constrained Gemini setup passed.
 
 - [Device approvals](device-approvals.md) — **2026-10-08**: tiered app-owned nod/button/screen approvals, immutable backend payloads, real Gemini confirmation/result turns, and device limitations.
+
+- [Gemini resilience](resilience.md) — **2026-10-08**: classified retries, model
+  fallback, on-device offline capture, durable text work and cached Live health;
+  both Live models completed real constrained setup and text defaults were
+  verified through the models list endpoint.

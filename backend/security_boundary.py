@@ -52,7 +52,7 @@ class SecurityBoundary:
                 return await reject(status, 'Authentication failed')
         if path == '/dashboard/login' and not self.allow('login', 30):
             return await reject(429, 'Too many login attempts; wait a minute')
-        expensive = path in {'/token', '/visual/frames', '/tools/start_project', '/dashboard/status/token'} or path.endswith('/end')
+        expensive = path in {'/token', '/visual/frames', '/tools/start_project', '/dashboard/status/token', '/health/gemini', '/dashboard/status/gemini'} or path.endswith('/end')
         lane, limit = ('expensive', 30) if expensive else ('browser', 240) if browser else ('api', 240)
         if not self.allow(lane, limit):
             return await reject(429, 'Request rate exceeded; wait a minute')
