@@ -61,11 +61,21 @@ naming remain unchanged.
 
 Claude uses documented `-p`, JSON schema/output, `dontAsk`, restricted and safe
 modes, explicit allow/deny tool lists and no extra directory access. Coding allows
-Read/Grep/Glob/Edit/Write only. All Bash is denied, including push, remote changes,
-rm, curl and wget; web tools are denied. Restricted mode confines file tools to
-the worktree. **Claude cannot execute tests** under this policy; its report and
-Jobs page explicitly say so. Research allows only WebSearch/WebFetch/Read/Grep/Glob
-inside a fresh research directory, with no edits or shell execution.
+Read/Grep/Glob/Edit/Write/Bash. Each coding job gets inline `--settings` JSON
+requiring the built-in Bash sandbox, with worktree/private-temp writes and no
+network. Shared Git metadata and the worktree `.git` are explicitly write-denied.
+Unsandboxed retry, excluded commands, weaker isolation, local binding and Unix
+sockets are disabled; unavailable sandbox support fails startup. Explicit
+push/remote/rm/curl/wget/ssh rules and web-tool denies remain. Restricted mode
+confines file tools to the worktree and ignores user/repo/local settings.
+
+Claude can now run **installed, offline tests**. For example: “Tell Claude to fix
+the label in glasses and run its unit tests.” Dependencies must already be
+available; package downloads, shared-cache writes and tests needing network or
+local servers may fail. The short private `/tmp/gc-*` scratch directory is removed
+after execution. Jobs labels checks as agent-reported, not independently verified.
+Research still allows only WebSearch/WebFetch/Read/Grep/Glob inside a fresh
+research directory, with no edits or Bash.
 
 Claude coding branches are `glasses/claude-<repo-slug>-<UTC timestamp>-<id>`.
 Jobs never push, merge, commit, publish or deploy code. Worktrees/branches remain
@@ -101,27 +111,35 @@ uv run python ../scripts/smoke_claude_jobs.py
 ```
 
 This runs two sequential tiny Claude jobs in a private temp directory and asserts
-a sourced JSON report plus an isolated file edit. Its allowlist is disposable;
+a sourced JSON report, isolated file edit and `python -m pytest` execution.
+Five fixed pytest cases verify the edit, private temp, blocked curl/urllib network
+access, an outside sentinel write and shared Git write. Host curl and pytest must
+work first. JUnit results, unchanged test source and untouched sentinels are checked;
+inspect retained CLI logs too, since JUnit itself is model-writable. Its allowlist is disposable;
 the real allowlist is never changed. Artifacts are retained for inspection. No
 Google Docs write or Gemini call is made. Default smoke timeout is 240 seconds
 per job. The smoke was **not run here**; real model availability, permissions,
 comparison quality, Docs publication and hardware behavior remain unverified.
 
-CLI permissions are not an OS container. Use trusted repos/tasks and review edits.
-Managed Mac policy can affect CLI behavior; the provider connection itself requires
-network access. New files are listed separately from tracked diff stats.
+Bash uses OS sandboxing (Seatbelt on macOS); the provider-connected CLI is outside
+that boundary. Bash may read files beyond the worktree by default. Use trusted
+repos/tasks and review edits. Managed Mac policy can override settings; run the
+external smoke on the actual host before relying on enforcement. New files are listed separately from tracked diff stats.
 
 Verified sources accessed **2026-10-08**: [headless mode](https://code.claude.com/docs/en/headless),
 [CLI flags](https://code.claude.com/docs/en/cli-reference),
 [permissions](https://code.claude.com/docs/en/permissions),
-[settings](https://code.claude.com/docs/en/settings), and the
+[settings](https://code.claude.com/docs/en/settings),
+[sandboxing](https://code.claude.com/docs/en/sandboxing),
+[sandbox reference](https://code.claude.com/docs/en/settings-reference#sandbox-settings),
+[temp environment](https://code.claude.com/docs/en/env-vars), and the
 [local help/research record](../research/claude-code-headless.md).
 
 Local verification on **2026-10-08**:
 
 ```text
 cd backend && UV_CACHE_DIR=/tmp/claudejobs-uv-cache uv run pytest -q
-555 passed, 3 warnings in 5.44s
+559 passed, 3 warnings in 5.21s
 ```
 
 Warnings are the existing Starlette/httpx, Python audioop and experimental Gemini

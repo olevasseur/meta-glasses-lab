@@ -43,7 +43,9 @@ def cli(monkeypatch):
         report = {'summary': argv[0] + ' completed.',
                   'report': '# Findings\n' + argv[0] + ' evidence. Tests not run.\nhttps://example.org/source'}
         if argv[0] == 'git':
-            if 'rev-parse' in argv:
+            if '--git-common-dir' in argv:
+                output = b'/original-repo/.git'
+            elif 'rev-parse' in argv:
                 output = str(kwargs['cwd']).encode()
             elif 'worktree' in argv:
                 Path(argv[-2]).mkdir(parents=True)
@@ -100,7 +102,9 @@ def test_aliases(spoken, expected):
 def test_only_documented_cli_flags_and_strict_policy():
     help_text = (Path(__file__).parents[2] / 'docs/research/claude-cli-help-2026-10-08.txt').read_text()
     for coding_job in (True, False):
-        command = claude_command('claude-opus-5-5', '{}', '--hostile task', coding_job)
+        command = claude_command('claude-opus-5-5', '{}', '--hostile task', coding_job,
+                                 worktree=Path('/job/worktree'), temp_dir=Path('/tmp/gc-test'),
+                                 git_dir=Path('/repo/.git'))
         for arg in command[:-1]:
             if arg.startswith('--') and arg != '--':
                 assert arg in help_text
@@ -110,11 +114,41 @@ def test_only_documented_cli_flags_and_strict_policy():
         assert '--add-dir' not in command and '--bare' not in command
         assert command[command.index('--permission-mode') + 1] == 'dontAsk'
         assert command[command.index('--permission-prompts') + 1] == 'none'
-        deny = command[command.index('--disallowedTools') + 1]
-        for rule in ('Bash', 'Bash(git push *)', 'Bash(git remote *)', 'Bash(rm *)', 'Bash(curl *)', 'Bash(wget *)', 'mcp__*'):
+        deny = command[command.index('--disallowedTools') + 1].split(',')
+        for rule in ('Bash(git push *)', 'Bash(git remote *)', 'Bash(rm *)', 'Bash(curl *)', 'Bash(wget *)', 'Bash(ssh *)', 'mcp__*'):
             assert rule in deny
+        assert ('Bash' in deny) is not coding_job
         allowed = command[command.index('--tools') + 1]
-        assert allowed == ('Read,Grep,Glob,Edit,Write' if coding_job else 'WebSearch,WebFetch,Read,Grep,Glob')
+        assert allowed == ('Read,Grep,Glob,Edit,Write,Bash' if coding_job else 'WebSearch,WebFetch,Read,Grep,Glob')
+        assert command[command.index('--allowedTools') + 1] == allowed
+        if not coding_job:
+            assert '--settings' not in command
+
+
+def test_claude_sandbox_settings():
+    command = claude_command('model', '{}', 'task', True, worktree=Path('/job/worktree'),
+                             temp_dir=Path('/tmp/gc-test'), git_dir=Path('/repo/.git'))
+    sandbox = json.loads(command[command.index('--settings') + 1])['sandbox']
+    assert sandbox['enabled'] and sandbox['failIfUnavailable']
+    assert sandbox['autoAllowBashIfSandboxed']
+    assert not sandbox['allowUnsandboxedCommands']
+    assert sandbox['excludedCommands'] == []
+    assert not sandbox['enableWeakerNetworkIsolation']
+    assert not sandbox['enableWeakerNestedSandbox']
+    assert sandbox['filesystem'] == {'disabled': False,
+        'allowWrite': ['/job/worktree', '/tmp/gc-test'],
+        'denyWrite': ['/repo/.git', '/job/worktree/.git']}
+    assert sandbox['network'] == {'allowedDomains': [], 'deniedDomains': ['*'],
+        'strictAllowlist': True, 'allowUnixSockets': [],
+        'allowAllUnixSockets': False, 'allowLocalBinding': False}
+
+
+@pytest.mark.parametrize('missing', ['worktree', 'temp_dir', 'git_dir'])
+def test_claude_coding_fails_without_sandbox_paths(missing):
+    paths = dict(worktree=Path('/job/worktree'), temp_dir=Path('/tmp/gc-test'), git_dir=Path('/repo/.git'))
+    paths.pop(missing)
+    with pytest.raises(ValueError, match='requires'):
+        claude_command('model', '{}', 'task', True, **paths)
 
 
 @pytest.mark.anyio
@@ -137,7 +171,15 @@ async def test_claude_isolation_persistence_and_environment(runner, cli, monkeyp
         assert kwargs['stdin'] == asyncio.subprocess.DEVNULL
         assert 'GEMINI_API_KEY' not in kwargs['env'] and 'APP_SHARED_SECRET' not in kwargs['env']
         assert kwargs['start_new_session'] is True
-        assert 'Not run' in result['runs']['claude']['tests']
+        assert result['runs']['claude']['tests'] == 'Agent-reported only; see report'
+        sandbox = json.loads(argv[argv.index('--settings') + 1])['sandbox']
+        scratch = Path(kwargs['env']['CLAUDE_CODE_TMPDIR'])
+        assert kwargs['env']['TMPDIR'] == str(scratch)
+        assert len(str(scratch)) < 50
+        assert sandbox['filesystem']['allowWrite'] == [result['worktree'], str(scratch)]
+        assert sandbox['filesystem']['denyWrite'] == ['/original-repo/.git', result['worktree'] + '/.git']
+        assert not scratch.exists(), 'Per-job temp must be cleaned after execution'
+        assert 'Run relevant installed tests' in argv[-1]
         await runner.close()
         await runner.start()
         assert runner.status(job_id) == result
@@ -205,6 +247,8 @@ async def test_both_failure_retains_peer_and_fallback(runner, cli, monkeypatch):
         assert result['runs']['claude']['status'] == 'failed'
         assert result['runs']['claude']['branch'].startswith('glasses/claude-')
         assert 'unavailable' in result['summary']
+        _, kwargs = next(c for c in cli.calls if c[0][0] == 'claude')
+        assert not Path(kwargs['env']['CLAUDE_CODE_TMPDIR']).exists()
     finally:
         await runner.close()
 
@@ -222,6 +266,8 @@ async def test_cancel_both_processes(runner, cli):
         assert len(runner.processes) == 2
         assert (await runner.cancel(job_id))['status'] == 'cancelled'
         assert not runner.processes
+        _, kwargs = next(c for c in cli.calls if c[0][0] == 'claude')
+        assert not Path(kwargs['env']['CLAUDE_CODE_TMPDIR']).exists()
     finally:
         await runner.close()
 

@@ -17,19 +17,36 @@ def normalize_agent(value):
     return aliases[value.strip().casefold()]
 
 
-def claude_command(model, schema, prompt, coding):
-    allowed = "Read,Grep,Glob,Edit,Write" if coding else "WebSearch,WebFetch,Read,Grep,Glob"
-    # Deny all shell execution: command prefixes cannot safely constrain test scripts.
-    denied = ["Bash", "PowerShell", "Agent", "mcp__*", "Bash(git push *)",
-              "Bash(git remote *)", "Bash(rm *)", "Bash(curl *)", "Bash(wget *)"]
-    denied += ["WebSearch", "WebFetch"] if coding else ["Edit", "Write", "NotebookEdit"]
+def claude_command(model, schema, prompt, coding, *, worktree=None, temp_dir=None, git_dir=None):
+    allowed = "Read,Grep,Glob,Edit,Write,Bash" if coding else "WebSearch,WebFetch,Read,Grep,Glob"
+    denied = ["PowerShell", "Agent", "mcp__*", "Bash(git push *)",
+              "Bash(git remote *)", "Bash(rm *)", "Bash(curl *)", "Bash(wget *)", "Bash(ssh *)"]
+    denied += ["WebSearch", "WebFetch"] if coding else ["Bash", "Edit", "Write", "NotebookEdit"]
+    settings = []
+    if coding:
+        if not all((worktree, temp_dir, git_dir)):
+            raise ValueError("Claude coding requires worktree, temp and shared git paths")
+        # Restricted mode ignores user/repository settings; managed policy still applies.
+        settings = ["--settings", json.dumps({"sandbox": {
+            "enabled": True, "failIfUnavailable": True,
+            "autoAllowBashIfSandboxed": True, "allowUnsandboxedCommands": False,
+            "excludedCommands": [], "enableWeakerNetworkIsolation": False,
+            "enableWeakerNestedSandbox": False,
+            "filesystem": {"disabled": False,
+                           "allowWrite": [str(worktree), str(temp_dir)],
+                           # Claude otherwise auto-grants the linked worktree's shared git directory.
+                           "denyWrite": [str(git_dir), str(worktree / ".git")]},
+            "network": {"allowedDomains": [], "deniedDomains": ["*"],
+                        "strictAllowlist": True, "allowUnixSockets": [],
+                        "allowAllUnixSockets": False, "allowLocalBinding": False},
+        }})]
     return ["claude", "-p", "--model", model, "--output-format", "json",
             "--json-schema", schema, "--permission-mode", "dontAsk",
             "--permission-prompts", "none", "--restricted", "--safe-mode",
             "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
             "--no-session-persistence", "--disable-slash-commands", "--no-chrome",
             "--tools", allowed, "--allowedTools", allowed,
-            "--disallowedTools", ",".join(denied), "--", prompt]
+            "--disallowedTools", ",".join(denied), *settings, "--", prompt]
 
 
 def claude_result(text):

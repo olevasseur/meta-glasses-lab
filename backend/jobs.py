@@ -7,6 +7,7 @@ import os
 import re
 import signal
 import sqlite3
+import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -259,10 +260,13 @@ class Jobs:
                     pass
         await proc.wait()
 
-    async def _exec(self, job_id, command, cwd, log):
+    async def _exec(self, job_id, command, cwd, log, *, claude_temp=None):
         # Don't leak the backend's Google/Gemini/shared credentials into child env.
         env = {k: os.environ[k] for k in ("PATH", "HOME", "USER", "TMPDIR", "JAVA_HOME", "ANDROID_HOME", "CODEX_HOME") if k in os.environ}
         env["GIT_TERMINAL_PROMPT"] = "0"
+        if claude_temp is not None:
+            env["CLAUDE_CODE_TMPDIR"] = str(claude_temp)
+            env["TMPDIR"] = str(claude_temp)
         chunks, errors, size = [], [], 0
         separate_errors = command[0] == "claude"
         spawn = asyncio.create_task(asyncio.create_subprocess_exec(
@@ -389,10 +393,24 @@ class Jobs:
                       "Return a structured report with a title, findings, caveats/unverified items, and source URLs with today's access date. "
                       "Use primary sources where possible. Include a separate two or three sentence spoken summary (at most 600 characters). Topic: " + request["topic"])
         if agent == "claude":
-            prompt += " Shell commands are disabled; report tests as not run. Never edit outside this working directory."
-            command = claude_command(self.agent_settings()[agent]["model"], schema.read_text(), prompt, kind == "codex_task")
             log = folder / "claude.log"
-            await self._exec(execution_id, command, cwd, log)
+            coding = kind == "codex_task"
+            git_dir = None
+            if coding:
+                git_log = folder / "git-common-dir.log"
+                await self._exec(execution_id, ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], cwd, git_log)
+                git_dir = Path(git_log.read_text().strip())
+                if not git_dir.is_absolute():
+                    raise ValueError("Invalid shared git directory")
+                prompt += " Run relevant installed tests in sandboxed Bash; network and writes outside the worktree/temp are blocked. Report actual checks and failures."
+            else:
+                prompt += " Shell commands are disabled; report tests as not run."
+            prompt += " Never edit outside this working directory."
+            # Keep this short: long overrides make Claude fall back to shared system temp.
+            with tempfile.TemporaryDirectory(prefix="gc-", dir="/tmp") as scratch:
+                command = claude_command(self.agent_settings()[agent]["model"], schema.read_text(), prompt, coding,
+                                         worktree=cwd, temp_dir=Path(scratch).resolve(), git_dir=git_dir)
+                await self._exec(execution_id, command, cwd, log, claude_temp=Path(scratch).resolve())
             result = claude_result(log.read_text())
             with output.open("x") as stream:
                 output.chmod(0o600)
@@ -424,7 +442,7 @@ class Jobs:
                 await self._exec(execution_id, ["git", "ls-files", "--others", "--exclude-standard"], cwd, folder / "untracked.log")
                 details["diff_stats"] = (folder / "diff-stat.log").read_text()[:10000]
                 details["untracked_files"] = (folder / "untracked.log").read_text()[:10000]
-                details["tests"] = "Not run: shell execution disabled" if agent == "claude" else "Agent-reported only; see report"
+                details["tests"] = "Agent-reported only; see report"
         return details
 
     async def _execute(self, row):

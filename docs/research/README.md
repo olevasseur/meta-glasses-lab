@@ -77,5 +77,6 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 - [memory-eval-notes.md](memory-eval-notes.md) — **2026-10-08**: synthetic memory evaluation, profile budget starvation, event-time corrections, key aliases and lexical recall.
 
 - [Claude Code headless jobs](claude-code-headless.md) — **2026-10-08**:
-  documented restricted print-mode policy, subscription-safe CLI options,
-  both-agent scheduling/comparison, agent-bound approval and external smoke script.
+  restricted print-mode policy and macOS Bash sandbox settings, offline coding tests,
+  private temp/shared Git boundaries, subscription-safe CLI options, both-agent
+  comparison, agent-bound approval and external enforcement smoke script.
