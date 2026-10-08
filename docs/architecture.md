@@ -64,3 +64,14 @@ sign-off, gesture and vision rules. See [memory](features/long-term-memory.md) a
 ### Audio formats (Gemini Live)
 - Input: 16-bit PCM, 16 kHz, mono (`audio/pcm;rate=16000`). The glasses' HFP mic is 8 kHz, so resample to 16 kHz.
 - Output: 16-bit PCM, 24 kHz, mono.
+
+### Tiered approvals (decision 20, 2026-10-08)
+
+Routine remember/recall and existing resolved Doc appends execute immediately.
+Protected tool results carry an approval ID, immutable payload hash and tier.
+Android displays a card/notification and directly calls `/approvals/{id}/device`
+with the app secret after real nod/button/screen input (Codex excludes nod).
+Shake/60-second timeout calls `/approvals/{id}/deny`; backend requests expire in
+five minutes. The tool registry never exposes these endpoints. Gemini receives
+pending and completed results but cannot consume approvals. Dashboard remains a
+fallback. See [device approvals](features/device-approvals.md).

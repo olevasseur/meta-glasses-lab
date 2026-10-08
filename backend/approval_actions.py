@@ -5,8 +5,11 @@ import json
 from datetime import UTC, datetime
 
 from fastapi import HTTPException
+from memory import MemoryConflict
 
+import approvals
 import app
+from notes import CREATE_INBOX
 import meeting_api
 import visual_api
 from tools import REGISTRY
@@ -22,8 +25,16 @@ async def prepare(name, args):
         meeting = await asyncio.to_thread(snapshot)
         if not meeting or meeting["phase"] not in {"document", "write"}:
             raise HTTPException(409, "Meeting is not ready for export")
+        args["snapshot"] = {key: meeting[key] for key in ("id", "title", "doc_name", "started_at", "result")}
         details = {"title": meeting["title"], "destination": meeting["document"] or meeting["doc_name"] or "New document in Glasses Meetings",
                    "minutes": meeting["result"]}
+    elif name == "write_journal":
+        from journal import parse_day, JournalDateError
+        try:
+            args["date"] = parse_day(args.get("date"), app.journal_service().now().date()).isoformat()
+        except JournalDateError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        details = dict(args)
     elif name == "visual_delete":
         details = {"from_utc": datetime.fromtimestamp(args["since"], UTC).isoformat(),
                    "through_utc": datetime.fromtimestamp(args["through"], UTC).isoformat(),
@@ -61,9 +72,27 @@ async def execute(name, args):
     if name == "visual_delete":
         return await asyncio.to_thread(visual_api.memory.delete_window, **args)
     if name == "export_meeting":
-        for _ in range(2):
-            result = await asyncio.to_thread(meeting_api.service.step, args["meeting_id"])
-            if result["status"] == "ok":
-                return result
-        return result
+        try:
+            for _ in range(2):
+                result = await asyncio.to_thread(meeting_api.service.step, args["meeting_id"], approved_snapshot=args["snapshot"])
+                if result["status"] == "ok":
+                    return result
+            return result
+        except MemoryConflict as exc:
+            raise HTTPException(409, str(exc)) from exc
     return await app.execute_tool(name, REGISTRY[name][0].model_validate(args))
+
+
+async def append_note(args):
+    try:
+        preview = await asyncio.to_thread(app.notes.preview, **args)
+    except Exception:
+        raise HTTPException(503, "Cannot resolve destination; check Google credentials and aliases") from None
+    if preview["status"] != "matched":
+        return preview
+    args["confirmed_doc_id"] = preview["document"]["id"]
+    if args["confirmed_doc_id"] == CREATE_INBOX:
+        return await approvals.propose("append_to_doc", args,
+                                       prepared=(args, {**args, "destination": preview["document"]}))
+    # A fixed existing ID cannot fall back to creating a document if an alias changes.
+    return await execute("append_to_doc", args)

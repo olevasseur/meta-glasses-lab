@@ -48,7 +48,7 @@ def capture(frame: Frame):
 @router.post("/visual/delete")
 async def delete(request: DeleteRecent):
     now = memory.clock()
-    return approvals.propose("visual_delete", {"since": now - request.minutes * 60, "through": now + 60})
+    return await approvals.propose("visual_delete", {"since": now - request.minutes * 60, "through": now + 60})
 
 
 async def retention_loop():

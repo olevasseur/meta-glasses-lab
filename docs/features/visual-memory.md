@@ -1,5 +1,7 @@
 # Visual memory — “where did I leave my keys?”
 
+**Approval update — 2026-10-08:** Delete requests pause capture and propose Tier 1 deletion; nod, capture or Approve executes it. Capture/search remain unchanged. See [device approvals](device-approvals.md) for configuration, limits and verified evidence.
+
 Implemented **2026-10-07**. Opt-in periodic glasses captures become searchable
 object/place/text sightings on the Mac backend. It builds on [M4 vision](m4-vision.md)
 and the existing [memory tool routing](long-term-memory.md). It never implements
@@ -32,7 +34,7 @@ person/face identification; the captioner is instructed to use only “a person.
    notification displays **Visual memory is ON**. Active visual capture keeps that
    service from expiring at the ordinary conversation idle timeout.
 7. Say **“Delete the last hour”** or tap **Delete last hour**. Capture pauses and
-   the backend removes recent records and thumbnails, including pins. The result
+   a Tier 1 card asks for nod/capture/Approve before removing records and thumbnails, including pins. The result
    reports the count. `delete_visual_memory(minutes?)` defaults to 60 and supports
    1–10080 minutes. Deletion has a stored cutoff so already queued older captures
    cannot recreate erased records. A failed deletion must be retried explicitly.
@@ -73,7 +75,7 @@ All endpoints use existing `X-App-Secret` authentication and no-store responses:
 | --- | --- |
 | `POST /visual/frames` | `jpeg` base64 JPEG, aware `captured_at`, optional `label`/`location_label`, `pinned` boolean. At most 2 MB encoded and 4 MP decoded; timestamp within five minutes behind / one minute ahead of backend. Returns `status`, `id`, `caption`, `captured_at`, `pinned`. |
 | `POST /tools/find_object` / `when_did_i_see` | `{"query":"keys kitchen"}`; ranked keyword matches, newest first for equal scores. |
-| `POST /visual/delete` | `{"minutes":60}`; removes matching records/thumbnails including pins and reports count. |
+| `POST /visual/delete` | `{"minutes":60}`; proposes a fixed deletion interval; app/dashboard approval removes records/thumbnails including pins. |
 | `POST /visual/status` | `{"on":true}` or `false`; phone capture-status heartbeat, refreshed every 20 seconds. Does not enable capture. |
 | `/token` | Adds client-owned `set_visual_memory`, `remember_this`, `delete_visual_memory` plus backend-owned search tools. Client tools cannot execute under `/tools`. |
 

@@ -164,6 +164,8 @@ private fun ConversationScreen(
             }
         Column(Modifier.padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("the glasses app", style = MaterialTheme.typography.headlineMedium)
+            val approval by model.approvals.state.collectAsStateWithLifecycle()
+            approval?.let { ApprovalControls(it, { id -> model.approvals.decide(id, ApprovalMethod.SCREEN) }, model.approvals::reject) }
             Text("Glasses: ${state.glasses}")
             Text("Gemini: ${state.gemini}")
             Text("Audio: ${state.route}")

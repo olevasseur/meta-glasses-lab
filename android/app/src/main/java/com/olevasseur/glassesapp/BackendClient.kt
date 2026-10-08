@@ -53,6 +53,15 @@ class BackendClient(
         return execute(Request.Builder().url(url).header("X-App-Secret", secret).get().build())
     }
 
+    suspend fun approvalStatus(id: String): JSONObject = execute(Request.Builder()
+        .url(base.newBuilder().addPathSegment("approvals").addPathSegment(id).build())
+        .header("X-App-Secret", secret).get().build())
+
+    suspend fun approveDevice(id: String, method: String): JSONObject =
+        post(listOf("approvals", id, "device"), JSONObject().put("method", method))
+
+    suspend fun denyApproval(id: String): JSONObject = post(listOf("approvals", id, "deny"), JSONObject())
+
     suspend fun workout(log: JSONObject): JSONObject = post(listOf("workouts"), log)
     suspend fun startMeeting(id: String, metadata: JSONObject): JSONObject = post(
         listOf("meetings", "start"), JSONObject(metadata.toString()).put("meeting_id", id),

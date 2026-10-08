@@ -7,43 +7,30 @@ requested Codex CLI integration is retained; no new AI provider calls were added
 
 ## Using approvals
 
-Speak the same request, for example “Ask Codex to fix the tests,” “Research this,”
-“Add this note to Work,” “Remember this fact,” or “Forget Maple.” The backend
-returns `status: needs_confirmation`, an opaque `approval_id`, and a relative
-`approval_url`. **Nothing is executed by saying yes, nodding, returning a token,
-or setting `confirm=true`.**
+Updated **2026-10-08** for decision 20: [device approvals](device-approvals.md)
+supersede the initial dashboard-only policy. Model tool arguments still cannot
+approve actions. Routine `remember` and appends to existing resolved Docs/Inbox
+execute immediately; creating Inbox requires Tier 1 approval. Existing meeting
+destinations export without approval; new meeting documents require Tier 1.
 
-Open **http://localhost:8787/dashboard → Approvals** on the Mac (or the dashboard
-through the phone's configured backend address). Sign in with the existing app
-secret. Open the request, inspect its full contents/destination and visible
-single-use confirmation code, then press **Approve this exact action** or
-**Reject**. The page displays the outcome; job results still use events/status.
-Requests expire five minutes after creation and do not survive restart or secret
-rotation. Reloading the review rotates its code; use the newest page.
+For forget, research, journal replacement, visual deletion and job cancellation,
+Gemini asks you to **nod or press capture**. Android displays a notification/card
+and allows an on-screen Approve tap. Shake, Deny or a 60-second timeout rejects.
+**Codex requires capture or screen, never nod**, and displays the full canonical
+repo and instruction. The dashboard remains a fallback with browser session,
+CSRF and single-use nonce protection. See the device guide for notification-size
+and permission fallback behavior, gesture setup and meeting export denial.
 
-The protected operations are `codex_task`, `deep_research`, `append_to_doc`,
-`forget`, `remember`, `write_journal` and `cancel_job`. Note previews resolve and
-bind a specific document ID (or explicit creation of Glasses Inbox); they do not
-create a Doc. An ambiguous/missing destination requires a new request naming a
-specific document ID, available in its Google Docs URL. Forget previews bind
-specific fact versions; an intervening edit invalidates deletion. Codex previews
-show the full task and canonical allowlisted repository, checked again at start.
-Research/journal approval authorizes generation and publication; the generated
-report is not available to inspect before generation.
+The new authenticated `/approvals/{id}/device` endpoint accepts only
+`{"method":"nod|button|screen"}` and enforces the tier itself. `/tools` has no
+approval endpoint/tool: `confirm=true`, returned tokens or injected approval IDs
+never execute a sensitive action. Snapshots and displayed details are hashed and
+checked; the request is consumed before execution. Five-minute expiry, restart
+invalidation, secret rotation and rate/size limits remain. Android polls dashboard
+outcomes and informs Gemini without repeating the tool.
 
-**Delete last hour**, by voice or button, pauses capture as before, but
-`POST /visual/delete` now proposes deletion. Approve it in the dashboard to remove
-records and thumbnails, including pins. The displayed interval is fixed when
-requested (with the existing one-minute future capture-clock allowance); later
-queued captures through its cutoff are rejected. The dashboard's existing manual
-single/range deletion buttons remain protected by browser CSRF and confirmation.
-
-Meeting summarization continues normally, but `/meetings/{id}/end` returns an
-approval when ready to create/write the document. Review its minutes/destination
-and approve export. Repeated phone polls reuse the pending approval. Subsequent
-polls return the finished recap as before. Existing scheduled journaling is an
-operator-configured automation and is unchanged; use `JOURNAL_ENABLED=false` if
-unattended publication is not wanted.
+Existing scheduled journaling remains operator-configured automation; use
+`JOURNAL_ENABLED=false` to disable unattended publication.
 
 ## Configuration and limits
 
@@ -89,18 +76,14 @@ once on migration and require a fresh request. Completed results are retained.
 
 ## Verification and limitations
 
-Backend suite: **422 passed, 2 existing dependency warnings**, including 54
-adversarial cases. All new adversarial cases use
-`test_sec_*` names. Real Gemini `/token` plus constrained setup succeeded for
-Auto, PTT and Over, with resumption ownership and token locking unchanged.
-Android source was untouched, so no Android build was required. Existing Android
-JSON forwarding carries pending approvals, but dashboard approval does not inject
-a new spoken note/delete result into an already completed tool call: read its
-result page. Physical voice/buttons, browser rendering, real Docs publication
-and real Codex sandbox behavior remain unverified.
+Backend suite: **443 passed, 2 existing dependency warnings**. Android
+`assembleDebug testDebugUnitTest` passes (**194 tests**, zero failures/errors/skips). Real Gemini `/token`, constrained setup,
+spoken hardware confirmation and app approval/denial result turns passed for
+Auto, PTT and Over with isolated synthetic memory. No Google Docs writes, real
+Codex execution or physical-device checks ran. Token locking/resumption stay unchanged.
 
-The nonce proves a browser action on the reviewed request, not that the text is
-benign. The logged-in Mac user and allowlist/settings are trusted. Codex's sandbox
+A browser nonce or app-owned input binds consent to the reviewed request, not
+proof that its text is benign. The device endpoint trusts the shared app secret. The logged-in Mac user and allowlist/settings are trusted. Codex's sandbox
 is not a read-isolated container; approved tasks may access readable local files.
 Redaction covers configured environment secrets and loaded Google credentials,
 not every unknown secret in arbitrary repository files. Archives can grow over

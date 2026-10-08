@@ -5,8 +5,34 @@ feature guides, backend routes/services, dashboard templates and their callers.
 Threats include authenticated model arguments derived from untrusted speech,
 signs/pages, browser attackers and request floods. The Mac account, backend code,
 local settings and operator-approved repository list are trusted. One worker is
-required. No Android source changed; the changed API behavior is documented in
+required. The initial review changed only the backend; the follow-up below also
+changes Android. Current API behavior is documented in
 [the security feature contract](features/backend-security.md).
+
+## Follow-up: decision 20 device approvals (2026-10-08)
+
+The original dashboard-only findings below are historical. Current enforcement
+uses [tiered device approvals](features/device-approvals.md): Tier 0 existing-Doc
+appends and remember are intentionally immediate. Tier 1 sensitive actions accept
+app-owned nod/button/screen; Tier 2 Codex accepts button/screen only. The dashboard
+remains available. Speech/model confirmation fields never approve.
+
+`approvals.py` prepares an immutable action before returning its ID, hashes name,
+args and human-visible details, validates methods and consumes before awaiting.
+Device routes require the app secret and are absent from the tool registry.
+Android verifies the snapshot, shows its full details and gives hardware events
+priority over model gesture questions and cooking navigation. Only one card is
+active; 60-second timeout/shake denies. Server expiry remains five minutes.
+Meeting snapshots reject changes; denied exports stop repeated outbox proposals.
+
+Validation: **443 backend tests pass**, Android assemble and **194 JVM tests** pass; new tests
+exercise method/tier restrictions, model argument spoofing, snapshot alteration,
+expiry, replay, browser/device races, stale taps, capture priority and timeout.
+Real Gemini Auto/PTT/Over token/setup plus synthetic forget confirmation and
+approval-result turns pass. The phone presentation, real glasses sensors, Google
+writes and Codex execution remain unverified. The shared secret authenticates the
+app; it is not remote hardware attestation. Notification truncation/permissions
+force screen/dashboard review when hardware presentation is unavailable.
 
 ## Findings and fixes
 
@@ -91,8 +117,8 @@ Source interpretation and unverified items are recorded in
 2. **User review is still required.** An attacker can request a misleading action
    or put persuasive instructions in the displayed text. The nonce establishes a
    real click on the full stored action, not comprehension or benign semantics.
-   Speech/gesture-only approvals are deliberately unavailable. Phone/browser
-   rendering and the changed end-to-end UX require device testing.
+   Spoken yes is unavailable as authority; app-owned gestures are allowed only
+   for Tier 1. Phone/browser rendering and physical input still need device testing.
 3. **Single-user secret and transport.** Whoever actually obtains the app secret
    can log in as the owner; these changes distinguish model tool args from a
    browser action, not two human identities. Loopback/adb remains the default.
@@ -107,7 +133,7 @@ Source interpretation and unverified items are recorded in
    it is not full archive erasure.
 5. **Model outputs remain untrusted.** Read/recall tools expose authorized personal
    context to Gemini. Summaries, generated journal/research prose and factual
-   claims can be poisoned; explicit memory requests now require approval, but
+   claims can be poisoned; explicit memory requests are Tier 0 by user decision;
    automatic extraction and configured journal scheduling retain their documented
    semantics. Redaction is limited to configured/loaded secrets, not arbitrary
    unknown credentials in files. Do not enable verbose SDK or request-body logs.

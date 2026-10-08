@@ -35,7 +35,12 @@ async def end(meeting_id: SessionId):
     try:
         result = await asyncio.to_thread(service.step, meeting_id, allow_export=False)
         if result.get("phase") in {"document", "write"}:
-            return approvals.propose("export_meeting", {"meeting_id": meeting_id}, deduplicate=True)
+            def needs_approval():
+                with service.memory.lock, service.memory.db() as db:
+                    meeting = service._load(db, meeting_id)
+                    return not meeting["doc_name"] and not meeting["document"]
+            if await asyncio.to_thread(needs_approval):
+                return await approvals.propose("export_meeting", {"meeting_id": meeting_id}, deduplicate=True)
         return result
     except MemoryConflict as exc:
         raise HTTPException(409, str(exc)) from exc

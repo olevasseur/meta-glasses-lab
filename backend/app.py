@@ -59,6 +59,7 @@ projects = Projects()
 @asynccontextmanager
 async def lifespan(app):
     approvals.pending.clear()
+    approvals.completed.clear()
     stop = asyncio.Event()
     task = None
     app.state.jobs = Jobs(notes)
@@ -162,8 +163,10 @@ async def dispatch_tool(name: str, args: dict | None = None):
         request = request_type.model_validate(args if args is not None else {})
     except ValidationError as exc:
         raise RequestValidationError(exc.errors()) from exc
+    if name == "append_to_doc":
+        return await approval_actions.append_note(request.model_dump())
     if name in approvals.SENSITIVE:
-        return approvals.propose(name, request.model_dump())
+        return await approvals.propose(name, request.model_dump())
     return await execute_tool(name, request)
 
 

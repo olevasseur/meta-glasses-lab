@@ -272,7 +272,8 @@ def test_ambiguous_or_missing_docs_never_write(client, google_clients, name, sta
         {"id": "1", "name": "Work Log"}, {"id": "2", "name": "Work Log 2026"},
     ]}
     response = approved_post(client, "/tools/append_to_doc", json={"doc_name": name, "text": "Note"})
-    assert response.status_code == 409
+    assert response.status_code == 200
+    assert response.json()["status"] == status
     google_clients.docs.documents().batchUpdate.assert_not_called()
     google_clients.docs.documents().create.assert_not_called()
 
@@ -312,7 +313,8 @@ def test_find_existing_inbox_and_duplicate_titles(client, google_clients, count,
         {"id": str(i), "name": "Glasses Inbox"} for i in range(count)
     ]}
     response = approved_post(client, "/tools/append_to_doc", json={"text": "Note"})
-    assert response.status_code == (200 if count == 1 else 409)
+    assert response.status_code == 200
+    assert response.json()["status"] == status
     if count == 1:
         assert response.json()["status"] == status
     google_clients.docs.documents().create.assert_not_called()

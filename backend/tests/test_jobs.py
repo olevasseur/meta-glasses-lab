@@ -255,7 +255,7 @@ def test_job_endpoints_validation_auth_and_declarations(monkeypatch, service):
         assert client.post("/tools/codex_task", json={"repo": "valiant", "instruction": "edit", "confirm": "true"}).status_code == 422
         preview = client.post("/tools/codex_task", json={"repo": "valiant", "instruction": "edit"}).json()
         assert preview["status"] == "needs_confirmation"
-        assert client.post("/tools/job_status", json={}).json()["jobs"] == []
+        assert client.post("/tools/job_status", json={}).json()["jobs"][0]["status"] == "needs_confirmation"
         browser_login(client)
         assert client.get(preview["approval_url"]).status_code == 200
         job = client.post("/tools/job_status", json={}).json()["jobs"][0]
@@ -368,6 +368,7 @@ def test_blocking_tools_do_not_block_job_events(monkeypatch, service, name, args
         target = app.visual_api.memory
     if owner == "journal":
         target = Mock()
+        target.now.return_value = __import__("datetime").datetime(2026, 10, 8)
         monkeypatch.setattr(app, "journal_service", lambda: target)
     monkeypatch.setattr(target, method, blocking_tool)
     with TestClient(app.app, headers={"X-App-Secret": "test"}) as client, ThreadPoolExecutor() as pool:

@@ -12,3 +12,7 @@ fun glassesTrigger(event: InputEvent): GlassesTrigger? = when {
     event is InputEvent.Select && event.source == InputSource.CAPTOUCH -> GlassesTrigger.TALK_OR_MUTE
     else -> null
 }
+
+/** A pending device approval consumes capture before HOLD can stop the conversation. */
+fun approvalCapture(event: InputEvent, confirm: () -> Boolean): Boolean =
+    event is InputEvent.Capture && event.source == InputSource.CAPTURE_BUTTON && confirm()

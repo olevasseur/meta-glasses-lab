@@ -31,6 +31,7 @@ def isolated_security_state(monkeypatch):
     from security_boundary import SecurityBoundary
     monkeypatch.setenv("BACKEND_ALLOWED_HOSTS", "localhost,127.0.0.1,::1,testserver")
     approvals.pending.clear()
+    approvals.completed.clear()
     middleware = app.app.middleware_stack
     while middleware is not None:
         if isinstance(middleware, SecurityBoundary):

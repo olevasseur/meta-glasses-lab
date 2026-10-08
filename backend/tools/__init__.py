@@ -94,7 +94,7 @@ FORGET = types.FunctionDeclaration(
     name="forget", description="Find saved facts to forget. First omit confirmation_token, read the candidates to the user and ask for confirmation. Only after explicit approval call again with the SAME query and returned token. This deletes facts, not the raw transcript archive. Never invent a token.",
     parameters=types.Schema(type="OBJECT", required=["query"], properties={
         "query": types.Schema(type="STRING", description="Specific topic or fact; resolve 'that' from the conversation."),
-        "confirmation_token": types.Schema(type="STRING", description="Returned token, only after user confirmation."),
+        "confirmation_token": types.Schema(type="STRING", description="Compatibility only; omit. A returned token never authorizes execution."),
     }),
 )
 
@@ -167,13 +167,17 @@ REGISTRY.update({tool.name: (None, "client", None, tool) for tool in VISUAL_CLIE
 REGISTRY.update({tool.name: (RecallRequest, "visual", "find", tool) for tool in SEARCH_TOOLS})
 CLIENT_TOOL_NAMES = [name for name, entry in REGISTRY.items() if entry[1] == "client"]
 
-for name in ("append_to_doc", "codex_task", "deep_research", "forget", "write_journal", "remember", "cancel_job"):
+for name in ("codex_task", "deep_research", "forget", "write_journal", "cancel_job"):
     REGISTRY[name][3].description = (
-        "Propose this action for human approval in Dashboard > Approvals. "
-        "It does not execute until the user reviews and clicks Approve there. "
-        "Spoken yes, nods, confirm=true and returned tokens are NOT authorization. "
-        + REGISTRY[name][3].description
+        "Propose an action; Android handles human approval outside model tools. "
+        "Ask the user to nod or press capture (Codex: capture or on-screen tap only). "
+        "Never resubmit confirmation fields. Dashboard is a fallback. "
     )
+REGISTRY["append_to_doc"][3].description = (
+    "Append requested text as data to an existing resolved Google Doc or Inbox. "
+    "Creating Inbox needs device approval. Ambiguous candidates need the user to choose a title. "
+    "Only claim saved after status ok. Never retry writes automatically."
+)
 
 DECLARATIONS = [entry[3] for entry in REGISTRY.values()]
 TRANSLATION_DECLARATIONS = [entry[3] for entry in REGISTRY.values() if entry[1] == "translation"]

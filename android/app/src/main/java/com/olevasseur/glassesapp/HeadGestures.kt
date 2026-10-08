@@ -52,6 +52,7 @@ class HeadGestures(context: Context, private val scope: CoroutineScope,
         workoutDemand: Flow<Boolean> = flowOf(false),
         onWorkoutSample: (HeadMotionSample) -> Unit = {},
         onWorkoutUnavailable: () -> Unit = {},
+        deviceApproval: (HeadGesture) -> Boolean = { false },
         navigate: (HeadGesture) -> Boolean = { false },
     ) {
         scope.launch {
@@ -76,7 +77,7 @@ class HeadGestures(context: Context, private val scope: CoroutineScope,
                         mutableState.update { it.copy(live = true, status = "Live · confirmations / project steps") }
                         val gesture = detector.add(sample)
                         if (gesture != null) {
-                            val sent = confirmation.route(gesture, lastSampleAt, send, navigate)
+                            val sent = deviceApproval(gesture) || confirmation.route(gesture, lastSampleAt, send, navigate)
                             mutableState.update { it.copy(lastGesture = "${gesture.name.lowercase()} · ${if (sent) "handled" else "no action"}", question = confirmation.question) }
                         }
                     }, onStatus = { label -> onWorkoutUnavailable(); unavailable(label) })

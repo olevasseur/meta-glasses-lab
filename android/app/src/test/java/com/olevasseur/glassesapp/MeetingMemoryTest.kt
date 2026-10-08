@@ -39,6 +39,31 @@ class MeetingMemoryTest {
         }
     }
 
+    @Test fun pendingApprovalKeepsOutboxUntilExportFinishes() = runBlocking {
+        MockWebServer().use { server ->
+            val dir = Files.createTempDirectory("approval-meeting-test").toFile()
+            try {
+                val backend = BackendClient(OkHttpClient(), server.url("/").toString(), "test")
+                val pending = mutableListOf<JSONObject>()
+                val ready = mutableListOf<JSONObject>()
+                val memory = TranscriptMemory(backend, dir) { fail(it) }.apply {
+                    onApproval = { pending += it }; onMeetingReady = ready::add
+                }
+                memory.begin(JSONObject().put("title", "Pilot")); memory.stop()
+                server.enqueue(reply())
+                server.enqueue(reply("""{"status":"needs_confirmation","approval_id":"test"}"""))
+                memory.flush()
+                assertEquals(1, pending.size)
+                assertTrue(ready.isEmpty())
+                assertEquals(1, dir.listFiles()!!.size)
+                server.enqueue(reply("""{"status":"ok","minutes":{"recap":["Saved."]}}"""))
+                memory.flush()
+                assertEquals(1, ready.size)
+                assertTrue(dir.listFiles()!!.isEmpty())
+            } finally { dir.deleteRecursively() }
+        }
+    }
+
     @Test fun failedRegistrationKeepsTranscriptAndRetriesSameId() = runBlocking {
         MockWebServer().use { server ->
             val dir = Files.createTempDirectory("meeting-test").toFile()
