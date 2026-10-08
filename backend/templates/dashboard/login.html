@@ -1,0 +1,9 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<p class="muted">Your conversations, memory, and notes, in one place.</p>
+<form method="post" action="/dashboard/login" class="card">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>App shared secret<input type="password" name="secret" required autocomplete="current-password" maxlength="1000" autofocus></label>
+  <button>Sign in</button>
+</form>
+{% endblock %}

@@ -18,6 +18,7 @@ from googleapiclient.errors import HttpError
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 import gemini
+import dashboard
 import memory_api
 import translation
 from memory import MemoryConflict
@@ -26,7 +27,7 @@ from notes import BACKEND_DIR, Notes
 from tools import REGISTRY
 
 load_dotenv(BACKEND_DIR.parent / ".env")  # Explicit environment values take precedence.
-notes = Notes()
+notes = Notes(on_append=dashboard.record_note)
 
 
 @asynccontextmanager
@@ -50,6 +51,8 @@ async def memory_storage_error(request: Request, exc: sqlite3.Error):
 
 @app.middleware("http")
 async def authenticate(request: Request, call_next):
+    if dashboard.is_dashboard(request):
+        return await call_next(request)  # Dashboard middleware enforces cookie + CSRF.
     secret = os.getenv("APP_SHARED_SECRET", "")
     supplied = request.headers.get("X-App-Secret", "")
     if not secret:
@@ -63,7 +66,7 @@ async def authenticate(request: Request, call_next):
 
 class TokenRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    mode: Literal["auto", "ptt", "over"] = "auto"
+    mode: Literal["auto", "ptt", "over"] = Field(default_factory=dashboard.default_mode)
     silence_ms: int = Field(default=2000, strict=True)
     persona: Literal["assistant", "translator"] = "assistant"
     language: str | None = Field(default=None, max_length=40)
@@ -142,3 +145,6 @@ async def dispatch_tool(name: str, args: dict | None = None):
 @app.get("/events")
 async def events(after: int = Query(0, ge=0), wait: float = Query(20, ge=0, le=20)):
     return await app.state.jobs.events(after, wait)
+
+
+dashboard.install(app, notes_service=lambda: notes, token_test=lambda: token(TokenRequest()))

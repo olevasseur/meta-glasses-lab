@@ -1,0 +1,17 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<form class="search" action="/dashboard/conversations" method="get" hx-get="/dashboard/conversations" hx-target="#main" hx-select="#main" hx-swap="outerHTML">
+  <label>Search transcripts or session IDs<input type="search" name="q" value="{{ q }}" maxlength="500" placeholder="A name, place, or phrase"></label><button>Search</button>
+</form>
+{% for session in sessions_list %}
+<article>
+  <h2><a href="/dashboard/conversations/{{ session.id | urlencode }}">{{ session.started_at }}</a></h2>
+  <p class="muted">{{ session.id }} · {{ "Ended" if session.ended_at else "Open" }}</p>
+  <p class="text" hx-disable>{{ session.transcript[:240] }}{% if session.transcript|length > 240 %}…{% endif %}</p>
+</article>
+{% else %}<p class="card">No conversations found.</p>{% endfor %}
+<div class="actions">
+{% if page > 0 %}<a href="?q={{ q|urlencode }}&amp;page={{ page - 1 }}">Previous page</a>{% endif %}
+{% if has_next %}<a href="?q={{ q|urlencode }}&amp;page={{ page + 1 }}">Next page</a>{% endif %}
+</div>
+{% endblock %}

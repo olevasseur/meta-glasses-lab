@@ -1,0 +1,31 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<p class="muted">Saved facts inform new conversations. Keys identify topics; edit the text to correct a fact.</p>
+<details class="card"><summary>Add a fact</summary>
+<form method="post" action="/dashboard/memory/save">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Topic key<input name="key" required maxlength="120" placeholder="user.home_city"></label>
+  <label>Fact<textarea name="text" required maxlength="500"></textarea></label><button>Add fact</button>
+</form></details>
+{% for fact in facts %}
+<article>
+<form method="post" action="/dashboard/memory/save">
+  <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ fact.id }}">
+  <input type="hidden" name="key" value="{{ fact.key }}"><input type="hidden" name="updated_at" value="{{ fact.updated_at }}">
+  <label>{{ fact.key }}<textarea name="text" required maxlength="500">{{ fact.text }}</textarea></label>
+  <small>Updated {{ fact.updated_at }}</small><div class="actions"><button>Save fact</button></div>
+</form>
+<details><summary class="danger">Delete this fact…</summary>
+<p>This removes the saved fact and suppresses matching memory. Raw transcripts remain.</p>
+<form method="post" action="/dashboard/memory/delete">
+  <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="id" value="{{ fact.id }}"><input type="hidden" name="updated_at" value="{{ fact.updated_at }}">
+  <button class="danger">Confirm delete</button>
+</form></details>
+</article>
+{% else %}<p class="card">No saved facts yet.</p>{% endfor %}
+<h2>Recent summaries</h2>
+<p class="muted">Historical summaries can contain outdated or forgotten information.</p>
+{% for summary in summaries %}
+<article><a href="/dashboard/conversations/{{ summary.session_id|urlencode }}">{{ summary.created_at }}</a><p class="text" hx-disable>{{ summary.text or "No summary text." }}</p></article>
+{% else %}<p>No summaries yet.</p>{% endfor %}
+{% endblock %}

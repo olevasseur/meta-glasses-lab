@@ -61,9 +61,11 @@ class Notes:
         self,
         token_path: Path = TOKEN_PATH,
         aliases_path: Path = BACKEND_DIR / "doc_aliases.json",
+        on_append=None,
     ):
         self.token_path = token_path
         self.aliases_path = aliases_path
+        self.on_append = on_append
         self.credentials = None
         self.docs = None
         self.drive = None
@@ -162,6 +164,8 @@ class Notes:
                     "text": f"\n{timestamp}\n{text}\n",
                 }}]},
             ).execute()  # No automatic retries: an append is not idempotent.
+            if self.on_append:
+                self.on_append(document, text)
             return {"status": "ok", "doc_title": document["title"]}
 
     def append_research(self, doc_name: str, text: str) -> dict:

@@ -14,6 +14,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 | [hands-free-background.md](hands-free-background.md) | Foreground service, DAT inputs/voice launch, Android tile/shortcut (2026-10-07) | Real 1.0.0 APIs verified; service owns the conversation, gesture handling respects reserved controls, hardware checks remain manual. |
 | [background-jobs-notes.md](background-jobs-notes.md) | Codex jobs, research, events | 2026-10-07: durable queue and two-step confirmation; CLI flags and event protocol; local tests pass, real CLI smoke blocked by sandbox permissions. |
 | [live-translator.md](live-translator.md) | Live translator (2026-10-07) | Language support, fresh persona sessions, real Spanish↔English checks, and per-utterance phone routing limits. |
+| [dashboard-notes.md](dashboard-notes.md) | Local web dashboard (2026-10-07) | Jinja2/htmx, cookie sessions/CSRF, memory UI, real Gemini token-button check. |
 | [google-docs-notes.md](google-docs-notes.md) | Voice → Google Docs | Backend function tool, Desktop OAuth client published to production, Inbox doc + alias map + rapidfuzz. Keep API is Workspace-only. |
 | [head-gestures.md](head-gestures.md) | Head gestures (2026-10-07) | Real DAT Motion 1.0.0, pure Kotlin detector, explicit Gemini confirmation tool; auto/PTT real API smoke passed. Hardware thresholds/axes still need validation. |
 

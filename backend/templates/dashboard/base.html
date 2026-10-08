@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="htmx-config" content='{"historyCacheSize":0,"allowEval":false,"allowScriptTags":false,"selfRequestsOnly":true}'>
+  <title>{{ title }} · the glasses app</title>
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.11/dist/htmx.min.js" integrity="sha384-2OatzQy1H+Zd/IIrjr1TcuDGqLXeHhbooAyJY1KdQMKnr4LZ22k31GBLdYKHmVjg" crossorigin="anonymous" defer></script>
+  <style>
+    :root { color-scheme: light dark; --bg:#f5f7fa; --panel:#fff; --ink:#182331; --muted:#526172; --line:#cdd5df; --accent:#155caa; --danger:#ae2424; }
+    @media(prefers-color-scheme:dark) { :root { --bg:#111820; --panel:#1b2632; --ink:#e7edf4; --muted:#afbed0; --line:#415065; --accent:#9cc8ff; --danger:#ffaaaa; } }
+    * { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 system-ui,sans-serif; }
+    header, main { max-width:1000px; margin:auto; padding:1.2rem; } header { border-bottom:1px solid var(--line); }
+    .brand { font-weight:750; letter-spacing:-.03em; font-size:1.4rem; } .top { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+    nav { display:flex; gap:.4rem; flex-wrap:wrap; margin-top:1rem; } nav a { padding:.5rem .75rem; border-radius:.5rem; text-decoration:none; }
+    nav a[aria-current=page] { background:var(--panel); outline:1px solid var(--line); font-weight:650; }
+    a { color:var(--accent); overflow-wrap:anywhere; } h1 { font-size:1.8rem; letter-spacing:-.04em; } h2 { font-size:1.2rem; } h1,h2,p { margin-top:0; }
+    article, .card { display:block; padding:1.2rem; margin-bottom:1rem; background:var(--panel); border:1px solid var(--line); border-radius:.8rem; }
+    .muted, time, small { color:var(--muted); } .text { white-space:pre-wrap; overflow-wrap:anywhere; } .mono { font-family:ui-monospace,monospace; }
+    input, textarea, select, button { font:inherit; } input, textarea, select { width:100%; padding:.65rem; border:1px solid var(--line); border-radius:.4rem; background:var(--bg); color:var(--ink); }
+    textarea { min-height:6rem; resize:vertical; } label { display:block; margin:.7rem 0; } label input,label textarea,label select { margin-top:.25rem; }
+    button, .button { display:inline-block; padding:.65rem 1rem; border:1px solid var(--line); border-radius:.45rem; background:var(--panel); color:var(--accent); cursor:pointer; font-weight:600; }
+    button:hover, a:hover { filter:brightness(.85); } :focus-visible { outline:3px solid var(--accent); outline-offset:3px; } .danger { color:var(--danger); }
+    .actions { display:flex; flex-wrap:wrap; gap:.75rem; align-items:center; margin-top:.8rem; } .actions form { margin:0; } .notice { padding:1rem; border-left:4px solid var(--accent); background:var(--panel); }
+    .error { border-color:var(--danger); } .login { max-width:480px; } .search { display:flex; gap:.7rem; align-items:end; } .search label { flex:1; } .search button { margin-bottom:.7rem; }
+    ul { padding-left:1.3rem; } .skip { position:absolute; top:-5rem; } .skip:focus { top:0; } details summary { cursor:pointer; } .htmx-request button { opacity:.6; }
+    @media(max-width:550px) { header,main { padding:1rem; } .top { align-items:start; } nav a { padding:.5rem; } .search { display:block; } }
+  </style>
+</head>
+<body hx-history="false">
+<a class="skip" href="#main">Skip to content</a>
+<header>
+  <div class="top"><a class="brand" href="/dashboard">the glasses app</a>
+  {% if logged_in %}<form method="post" action="/dashboard/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Sign out</button></form>{% endif %}</div>
+  {% if logged_in %}<nav aria-label="Dashboard">{% for slug, page in pages.items() %}<a href="/dashboard/{{ slug }}" {% if title == page.title %}aria-current="page"{% endif %}>{{ page.title }}</a>{% endfor %}</nav>{% endif %}
+</header>
+<main id="main" {% if not logged_in %}class="login"{% endif %}>
+  <h1>{{ title }}</h1>
+  {% if error %}<p class="notice error" role="alert">{{ error }}</p>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

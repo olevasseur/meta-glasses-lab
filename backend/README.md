@@ -83,14 +83,16 @@ tokens and tool results.
 
 ## API
 
-Every request requires `X-App-Secret`. Missing or incorrect secrets return 401;
+Every API request requires `X-App-Secret` (the `/dashboard` browser UI uses its own
+login session and CSRF protection). Missing or incorrect secrets return 401;
 an unconfigured server secret returns 503. Comparison uses `hmac.compare_digest`.
 Interactive docs and the OpenAPI route are disabled. Authenticated responses
 carry `Cache-Control: no-store`.
 
 ### `POST /token`
 
-Send `{}` (automatic VAD) or `{"mode":"ptt"}`. Response:
+Send `{}` (dashboard default, initially automatic VAD), `{"mode":"auto"}`, or
+`{"mode":"ptt"}`, or `{"mode":"over"}`. Explicit mode overrides the dashboard default. Response:
 
 ```json
 {"token":"auth_tokens/…","model":"gemini-3.8-live","expires_at":"2026-10-06T12:30:00+00:00"}
@@ -159,6 +161,14 @@ Invalid input returns 422; missing/invalid Google credentials or alias configura
 returns 503; Google operation failures return a sanitized 502. Check the document
 before retrying a failed write: network timeouts can leave the result uncertain,
 and appends have no idempotency key. Unknown `POST /tools/{name}` routes return 404.
+
+## Browser dashboard
+
+Open **http://localhost:8787/dashboard** and sign in with `APP_SHARED_SECRET`.
+Use the same `adb reverse tcp:8787 tcp:8787` command for the Pixel browser.
+Conversations, memory CRUD, notes history, settings, and status are included.
+Run one worker on localhost using the command above. Full usage, storage formats,
+extension hooks, and verification limits: [dashboard feature](../docs/features/dashboard.md).
 
 ## Checks
 
