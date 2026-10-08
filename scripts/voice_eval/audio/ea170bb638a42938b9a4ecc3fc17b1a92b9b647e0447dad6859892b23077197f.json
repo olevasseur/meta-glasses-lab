@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "Start intervals, thirty on, fifteen off, eight rounds.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "487a63885c6bfbc5169b2f5b90fac2eceb351843bfab6c61de0de155a7c5a264.wav",
+  "pcm_sha256": "fe30e5f0cd9e29f9768d8db9b20ba2afe53d2a93f8b1f198cf7085e4fcd9d844"
+}

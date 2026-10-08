@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "Can I view my conversations in the browser?",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "20b08c11971693e966ba533e272a78d4bbdebd4e3f7beaee319437eba1d735fa.wav",
+  "pcm_sha256": "546dacf4031923d8cc34289bbc41d343fce064c61c332f0fcd7e207c85241767"
+}

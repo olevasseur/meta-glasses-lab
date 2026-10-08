@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "Delete the last hour of visual memory.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "0527d83de479ae4241d4c482d1dc4de9cc639d2c52390c26963dc70da369409a.wav",
+  "pcm_sha256": "f172316e99658c913e23d814b052e23c12c01812f8657b9a2b032ecfc00a1f41"
+}

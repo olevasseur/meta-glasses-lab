@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Puck",
+  "text": "Turn on visual memory for ten minutes.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "072ed3af549f38c9bd33c3eff77b4ed7fa520d48f580d63af7251d8108aa0a60.wav",
+  "pcm_sha256": "9bcd2b68c237dba125eb777f13aab9d9ddc52e207274c02672f4b78cd2d7bc5a"
+}

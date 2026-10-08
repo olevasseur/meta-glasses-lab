@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Puck",
+  "text": "Read everything on this page.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "072ed3af549f38c9bd33c3eff77b4ed7fa520d48f580d63af7251d8108aa0a60.wav",
+  "pcm_sha256": "5afffd86859425604a59ac4be156e95fec5d4de8460c5732ed8242298475dead"
+}

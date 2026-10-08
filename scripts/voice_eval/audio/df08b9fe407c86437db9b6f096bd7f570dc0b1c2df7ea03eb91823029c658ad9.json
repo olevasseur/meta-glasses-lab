@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "Thanks, that is helpful.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "20b08c11971693e966ba533e272a78d4bbdebd4e3f7beaee319437eba1d735fa.wav",
+  "pcm_sha256": "3714eafb4010305d83df0faf98c078045316958a25daf002dd442951e97197a9"
+}

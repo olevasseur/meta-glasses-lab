@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "What did I do last Tuesday?",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "0b3aff1951511ade181e09c112943ba45fae1a16858e07bf6f9f57e9bacbbb9b.wav",
+  "pcm_sha256": "fe2470a5cac69a65863c145772321d60b5318b9cea26de6bbfa703b593328e34"
+}

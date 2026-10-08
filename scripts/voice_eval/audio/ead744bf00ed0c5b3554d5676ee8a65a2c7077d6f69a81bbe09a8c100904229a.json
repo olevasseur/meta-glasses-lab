@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Puck",
+  "text": "Keep reading.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "072ed3af549f38c9bd33c3eff77b4ed7fa520d48f580d63af7251d8108aa0a60.wav",
+  "pcm_sha256": "ddba7c67e6f6c536755281d960c9ab5ef6e1606b7c4798d3db6da11280f49fe3"
+}

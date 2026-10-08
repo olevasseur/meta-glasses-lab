@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "Hey assistant, stop the meeting.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "ee05e388c00893cfbb66a9f8b4b2d7191aa2101b19958360064107b6e121f89e.wav",
+  "pcm_sha256": "054e2bb05de1f2c26eec5ef6cc122d0255ff5c1cd45ec8c264b2e89f3f15d13c"
+}

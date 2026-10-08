@@ -1,0 +1,66 @@
+[
+  {
+    "source_pcm_sha256": "87d1b6488d68e64995eba1ac586dd6f067ecbb8a3b30d6009a5f91e94ffad18a",
+    "source_file": "10660bd1f34bba95078bc63c0d4ea4e8504ffeada38d5c3631a2788af529781e.wav",
+    "segments": 9,
+    "keep": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      6,
+      7,
+      8
+    ],
+    "reason": "Gemini TTS repeated Turn on watch mode. Independent Gemini audio transcription confirmed nine requests; exclude duplicate at index four.",
+    "verification_model": "gemini-3.5-flash-lite",
+    "transcription": [
+      {
+        "start_seconds": 0.0,
+        "end_seconds": 3.754,
+        "text": "Please add this to work log, the build is green."
+      },
+      {
+        "start_seconds": 6.772,
+        "end_seconds": 8.762,
+        "text": "What do you remember about my dog?"
+      },
+      {
+        "start_seconds": 11.102,
+        "end_seconds": 14.542,
+        "text": "Ask me if I want tea, I will shake my head for no."
+      },
+      {
+        "start_seconds": 17.202,
+        "end_seconds": 18.522,
+        "text": "Turn on watch mode."
+      },
+      {
+        "start_seconds": 20.302,
+        "end_seconds": 22.022,
+        "text": "Turn on watch mode."
+      },
+      {
+        "start_seconds": 23.462,
+        "end_seconds": 27.812,
+        "text": "Research the capital of Canada with official sources and save the report."
+      },
+      {
+        "start_seconds": 30.642,
+        "end_seconds": 32.882,
+        "text": "Start a meeting called Harbor Pilot."
+      },
+      {
+        "start_seconds": 34.732,
+        "end_seconds": 35.702,
+        "text": "Translate Spanish."
+      },
+      {
+        "start_seconds": 37.192,
+        "end_seconds": 38.482,
+        "text": "Write my journal for yesterday."
+      }
+    ]
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Aoede",
+  "text": "How do I add the quick settings tile?",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "20b08c11971693e966ba533e272a78d4bbdebd4e3f7beaee319437eba1d735fa.wav",
+  "pcm_sha256": "dafe330a9a1e75a58aaba3cd5c6141c3fefb048d8bf2599467497fe4f010e435"
+}

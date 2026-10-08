@@ -23,6 +23,8 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 | [workout-coach.md](workout-coach.md) | Workout coach (2026-10-07) | Reuses one DAT motion stream; synthetic rep profiles, monotonic intervals, SQLite workout history. Human accuracy and physical cue latency unverified. |
 | [cooking-diy-coach.md](cooking-diy-coach.md) | Cooking/DIY projects and app timers (2026-10-07) | Real Gemini extraction schema, Android exact alarms/TTS; merged DAT Motion nod-next/shake-repeat with confirmation precedence. |
 
+- [voice-eval-notes.md](voice-eval-notes.md) — **2026-10-08**: real spoken Live harness, Gemini TTS models/quotas, waveform-checked fixtures, tool and timing evaluation.
+
 ## Reconciled conflicts
 - **Token locking vs resumption (2026-10-06):** the backend initially locked the whole setup, which would make Gemini ignore the app's resumption handle. Fixed: `lock_additional_fields=[]` and `sessionResumption` left client-owned. See docs/architecture.md.
 - **Custom "Hey Meta" commands:** the Docs-notes research cited an older source (UploadVR, 2025) saying no custom "Hey Meta" commands. The SDK research found that **SDK 1.0.0 added experimental Voice Invocation** ("Hey Meta, start {APP NAME}" → `LaunchApp`). Current truth: launching works (with approval); arbitrary commands are not known to be forwarded.

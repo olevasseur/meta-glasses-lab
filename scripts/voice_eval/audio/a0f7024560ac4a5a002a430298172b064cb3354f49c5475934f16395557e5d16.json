@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Puck",
+  "text": "How much olive oil in my current recipe?",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "072ed3af549f38c9bd33c3eff77b4ed7fa520d48f580d63af7251d8108aa0a60.wav",
+  "pcm_sha256": "78fe03203c3204e24982f6d5fee6edd56a0614b69d6e20f8f9a755a2dfab7478"
+}

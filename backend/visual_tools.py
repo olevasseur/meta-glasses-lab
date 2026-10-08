@@ -16,6 +16,8 @@ CLIENT_TOOLS = [
                 {"minutes": types.Schema(type="INTEGER")}, []),
 ]
 SEARCH_TOOLS = [declaration(name,
-    "Search historical object/place/text sightings by specific keywords. Never search for or identify people/faces. Report the sighting time and uncertainty; no match means unknown, never guess a location.",
+    ("Find where an object/place was last seen, e.g. where did I leave my keys. " if name == "find_object"
+     else "Find when an object/place was seen, e.g. when did I see my wallet. ") +
+    "Search historical sightings by specific keywords. Never search for or identify people/faces. Report the sighting time and uncertainty; no match means unknown, never guess a location.",
     {"query": types.Schema(type="STRING")}, ["query"])
     for name in ("find_object", "when_did_i_see")]

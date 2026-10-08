@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "How much is the pad thai on this menu?",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "487a63885c6bfbc5169b2f5b90fac2eceb351843bfab6c61de0de155a7c5a264.wav",
+  "pcm_sha256": "4955b11e3c8b2804c717efb6e678027ff6cccc98113d963d4e5b6316404cf868"
+}

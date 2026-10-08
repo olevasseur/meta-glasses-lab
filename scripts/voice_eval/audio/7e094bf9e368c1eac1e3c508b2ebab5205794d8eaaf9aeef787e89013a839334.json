@@ -1,0 +1,9 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "Next step in the recipe.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "batch_file": "487a63885c6bfbc5169b2f5b90fac2eceb351843bfab6c61de0de155a7c5a264.wav",
+  "pcm_sha256": "5525940717a2a8f829e85e5fa5ca26e1c1cf6f09d376604ff6bde11971416446"
+}
