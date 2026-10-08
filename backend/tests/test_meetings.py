@@ -238,7 +238,7 @@ def test_meeting_token_rejects_translator_and_budgets_prompt(monkeypatch, tmp_pa
     monkeypatch.setattr(gemini, 'create_token', factory)
     app.token(app.TokenRequest(mode='meeting'))
     prompt = factory.call_args.kwargs['system_instruction']
-    assert len(prompt.encode()) <= 8000
+    assert len(prompt.encode()) - len(gemini.assistant_instruction("meeting").encode()) <= 8000
     assert 'Meeting capture is active' in prompt
     assert 'Latest normal summary' in prompt
     assert 'What you know about the user' in prompt

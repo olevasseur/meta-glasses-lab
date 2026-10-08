@@ -1,0 +1,742 @@
+{
+  "mode": "deterministic summary replay; real storage/context, no provider",
+  "points": [
+    {
+      "sessions": 1,
+      "facts": 2,
+      "context_bytes": 7761,
+      "memory_bytes": 595,
+      "sister_retained": true
+    },
+    {
+      "sessions": 2,
+      "facts": 3,
+      "context_bytes": 7761,
+      "memory_bytes": 595,
+      "sister_retained": true
+    },
+    {
+      "sessions": 3,
+      "facts": 4,
+      "context_bytes": 7732,
+      "memory_bytes": 566,
+      "sister_retained": false
+    },
+    {
+      "sessions": 4,
+      "facts": 5,
+      "context_bytes": 7732,
+      "memory_bytes": 566,
+      "sister_retained": false
+    },
+    {
+      "sessions": 5,
+      "facts": 6,
+      "context_bytes": 7732,
+      "memory_bytes": 566,
+      "sister_retained": false
+    },
+    {
+      "sessions": 6,
+      "facts": 7,
+      "context_bytes": 7732,
+      "memory_bytes": 566,
+      "sister_retained": false
+    },
+    {
+      "sessions": 7,
+      "facts": 8,
+      "context_bytes": 7732,
+      "memory_bytes": 566,
+      "sister_retained": false
+    },
+    {
+      "sessions": 8,
+      "facts": 9,
+      "context_bytes": 7732,
+      "memory_bytes": 566,
+      "sister_retained": false
+    },
+    {
+      "sessions": 9,
+      "facts": 10,
+      "context_bytes": 7732,
+      "memory_bytes": 566,
+      "sister_retained": false
+    },
+    {
+      "sessions": 10,
+      "facts": 11,
+      "context_bytes": 7732,
+      "memory_bytes": 566,
+      "sister_retained": false
+    },
+    {
+      "sessions": 11,
+      "facts": 12,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 12,
+      "facts": 13,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 13,
+      "facts": 14,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 14,
+      "facts": 15,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 15,
+      "facts": 16,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 16,
+      "facts": 17,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 17,
+      "facts": 18,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 18,
+      "facts": 19,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 19,
+      "facts": 20,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 20,
+      "facts": 21,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 21,
+      "facts": 22,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 22,
+      "facts": 23,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 23,
+      "facts": 24,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 24,
+      "facts": 25,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 25,
+      "facts": 26,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 26,
+      "facts": 27,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 27,
+      "facts": 28,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 28,
+      "facts": 29,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 29,
+      "facts": 30,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 30,
+      "facts": 31,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 31,
+      "facts": 32,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 32,
+      "facts": 33,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 33,
+      "facts": 34,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 34,
+      "facts": 35,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 35,
+      "facts": 36,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 36,
+      "facts": 37,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 37,
+      "facts": 38,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 38,
+      "facts": 39,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 39,
+      "facts": 40,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 40,
+      "facts": 41,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 41,
+      "facts": 42,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 42,
+      "facts": 43,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 43,
+      "facts": 44,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 44,
+      "facts": 45,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 45,
+      "facts": 46,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 46,
+      "facts": 47,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 47,
+      "facts": 48,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 48,
+      "facts": 49,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 49,
+      "facts": 50,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 50,
+      "facts": 51,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 51,
+      "facts": 52,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 52,
+      "facts": 53,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 53,
+      "facts": 54,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 54,
+      "facts": 55,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 55,
+      "facts": 56,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 56,
+      "facts": 57,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 57,
+      "facts": 58,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 58,
+      "facts": 59,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 59,
+      "facts": 60,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 60,
+      "facts": 61,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 61,
+      "facts": 62,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 62,
+      "facts": 63,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 63,
+      "facts": 64,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 64,
+      "facts": 65,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 65,
+      "facts": 66,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 66,
+      "facts": 67,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 67,
+      "facts": 68,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 68,
+      "facts": 69,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 69,
+      "facts": 70,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 70,
+      "facts": 71,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 71,
+      "facts": 72,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 72,
+      "facts": 73,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 73,
+      "facts": 74,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 74,
+      "facts": 75,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 75,
+      "facts": 76,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 76,
+      "facts": 77,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 77,
+      "facts": 78,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 78,
+      "facts": 79,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 79,
+      "facts": 80,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 80,
+      "facts": 81,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 81,
+      "facts": 82,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 82,
+      "facts": 83,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 83,
+      "facts": 84,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 84,
+      "facts": 85,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 85,
+      "facts": 86,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 86,
+      "facts": 87,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 87,
+      "facts": 88,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 88,
+      "facts": 89,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 89,
+      "facts": 90,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 90,
+      "facts": 91,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 91,
+      "facts": 92,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 92,
+      "facts": 93,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 93,
+      "facts": 94,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 94,
+      "facts": 95,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 95,
+      "facts": 96,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 96,
+      "facts": 97,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 97,
+      "facts": 98,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 98,
+      "facts": 99,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 99,
+      "facts": 100,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 100,
+      "facts": 101,
+      "context_bytes": 7734,
+      "memory_bytes": 568,
+      "sister_retained": false
+    },
+    {
+      "sessions": 101,
+      "facts": 102,
+      "context_bytes": 7736,
+      "memory_bytes": 570,
+      "sister_retained": false
+    },
+    {
+      "sessions": 102,
+      "facts": 103,
+      "context_bytes": 7736,
+      "memory_bytes": 570,
+      "sister_retained": false
+    },
+    {
+      "sessions": 103,
+      "facts": 104,
+      "context_bytes": 7736,
+      "memory_bytes": 570,
+      "sister_retained": false
+    },
+    {
+      "sessions": 104,
+      "facts": 105,
+      "context_bytes": 7736,
+      "memory_bytes": 570,
+      "sister_retained": false
+    },
+    {
+      "sessions": 105,
+      "facts": 106,
+      "context_bytes": 7736,
+      "memory_bytes": 570,
+      "sister_retained": false
+    }
+  ],
+  "maximum_bytes": 595,
+  "cap_8000_passed": true
+}

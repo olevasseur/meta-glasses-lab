@@ -65,7 +65,7 @@ All routes require `X-App-Secret` and use the existing no-store response policy.
 | `POST /tools/remember` | `{"fact":"The user lives in Toronto.","key":"user.home_city"}`. Optional stable key permits updates; normalized identical text deduplicates. |
 | `POST /tools/recall` | `{"query":"Toronto"}`; up to ten scored matches with source kind and record/session ID. |
 | `POST /tools/forget` | `{"query":"Toronto"}` proposes exact facts; the app/dashboard approves through a separate route. |
-| `POST /token` | Existing contract. Adds up to 30 recent facts and the latest three summaries to the base prompt, trimming oldest items to an 8,000 UTF-8-byte combined budget (roughly 2k English tokens). |
+| `POST /token` | Existing contract. Adds ranked facts and up to three recent summaries within an 8,000 UTF-8-byte memory budget (roughly 2k English tokens), separate from app instructions. See [memory evaluation](memory-eval.md) for timestamped corrections and ranking. |
 
 `(session_id, seq)` is immutable and unique. Duplicate identical chunks are safe
 to replay; conflicting data or new chunks after session end return 409. The app
@@ -104,7 +104,7 @@ summary commits are transactional. Invalid/blocked/failed responses commit nothi
   seconds after the preceding flush completes;
   OS termination can interrupt cleanup, and the next launch recovers saved files.
   Storage has no automatic retention or encryption beyond platform permissions.
-- The 8,000-byte prompt budget is an approximation, not a tokenizer guarantee.
+- The 8,000-byte memory budget is an approximation, not a tokenizer guarantee.
   Free-tier quota and Google's free-tier data-use terms still apply.
 
 ## Validation and sources

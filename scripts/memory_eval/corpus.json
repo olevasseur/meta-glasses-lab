@@ -1,0 +1,1362 @@
+[
+  {
+    "id": "alex",
+    "probes": [
+      {
+        "id": "dog",
+        "kind": "recall",
+        "query": "What is my dog's name?",
+        "expected": [
+          "Maple"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "city",
+        "kind": "recall",
+        "query": "Which city do I live in?",
+        "expected": [
+          "Toronto"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "sister",
+        "kind": "correction",
+        "query": "What is my sister's current name?",
+        "expected": [
+          "Ana"
+        ],
+        "forbidden": [
+          "Ann"
+        ]
+      },
+      {
+        "id": "drink",
+        "kind": "correction",
+        "query": "Which drink do I prefer now?",
+        "expected": [
+          "peppermint tea"
+        ],
+        "forbidden": [
+          "coffee"
+        ]
+      },
+      {
+        "id": "holiday",
+        "kind": "correction",
+        "query": "Where and when is my next holiday?",
+        "expected": [
+          "Kyoto",
+          "December"
+        ],
+        "forbidden": [
+          "Lisbon",
+          "November"
+        ]
+      },
+      {
+        "id": "forgotten",
+        "kind": "forget",
+        "query": "What was my hobby project nickname and craft?",
+        "expected": [],
+        "forbidden": [
+          "Copper Comet 0",
+          "pottery"
+        ]
+      },
+      {
+        "id": "unknown",
+        "kind": "unknown",
+        "query": "Who is my favourite author?",
+        "expected": [],
+        "forbidden": []
+      },
+      {
+        "id": "hypothetical",
+        "kind": "unknown",
+        "query": "What is the name of my pet horse?",
+        "expected": [],
+        "forbidden": [
+          "Nimbus"
+        ]
+      }
+    ],
+    "forget_after": 8,
+    "forget_query": "hobby project",
+    "sessions": [
+      {
+        "user": "My name is Alex. My sister is named Ann. My dog is named Maple. My name is Alex. My sister is named Ann. My dog is named Maple.",
+        "model": "I have noted your name is Alex, your sister is Ann, and your dog is Maple."
+      },
+      {
+        "user": "I live in Toronto. I prefer coffee and brief spoken answers. I live in Toronto. I prefer coffee and brief spoken answers.",
+        "model": "Understood. You live in Toronto, prefer coffee, and brief spoken answers."
+      },
+      {
+        "user": "My next holiday will be in Lisbon in November. My next holiday will be in Lisbon in November.",
+        "model": "I have noted your next holiday is Lisbon in November."
+      },
+      {
+        "user": "My hobby project nickname is Copper Comet 0. It is a pottery project. My hobby project nickname is Copper Comet 0. It is a pottery project.",
+        "model": "I have noted your hobby project is Copper Comet 0, a pottery project."
+      },
+      {
+        "user": "Actually my sister's name is Ana, not Ann. Correct what you remember. Actually my sister's name is Ana, not Ann. Correct what you remember.",
+        "model": "Thank you for the correction. Your sister's name is Ana."
+      },
+      {
+        "user": "I switched drinks. I now prefer peppermint tea instead of coffee. I switched drinks. I now prefer peppermint tea instead of coffee.",
+        "model": "Understood. You now prefer peppermint tea."
+      },
+      {
+        "user": "Plans changed: my next holiday is Kyoto in December, not Lisbon in November. Plans changed: my next holiday is Kyoto in December, not Lisbon in November.",
+        "model": "I have updated your holiday plans to Kyoto in December."
+      },
+      {
+        "user": "Maple is the name of my dog. Please keep responses brief; I still live in Toronto. Maple is the name of my dog. Please keep responses brief; I still live in Toronto.",
+        "model": "Acknowledged. Maple is your dog's name. I will keep responses brief. You still live in Toronto."
+      },
+      {
+        "user": "Forget my hobby project, including its nickname and the craft involved. Forget my hobby project, including its nickname and the craft involved.",
+        "model": "I have forgotten the details of your hobby project."
+      },
+      {
+        "user": "If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse. If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse.",
+        "model": "I understand that Nimbus is a hypothetical name for a horse you do not own."
+      },
+      {
+        "user": "Do you know my favourite author? I have never told you. Do not assume one. Do you know my favourite author? I have never told you. Do not assume one.",
+        "model": "You have not told me your favorite author, and I will not assume one."
+      },
+      {
+        "user": "That is all for today. What did we discuss? That is all for today. What did we discuss?",
+        "model": "We discussed your name, Alex; your sister, Ana; your dog, Maple; your city, Toronto; your preference for peppermint tea and brief answers; and your next holiday to Kyoto in December."
+      }
+    ]
+  },
+  {
+    "id": "blair",
+    "probes": [
+      {
+        "id": "dog",
+        "kind": "recall",
+        "query": "What is my dog's name?",
+        "expected": [
+          "Cedar"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "city",
+        "kind": "recall",
+        "query": "Which city do I live in?",
+        "expected": [
+          "Montreal"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "sister",
+        "kind": "correction",
+        "query": "What is my sister's current name?",
+        "expected": [
+          "Sarah"
+        ],
+        "forbidden": [
+          "Sara"
+        ]
+      },
+      {
+        "id": "drink",
+        "kind": "correction",
+        "query": "Which drink do I prefer now?",
+        "expected": [
+          "peppermint tea"
+        ],
+        "forbidden": [
+          "coffee"
+        ]
+      },
+      {
+        "id": "holiday",
+        "kind": "correction",
+        "query": "Where and when is my next holiday?",
+        "expected": [
+          "Oslo",
+          "December"
+        ],
+        "forbidden": [
+          "Paris",
+          "November"
+        ]
+      },
+      {
+        "id": "forgotten",
+        "kind": "forget",
+        "query": "What was my hobby project nickname and craft?",
+        "expected": [],
+        "forbidden": [
+          "Copper Comet 1",
+          "pottery"
+        ]
+      },
+      {
+        "id": "unknown",
+        "kind": "unknown",
+        "query": "Who is my favourite author?",
+        "expected": [],
+        "forbidden": []
+      },
+      {
+        "id": "hypothetical",
+        "kind": "unknown",
+        "query": "What is the name of my pet horse?",
+        "expected": [],
+        "forbidden": [
+          "Nimbus"
+        ]
+      }
+    ],
+    "forget_after": 8,
+    "forget_query": "hobby project",
+    "sessions": [
+      {
+        "user": "My name is Blair. My sister is named Sara. My dog is named Cedar. My name is Blair. My sister is named Sara. My dog is named Cedar.",
+        "model": "Understood. Your name is Blair, your sister is Sara, and your dog is Cedar."
+      },
+      {
+        "user": "I live in Montreal. I prefer coffee and brief spoken answers. I live in Montreal. I prefer coffee and brief spoken answers.",
+        "model": "Acknowledged. You live in Montreal, prefer coffee, and brief spoken answers."
+      },
+      {
+        "user": "My next holiday will be in Paris in November. My next holiday will be in Paris in November.",
+        "model": "Noted. Your next holiday is planned for Paris in November."
+      },
+      {
+        "user": "My hobby project nickname is Copper Comet 1. It is a pottery project. My hobby project nickname is Copper Comet 1. It is a pottery project.",
+        "model": "Understood. Your hobby project is Copper Comet 1, a pottery project."
+      },
+      {
+        "user": "Actually my sister's name is Sarah, not Sara. Correct what you remember. Actually my sister's name is Sarah, not Sara. Correct what you remember.",
+        "model": "Correction noted. Your sister's name is Sarah."
+      },
+      {
+        "user": "I switched drinks. I now prefer peppermint tea instead of coffee. I switched drinks. I now prefer peppermint tea instead of coffee.",
+        "model": "Acknowledged. You now prefer peppermint tea."
+      },
+      {
+        "user": "Plans changed: my next holiday is Oslo in December, not Paris in November. Plans changed: my next holiday is Oslo in December, not Paris in November.",
+        "model": "Understood. Your next holiday is now Oslo in December."
+      },
+      {
+        "user": "Cedar is the name of my dog. Please keep responses brief; I still live in Montreal. Cedar is the name of my dog. Please keep responses brief; I still live in Montreal.",
+        "model": "Confirmed. Cedar is your dog's name. You live in Montreal. I will keep responses brief."
+      },
+      {
+        "user": "Forget my hobby project, including its nickname and the craft involved. Forget my hobby project, including its nickname and the craft involved.",
+        "model": "Understood. I will forget your hobby project details."
+      },
+      {
+        "user": "If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse. If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse.",
+        "model": "Noted. Nimbus is a hypothetical name for a horse you do not own."
+      },
+      {
+        "user": "Do you know my favourite author? I have never told you. Do not assume one. Do you know my favourite author? I have never told you. Do not assume one.",
+        "model": "I do not know your favourite author, as you have not told me."
+      },
+      {
+        "user": "That is all for today. What did we discuss? That is all for today. What did we discuss?",
+        "model": "We discussed your name Blair, your sister Sarah, your dog Cedar, living in Montreal, preferring peppermint tea, your next holiday in Oslo in December, and a hypothetical horse named Nimbus."
+      }
+    ]
+  },
+  {
+    "id": "casey",
+    "probes": [
+      {
+        "id": "dog",
+        "kind": "recall",
+        "query": "What is my dog's name?",
+        "expected": [
+          "Birch"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "city",
+        "kind": "recall",
+        "query": "Which city do I live in?",
+        "expected": [
+          "Ottawa"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "sister",
+        "kind": "correction",
+        "query": "What is my sister's current name?",
+        "expected": [
+          "Lila"
+        ],
+        "forbidden": [
+          "Lily"
+        ]
+      },
+      {
+        "id": "drink",
+        "kind": "correction",
+        "query": "Which drink do I prefer now?",
+        "expected": [
+          "peppermint tea"
+        ],
+        "forbidden": [
+          "coffee"
+        ]
+      },
+      {
+        "id": "holiday",
+        "kind": "correction",
+        "query": "Where and when is my next holiday?",
+        "expected": [
+          "Lima",
+          "December"
+        ],
+        "forbidden": [
+          "Rome",
+          "November"
+        ]
+      },
+      {
+        "id": "forgotten",
+        "kind": "forget",
+        "query": "What was my hobby project nickname and craft?",
+        "expected": [],
+        "forbidden": [
+          "Copper Comet 2",
+          "pottery"
+        ]
+      },
+      {
+        "id": "unknown",
+        "kind": "unknown",
+        "query": "Who is my favourite author?",
+        "expected": [],
+        "forbidden": []
+      },
+      {
+        "id": "hypothetical",
+        "kind": "unknown",
+        "query": "What is the name of my pet horse?",
+        "expected": [],
+        "forbidden": [
+          "Nimbus"
+        ]
+      }
+    ],
+    "forget_after": 8,
+    "forget_query": "hobby project",
+    "sessions": [
+      {
+        "user": "My name is Casey. My sister is named Lily. My dog is named Birch. My name is Casey. My sister is named Lily. My dog is named Birch.",
+        "model": "I have noted your name is Casey, your sister is Lily, and your dog is Birch."
+      },
+      {
+        "user": "I live in Ottawa. I prefer coffee and brief spoken answers. I live in Ottawa. I prefer coffee and brief spoken answers.",
+        "model": "I understand you live in Ottawa and prefer coffee and brief spoken answers."
+      },
+      {
+        "user": "My next holiday will be in Rome in November. My next holiday will be in Rome in November.",
+        "model": "I have recorded your next holiday will be in Rome in November."
+      },
+      {
+        "user": "My hobby project nickname is Copper Comet 2. It is a pottery project. My hobby project nickname is Copper Comet 2. It is a pottery project.",
+        "model": "I have noted your hobby project is Copper Comet 2, a pottery project."
+      },
+      {
+        "user": "Actually my sister's name is Lila, not Lily. Correct what you remember. Actually my sister's name is Lila, not Lily. Correct what you remember.",
+        "model": "Thank you for the correction. I have updated your sister's name to Lila."
+      },
+      {
+        "user": "I switched drinks. I now prefer peppermint tea instead of coffee. I switched drinks. I now prefer peppermint tea instead of coffee.",
+        "model": "I have updated your preference to peppermint tea."
+      },
+      {
+        "user": "Plans changed: my next holiday is Lima in December, not Rome in November. Plans changed: my next holiday is Lima in December, not Rome in November.",
+        "model": "I have updated your next holiday to Lima in December."
+      },
+      {
+        "user": "Birch is the name of my dog. Please keep responses brief; I still live in Ottawa. Birch is the name of my dog. Please keep responses brief; I still live in Ottawa.",
+        "model": "Birch is your dog's name. You live in Ottawa. I will keep responses brief."
+      },
+      {
+        "user": "Forget my hobby project, including its nickname and the craft involved. Forget my hobby project, including its nickname and the craft involved.",
+        "model": "I have forgotten the details of your hobby project."
+      },
+      {
+        "user": "If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse. If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse.",
+        "model": "I understand Nimbus is a hypothetical name for a horse you do not own."
+      },
+      {
+        "user": "Do you know my favourite author? I have never told you. Do not assume one. Do you know my favourite author? I have never told you. Do not assume one.",
+        "model": "You have not told me your favourite author."
+      },
+      {
+        "user": "That is all for today. What did we discuss? That is all for today. What did we discuss?",
+        "model": "We discussed your name, Casey; your sister, Lila; your dog, Birch; your home in Ottawa; your preference for peppermint tea and brief answers; your next holiday in Lima in December; and that you do not own a horse, but might name one Nimbus. We also noted your hobby project was forgotten and your favourite author is unknown."
+      }
+    ]
+  },
+  {
+    "id": "drew",
+    "probes": [
+      {
+        "id": "dog",
+        "kind": "recall",
+        "query": "What is my dog's name?",
+        "expected": [
+          "Willow"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "city",
+        "kind": "recall",
+        "query": "Which city do I live in?",
+        "expected": [
+          "Halifax"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "sister",
+        "kind": "correction",
+        "query": "What is my sister's current name?",
+        "expected": [
+          "Jade"
+        ],
+        "forbidden": [
+          "Jane"
+        ]
+      },
+      {
+        "id": "drink",
+        "kind": "correction",
+        "query": "Which drink do I prefer now?",
+        "expected": [
+          "peppermint tea"
+        ],
+        "forbidden": [
+          "coffee"
+        ]
+      },
+      {
+        "id": "holiday",
+        "kind": "correction",
+        "query": "Where and when is my next holiday?",
+        "expected": [
+          "Seoul",
+          "December"
+        ],
+        "forbidden": [
+          "Dublin",
+          "November"
+        ]
+      },
+      {
+        "id": "forgotten",
+        "kind": "forget",
+        "query": "What was my hobby project nickname and craft?",
+        "expected": [],
+        "forbidden": [
+          "Copper Comet 3",
+          "pottery"
+        ]
+      },
+      {
+        "id": "unknown",
+        "kind": "unknown",
+        "query": "Who is my favourite author?",
+        "expected": [],
+        "forbidden": []
+      },
+      {
+        "id": "hypothetical",
+        "kind": "unknown",
+        "query": "What is the name of my pet horse?",
+        "expected": [],
+        "forbidden": [
+          "Nimbus"
+        ]
+      }
+    ],
+    "forget_after": 8,
+    "forget_query": "hobby project",
+    "sessions": [
+      {
+        "user": "My name is Drew. My sister is named Jane. My dog is named Willow. My name is Drew. My sister is named Jane. My dog is named Willow.",
+        "model": "I have noted your name is Drew, your sister is Jane, and your dog is Willow."
+      },
+      {
+        "user": "I live in Halifax. I prefer coffee and brief spoken answers. I live in Halifax. I prefer coffee and brief spoken answers.",
+        "model": "I understand you live in Halifax and prefer coffee and brief spoken answers."
+      },
+      {
+        "user": "My next holiday will be in Dublin in November. My next holiday will be in Dublin in November.",
+        "model": "I have noted your next holiday will be in Dublin in November."
+      },
+      {
+        "user": "My hobby project nickname is Copper Comet 3. It is a pottery project. My hobby project nickname is Copper Comet 3. It is a pottery project.",
+        "model": "I have noted your hobby project nickname is Copper Comet 3 and it is a pottery project."
+      },
+      {
+        "user": "Actually my sister's name is Jade, not Jane. Correct what you remember. Actually my sister's name is Jade, not Jane. Correct what you remember.",
+        "model": "Thank you for the correction. I have updated your sister's name to Jade."
+      },
+      {
+        "user": "I switched drinks. I now prefer peppermint tea instead of coffee. I switched drinks. I now prefer peppermint tea instead of coffee.",
+        "model": "I have updated your drink preference to peppermint tea."
+      },
+      {
+        "user": "Plans changed: my next holiday is Seoul in December, not Dublin in November. Plans changed: my next holiday is Seoul in December, not Dublin in November.",
+        "model": "I have updated your next holiday to Seoul in December."
+      },
+      {
+        "user": "Willow is the name of my dog. Please keep responses brief; I still live in Halifax. Willow is the name of my dog. Please keep responses brief; I still live in Halifax.",
+        "model": "I confirm Willow is your dog's name. I will keep responses brief. You live in Halifax."
+      },
+      {
+        "user": "Forget my hobby project, including its nickname and the craft involved. Forget my hobby project, including its nickname and the craft involved.",
+        "model": "I have forgotten the details of your hobby project, including its nickname and craft."
+      },
+      {
+        "user": "If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse. If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse.",
+        "model": "I understand Nimbus is a hypothetical name for a horse you do not own."
+      },
+      {
+        "user": "Do you know my favourite author? I have never told you. Do not assume one. Do you know my favourite author? I have never told you. Do not assume one.",
+        "model": "You have not told me your favourite author, so I do not know it."
+      },
+      {
+        "user": "That is all for today. What did we discuss? That is all for today. What did we discuss?",
+        "model": "We discussed your name is Drew, your sister is Jade, and your dog is Willow. You live in Halifax and prefer peppermint tea and brief answers. Your next holiday is Seoul in December. You do not own a horse, but might name one Nimbus. Your favourite author is unknown."
+      }
+    ]
+  },
+  {
+    "id": "ellis",
+    "probes": [
+      {
+        "id": "dog",
+        "kind": "recall",
+        "query": "What is my dog's name?",
+        "expected": [
+          "Aspen"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "city",
+        "kind": "recall",
+        "query": "Which city do I live in?",
+        "expected": [
+          "Calgary"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "sister",
+        "kind": "correction",
+        "query": "What is my sister's current name?",
+        "expected": [
+          "Mina"
+        ],
+        "forbidden": [
+          "Nina"
+        ]
+      },
+      {
+        "id": "drink",
+        "kind": "correction",
+        "query": "Which drink do I prefer now?",
+        "expected": [
+          "peppermint tea"
+        ],
+        "forbidden": [
+          "coffee"
+        ]
+      },
+      {
+        "id": "holiday",
+        "kind": "correction",
+        "query": "Where and when is my next holiday?",
+        "expected": [
+          "Perth",
+          "December"
+        ],
+        "forbidden": [
+          "Berlin",
+          "November"
+        ]
+      },
+      {
+        "id": "forgotten",
+        "kind": "forget",
+        "query": "What was my hobby project nickname and craft?",
+        "expected": [],
+        "forbidden": [
+          "Copper Comet 4",
+          "pottery"
+        ]
+      },
+      {
+        "id": "unknown",
+        "kind": "unknown",
+        "query": "Who is my favourite author?",
+        "expected": [],
+        "forbidden": []
+      },
+      {
+        "id": "hypothetical",
+        "kind": "unknown",
+        "query": "What is the name of my pet horse?",
+        "expected": [],
+        "forbidden": [
+          "Nimbus"
+        ]
+      }
+    ],
+    "forget_after": 8,
+    "forget_query": "hobby project",
+    "sessions": [
+      {
+        "user": "My name is Ellis. My sister is named Nina. My dog is named Aspen. My name is Ellis. My sister is named Nina. My dog is named Aspen.",
+        "model": "I have noted your name is Ellis, your sister is Nina, and your dog is Aspen."
+      },
+      {
+        "user": "I live in Calgary. I prefer coffee and brief spoken answers. I live in Calgary. I prefer coffee and brief spoken answers.",
+        "model": "I understand you live in Calgary and prefer coffee and brief spoken answers."
+      },
+      {
+        "user": "My next holiday will be in Berlin in November. My next holiday will be in Berlin in November.",
+        "model": "I have noted your next holiday will be in Berlin in November."
+      },
+      {
+        "user": "My hobby project nickname is Copper Comet 4. It is a pottery project. My hobby project nickname is Copper Comet 4. It is a pottery project.",
+        "model": "I have noted your hobby project is Copper Comet 4, a pottery project."
+      },
+      {
+        "user": "Actually my sister's name is Mina, not Nina. Correct what you remember. Actually my sister's name is Mina, not Nina. Correct what you remember.",
+        "model": "I have corrected your sister's name to Mina."
+      },
+      {
+        "user": "I switched drinks. I now prefer peppermint tea instead of coffee. I switched drinks. I now prefer peppermint tea instead of coffee.",
+        "model": "I have updated your drink preference to peppermint tea."
+      },
+      {
+        "user": "Plans changed: my next holiday is Perth in December, not Berlin in November. Plans changed: my next holiday is Perth in December, not Berlin in November.",
+        "model": "I have updated your next holiday to Perth in December."
+      },
+      {
+        "user": "Aspen is the name of my dog. Please keep responses brief; I still live in Calgary. Aspen is the name of my dog. Please keep responses brief; I still live in Calgary.",
+        "model": "I have noted Aspen is your dog's name. I will keep responses brief. You still live in Calgary."
+      },
+      {
+        "user": "Forget my hobby project, including its nickname and the craft involved. Forget my hobby project, including its nickname and the craft involved.",
+        "model": "I have forgotten the details of your hobby project."
+      },
+      {
+        "user": "If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse. If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse.",
+        "model": "I have noted the hypothetical name Nimbus for a horse, and that you do not own one."
+      },
+      {
+        "user": "Do you know my favourite author? I have never told you. Do not assume one. Do you know my favourite author? I have never told you. Do not assume one.",
+        "model": "You have not told me your favorite author."
+      },
+      {
+        "user": "That is all for today. What did we discuss? That is all for today. What did we discuss?",
+        "model": "We discussed your name, Ellis; your sister, Mina; your dog, Aspen; your residence in Calgary; your preference for peppermint tea and brief answers; your next holiday in Perth in December; a hypothetical horse named Nimbus; and that you have not shared a favorite author."
+      }
+    ]
+  },
+  {
+    "id": "fran",
+    "probes": [
+      {
+        "id": "dog",
+        "kind": "recall",
+        "query": "What is my dog's name?",
+        "expected": [
+          "Hazel"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "city",
+        "kind": "recall",
+        "query": "Which city do I live in?",
+        "expected": [
+          "Victoria"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "sister",
+        "kind": "correction",
+        "query": "What is my sister's current name?",
+        "expected": [
+          "Ana"
+        ],
+        "forbidden": [
+          "Ann"
+        ]
+      },
+      {
+        "id": "drink",
+        "kind": "correction",
+        "query": "Which drink do I prefer now?",
+        "expected": [
+          "peppermint tea"
+        ],
+        "forbidden": [
+          "coffee"
+        ]
+      },
+      {
+        "id": "holiday",
+        "kind": "correction",
+        "query": "Where and when is my next holiday?",
+        "expected": [
+          "Kyoto",
+          "December"
+        ],
+        "forbidden": [
+          "Lisbon",
+          "November"
+        ]
+      },
+      {
+        "id": "forgotten",
+        "kind": "forget",
+        "query": "What was my hobby project nickname and craft?",
+        "expected": [],
+        "forbidden": [
+          "Copper Comet 5",
+          "pottery"
+        ]
+      },
+      {
+        "id": "unknown",
+        "kind": "unknown",
+        "query": "Who is my favourite author?",
+        "expected": [],
+        "forbidden": []
+      },
+      {
+        "id": "hypothetical",
+        "kind": "unknown",
+        "query": "What is the name of my pet horse?",
+        "expected": [],
+        "forbidden": [
+          "Nimbus"
+        ]
+      }
+    ],
+    "forget_after": 8,
+    "forget_query": "hobby project",
+    "sessions": [
+      {
+        "user": "My name is Fran. My sister is named Ann. My dog is named Hazel. My name is Fran. My sister is named Ann. My dog is named Hazel.",
+        "model": "Understood. Your name is Fran, your sister is Ann, and your dog is Hazel."
+      },
+      {
+        "user": "I live in Victoria. I prefer coffee and brief spoken answers. I live in Victoria. I prefer coffee and brief spoken answers.",
+        "model": "Noted. You live in Victoria and prefer coffee and brief spoken answers."
+      },
+      {
+        "user": "My next holiday will be in Lisbon in November. My next holiday will be in Lisbon in November.",
+        "model": "Acknowledged. Your next holiday is Lisbon in November."
+      },
+      {
+        "user": "My hobby project nickname is Copper Comet 5. It is a pottery project. My hobby project nickname is Copper Comet 5. It is a pottery project.",
+        "model": "Understood. Your hobby project is Copper Comet 5, a pottery project."
+      },
+      {
+        "user": "Actually my sister's name is Ana, not Ann. Correct what you remember. Actually my sister's name is Ana, not Ann. Correct what you remember.",
+        "model": "Understood. Your sister's name is Ana."
+      },
+      {
+        "user": "I switched drinks. I now prefer peppermint tea instead of coffee. I switched drinks. I now prefer peppermint tea instead of coffee.",
+        "model": "Noted. You now prefer peppermint tea."
+      },
+      {
+        "user": "Plans changed: my next holiday is Kyoto in December, not Lisbon in November. Plans changed: my next holiday is Kyoto in December, not Lisbon in November.",
+        "model": "Acknowledged. Your next holiday is Kyoto in December."
+      },
+      {
+        "user": "Hazel is the name of my dog. Please keep responses brief; I still live in Victoria. Hazel is the name of my dog. Please keep responses brief; I still live in Victoria.",
+        "model": "Understood. Hazel is your dog's name. I will keep responses brief."
+      },
+      {
+        "user": "Forget my hobby project, including its nickname and the craft involved. Forget my hobby project, including its nickname and the craft involved.",
+        "model": "Acknowledged. I will forget the details of your hobby project."
+      },
+      {
+        "user": "If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse. If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse.",
+        "model": "Understood. Nimbus is a hypothetical name for a horse you do not own."
+      },
+      {
+        "user": "Do you know my favourite author? I have never told you. Do not assume one. Do you know my favourite author? I have never told you. Do not assume one.",
+        "model": "No, I do not know your favorite author, as you have not told me."
+      },
+      {
+        "user": "That is all for today. What did we discuss? That is all for today. What did we discuss?",
+        "model": "We discussed your name, Fran, and your sister, Ana. Your dog is Hazel. You live in Victoria and prefer peppermint tea and brief spoken answers. Your next holiday is Kyoto in December."
+      }
+    ]
+  },
+  {
+    "id": "gale",
+    "probes": [
+      {
+        "id": "dog",
+        "kind": "recall",
+        "query": "What is my dog's name?",
+        "expected": [
+          "Olive"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "city",
+        "kind": "recall",
+        "query": "Which city do I live in?",
+        "expected": [
+          "Winnipeg"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "sister",
+        "kind": "correction",
+        "query": "What is my sister's current name?",
+        "expected": [
+          "Sarah"
+        ],
+        "forbidden": [
+          "Sara"
+        ]
+      },
+      {
+        "id": "drink",
+        "kind": "correction",
+        "query": "Which drink do I prefer now?",
+        "expected": [
+          "peppermint tea"
+        ],
+        "forbidden": [
+          "coffee"
+        ]
+      },
+      {
+        "id": "holiday",
+        "kind": "correction",
+        "query": "Where and when is my next holiday?",
+        "expected": [
+          "Oslo",
+          "December"
+        ],
+        "forbidden": [
+          "Paris",
+          "November"
+        ]
+      },
+      {
+        "id": "forgotten",
+        "kind": "forget",
+        "query": "What was my hobby project nickname and craft?",
+        "expected": [],
+        "forbidden": [
+          "Copper Comet 6",
+          "pottery"
+        ]
+      },
+      {
+        "id": "unknown",
+        "kind": "unknown",
+        "query": "Who is my favourite author?",
+        "expected": [],
+        "forbidden": []
+      },
+      {
+        "id": "hypothetical",
+        "kind": "unknown",
+        "query": "What is the name of my pet horse?",
+        "expected": [],
+        "forbidden": [
+          "Nimbus"
+        ]
+      }
+    ],
+    "forget_after": 8,
+    "forget_query": "hobby project",
+    "sessions": [
+      {
+        "user": "My name is Gale. My sister is named Sara. My dog is named Olive. My name is Gale. My sister is named Sara. My dog is named Olive.",
+        "model": "Understood, Gale. I have noted your sister is Sara and your dog is Olive."
+      },
+      {
+        "user": "I live in Winnipeg. I prefer coffee and brief spoken answers. I live in Winnipeg. I prefer coffee and brief spoken answers.",
+        "model": "Noted. You live in Winnipeg and prefer coffee."
+      },
+      {
+        "user": "My next holiday will be in Paris in November. My next holiday will be in Paris in November.",
+        "model": "Paris in November is your next holiday."
+      },
+      {
+        "user": "My hobby project nickname is Copper Comet 6. It is a pottery project. My hobby project nickname is Copper Comet 6. It is a pottery project.",
+        "model": "I have recorded your pottery project, Copper Comet 6."
+      },
+      {
+        "user": "Actually my sister's name is Sarah, not Sara. Correct what you remember. Actually my sister's name is Sarah, not Sara. Correct what you remember.",
+        "model": "Corrected. Your sister is Sarah."
+      },
+      {
+        "user": "I switched drinks. I now prefer peppermint tea instead of coffee. I switched drinks. I now prefer peppermint tea instead of coffee.",
+        "model": "Updated. You now prefer peppermint tea."
+      },
+      {
+        "user": "Plans changed: my next holiday is Oslo in December, not Paris in November. Plans changed: my next holiday is Oslo in December, not Paris in November.",
+        "model": "Updated. Your next holiday is Oslo in December."
+      },
+      {
+        "user": "Olive is the name of my dog. Please keep responses brief; I still live in Winnipeg. Olive is the name of my dog. Please keep responses brief; I still live in Winnipeg.",
+        "model": "Confirmed. Olive is your dog and you live in Winnipeg."
+      },
+      {
+        "user": "Forget my hobby project, including its nickname and the craft involved. Forget my hobby project, including its nickname and the craft involved.",
+        "model": "I have removed the information regarding your hobby project."
+      },
+      {
+        "user": "If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse. If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse.",
+        "model": "Understood. You do not own a horse, though you would name one Nimbus."
+      },
+      {
+        "user": "Do you know my favourite author? I have never told you. Do not assume one. Do you know my favourite author? I have never told you. Do not assume one.",
+        "model": "I do not know your favourite author and will not assume one."
+      },
+      {
+        "user": "That is all for today. What did we discuss? That is all for today. What did we discuss?",
+        "model": "We discussed your name Gale, your sister Sarah, your dog Olive, your home in Winnipeg, your preference for peppermint tea, your holiday in Oslo this December, and your hypothetical horse named Nimbus."
+      }
+    ]
+  },
+  {
+    "id": "harper",
+    "probes": [
+      {
+        "id": "dog",
+        "kind": "recall",
+        "query": "What is my dog's name?",
+        "expected": [
+          "Poppy"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "city",
+        "kind": "recall",
+        "query": "Which city do I live in?",
+        "expected": [
+          "Regina"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "sister",
+        "kind": "correction",
+        "query": "What is my sister's current name?",
+        "expected": [
+          "Lila"
+        ],
+        "forbidden": [
+          "Lily"
+        ]
+      },
+      {
+        "id": "drink",
+        "kind": "correction",
+        "query": "Which drink do I prefer now?",
+        "expected": [
+          "peppermint tea"
+        ],
+        "forbidden": [
+          "coffee"
+        ]
+      },
+      {
+        "id": "holiday",
+        "kind": "correction",
+        "query": "Where and when is my next holiday?",
+        "expected": [
+          "Lima",
+          "December"
+        ],
+        "forbidden": [
+          "Rome",
+          "November"
+        ]
+      },
+      {
+        "id": "forgotten",
+        "kind": "forget",
+        "query": "What was my hobby project nickname and craft?",
+        "expected": [],
+        "forbidden": [
+          "Copper Comet 7",
+          "pottery"
+        ]
+      },
+      {
+        "id": "unknown",
+        "kind": "unknown",
+        "query": "Who is my favourite author?",
+        "expected": [],
+        "forbidden": []
+      },
+      {
+        "id": "hypothetical",
+        "kind": "unknown",
+        "query": "What is the name of my pet horse?",
+        "expected": [],
+        "forbidden": [
+          "Nimbus"
+        ]
+      }
+    ],
+    "forget_after": 8,
+    "forget_query": "hobby project",
+    "sessions": [
+      {
+        "user": "My name is Harper. My sister is named Lily. My dog is named Poppy. My name is Harper. My sister is named Lily. My dog is named Poppy.",
+        "model": "Understood, Harper. I have noted that your sister is Lily and your dog is Poppy."
+      },
+      {
+        "user": "I live in Regina. I prefer coffee and brief spoken answers. I live in Regina. I prefer coffee and brief spoken answers.",
+        "model": "Noted. You live in Regina and prefer coffee."
+      },
+      {
+        "user": "My next holiday will be in Rome in November. My next holiday will be in Rome in November.",
+        "model": "Understood. Your next holiday is in Rome this November."
+      },
+      {
+        "user": "My hobby project nickname is Copper Comet 7. It is a pottery project. My hobby project nickname is Copper Comet 7. It is a pottery project.",
+        "model": "I have recorded your pottery project, Copper Comet 7."
+      },
+      {
+        "user": "Actually my sister's name is Lila, not Lily. Correct what you remember. Actually my sister's name is Lila, not Lily. Correct what you remember.",
+        "model": "Corrected. Your sister is Lila."
+      },
+      {
+        "user": "I switched drinks. I now prefer peppermint tea instead of coffee. I switched drinks. I now prefer peppermint tea instead of coffee.",
+        "model": "Understood. You now prefer peppermint tea."
+      },
+      {
+        "user": "Plans changed: my next holiday is Lima in December, not Rome in November. Plans changed: my next holiday is Lima in December, not Rome in November.",
+        "model": "Updated. Your next holiday is in Lima this December."
+      },
+      {
+        "user": "Poppy is the name of my dog. Please keep responses brief; I still live in Regina. Poppy is the name of my dog. Please keep responses brief; I still live in Regina.",
+        "model": "Confirmed. Poppy is your dog and you reside in Regina."
+      },
+      {
+        "user": "Forget my hobby project, including its nickname and the craft involved. Forget my hobby project, including its nickname and the craft involved.",
+        "model": "I have removed the information regarding your hobby project."
+      },
+      {
+        "user": "If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse. If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse.",
+        "model": "Understood. You do not own a horse, though you would name one Nimbus."
+      },
+      {
+        "user": "Do you know my favourite author? I have never told you. Do not assume one. Do you know my favourite author? I have never told you. Do not assume one.",
+        "model": "I do not know your favourite author and will not assume one."
+      },
+      {
+        "user": "That is all for today. What did we discuss? That is all for today. What did we discuss?",
+        "model": "We discussed your name Harper, your sister Lila, your dog Poppy, your residence in Regina, your preference for peppermint tea, your upcoming trip to Lima in December, and your hypothetical horse named Nimbus."
+      }
+    ]
+  },
+  {
+    "id": "indigo",
+    "probes": [
+      {
+        "id": "dog",
+        "kind": "recall",
+        "query": "What is my dog's name?",
+        "expected": [
+          "Clover"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "city",
+        "kind": "recall",
+        "query": "Which city do I live in?",
+        "expected": [
+          "Kelowna"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "sister",
+        "kind": "correction",
+        "query": "What is my sister's current name?",
+        "expected": [
+          "Jade"
+        ],
+        "forbidden": [
+          "Jane"
+        ]
+      },
+      {
+        "id": "drink",
+        "kind": "correction",
+        "query": "Which drink do I prefer now?",
+        "expected": [
+          "peppermint tea"
+        ],
+        "forbidden": [
+          "coffee"
+        ]
+      },
+      {
+        "id": "holiday",
+        "kind": "correction",
+        "query": "Where and when is my next holiday?",
+        "expected": [
+          "Seoul",
+          "December"
+        ],
+        "forbidden": [
+          "Dublin",
+          "November"
+        ]
+      },
+      {
+        "id": "forgotten",
+        "kind": "forget",
+        "query": "What was my hobby project nickname and craft?",
+        "expected": [],
+        "forbidden": [
+          "Copper Comet 8",
+          "pottery"
+        ]
+      },
+      {
+        "id": "unknown",
+        "kind": "unknown",
+        "query": "Who is my favourite author?",
+        "expected": [],
+        "forbidden": []
+      },
+      {
+        "id": "hypothetical",
+        "kind": "unknown",
+        "query": "What is the name of my pet horse?",
+        "expected": [],
+        "forbidden": [
+          "Nimbus"
+        ]
+      }
+    ],
+    "forget_after": 8,
+    "forget_query": "hobby project",
+    "sessions": [
+      {
+        "user": "My name is Indigo. My sister is named Jane. My dog is named Clover. My name is Indigo. My sister is named Jane. My dog is named Clover.",
+        "model": "Understood, Indigo. I have noted your sister is Jane and your dog is Clover."
+      },
+      {
+        "user": "I live in Kelowna. I prefer coffee and brief spoken answers. I live in Kelowna. I prefer coffee and brief spoken answers.",
+        "model": "Noted. You live in Kelowna and prefer coffee."
+      },
+      {
+        "user": "My next holiday will be in Dublin in November. My next holiday will be in Dublin in November.",
+        "model": "I have recorded your trip to Dublin this November."
+      },
+      {
+        "user": "My hobby project nickname is Copper Comet 8. It is a pottery project. My hobby project nickname is Copper Comet 8. It is a pottery project.",
+        "model": "I have noted your pottery project, Copper Comet 8."
+      },
+      {
+        "user": "Actually my sister's name is Jade, not Jane. Correct what you remember. Actually my sister's name is Jade, not Jane. Correct what you remember.",
+        "model": "Understood. I have updated your sister's name to Jade."
+      },
+      {
+        "user": "I switched drinks. I now prefer peppermint tea instead of coffee. I switched drinks. I now prefer peppermint tea instead of coffee.",
+        "model": "Noted. You now prefer peppermint tea."
+      },
+      {
+        "user": "Plans changed: my next holiday is Seoul in December, not Dublin in November. Plans changed: my next holiday is Seoul in December, not Dublin in November.",
+        "model": "I have updated your travel plans to Seoul in December."
+      },
+      {
+        "user": "Clover is the name of my dog. Please keep responses brief; I still live in Kelowna. Clover is the name of my dog. Please keep responses brief; I still live in Kelowna.",
+        "model": "Confirmed. Clover is your dog and you live in Kelowna."
+      },
+      {
+        "user": "Forget my hobby project, including its nickname and the craft involved. Forget my hobby project, including its nickname and the craft involved.",
+        "model": "I have removed the information regarding your hobby project."
+      },
+      {
+        "user": "If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse. If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse.",
+        "model": "Understood. That is a hypothetical name for a horse you do not own."
+      },
+      {
+        "user": "Do you know my favourite author? I have never told you. Do not assume one. Do you know my favourite author? I have never told you. Do not assume one.",
+        "model": "I do not know your favourite author and will not assume one."
+      },
+      {
+        "user": "That is all for today. What did we discuss? That is all for today. What did we discuss?",
+        "model": "We discussed your name Indigo, your sister Jade, your dog Clover, your home in Kelowna, your preference for peppermint tea, your trip to Seoul in December, and the hypothetical horse name Nimbus."
+      }
+    ]
+  },
+  {
+    "id": "jules",
+    "probes": [
+      {
+        "id": "dog",
+        "kind": "recall",
+        "query": "What is my dog's name?",
+        "expected": [
+          "Fern"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "city",
+        "kind": "recall",
+        "query": "Which city do I live in?",
+        "expected": [
+          "Kingston"
+        ],
+        "forbidden": []
+      },
+      {
+        "id": "sister",
+        "kind": "correction",
+        "query": "What is my sister's current name?",
+        "expected": [
+          "Mina"
+        ],
+        "forbidden": [
+          "Nina"
+        ]
+      },
+      {
+        "id": "drink",
+        "kind": "correction",
+        "query": "Which drink do I prefer now?",
+        "expected": [
+          "peppermint tea"
+        ],
+        "forbidden": [
+          "coffee"
+        ]
+      },
+      {
+        "id": "holiday",
+        "kind": "correction",
+        "query": "Where and when is my next holiday?",
+        "expected": [
+          "Perth",
+          "December"
+        ],
+        "forbidden": [
+          "Berlin",
+          "November"
+        ]
+      },
+      {
+        "id": "forgotten",
+        "kind": "forget",
+        "query": "What was my hobby project nickname and craft?",
+        "expected": [],
+        "forbidden": [
+          "Copper Comet 9",
+          "pottery"
+        ]
+      },
+      {
+        "id": "unknown",
+        "kind": "unknown",
+        "query": "Who is my favourite author?",
+        "expected": [],
+        "forbidden": []
+      },
+      {
+        "id": "hypothetical",
+        "kind": "unknown",
+        "query": "What is the name of my pet horse?",
+        "expected": [],
+        "forbidden": [
+          "Nimbus"
+        ]
+      }
+    ],
+    "forget_after": 8,
+    "forget_query": "hobby project",
+    "sessions": [
+      {
+        "user": "My name is Jules. My sister is named Nina. My dog is named Fern. My name is Jules. My sister is named Nina. My dog is named Fern.",
+        "model": "Hello Jules. I have noted that your sister is Nina and your dog is Fern."
+      },
+      {
+        "user": "I live in Kingston. I prefer coffee and brief spoken answers. I live in Kingston. I prefer coffee and brief spoken answers.",
+        "model": "Understood. You live in Kingston and prefer coffee."
+      },
+      {
+        "user": "My next holiday will be in Berlin in November. My next holiday will be in Berlin in November.",
+        "model": "Noted. Your next holiday is in Berlin this November."
+      },
+      {
+        "user": "My hobby project nickname is Copper Comet 9. It is a pottery project. My hobby project nickname is Copper Comet 9. It is a pottery project.",
+        "model": "I have recorded your pottery project, Copper Comet 9."
+      },
+      {
+        "user": "Actually my sister's name is Mina, not Nina. Correct what you remember. Actually my sister's name is Mina, not Nina. Correct what you remember.",
+        "model": "I have updated my records. Your sister is Mina."
+      },
+      {
+        "user": "I switched drinks. I now prefer peppermint tea instead of coffee. I switched drinks. I now prefer peppermint tea instead of coffee.",
+        "model": "Understood. You now prefer peppermint tea."
+      },
+      {
+        "user": "Plans changed: my next holiday is Perth in December, not Berlin in November. Plans changed: my next holiday is Perth in December, not Berlin in November.",
+        "model": "I have updated your holiday plans to Perth in December."
+      },
+      {
+        "user": "Fern is the name of my dog. Please keep responses brief; I still live in Kingston. Fern is the name of my dog. Please keep responses brief; I still live in Kingston.",
+        "model": "Confirmed. Your dog is Fern and you live in Kingston."
+      },
+      {
+        "user": "Forget my hobby project, including its nickname and the craft involved. Forget my hobby project, including its nickname and the craft involved.",
+        "model": "I have removed the information regarding your hobby project."
+      },
+      {
+        "user": "If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse. If I owned a horse, I might call it Nimbus. That is hypothetical; I do not own a horse.",
+        "model": "Understood. You do not own a horse."
+      },
+      {
+        "user": "Do you know my favourite author? I have never told you. Do not assume one. Do you know my favourite author? I have never told you. Do not assume one.",
+        "model": "I do not know your favourite author and will not assume one."
+      },
+      {
+        "user": "That is all for today. What did we discuss? That is all for today. What did we discuss?",
+        "model": "We discussed your name Jules, your sister Mina, your dog Fern, your residence in Kingston, your preference for peppermint tea, your holiday in Perth this December, and your hypothetical horse named Nimbus."
+      }
+    ]
+  }
+]
