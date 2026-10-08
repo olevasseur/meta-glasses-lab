@@ -56,13 +56,13 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         OverModeController(application, viewModelScope,
             onEnd = { reason ->
                 gemini.setTalking(false)
-                mutableState.update { it.copy(overStatus = if (reason == OverTurnDetector.End.SAFETY_TIMEOUT)
-                    "Continuous speech safety limit reached · waiting for reply" else "Waiting for reply") }
+                mutableState.update { it.copy(overStatus = if (reason == OverTurnDetector.End.SILENCE_TIMEOUT)
+                    "Silence timeout · waiting for reply" else "Waiting for reply") }
                 if (reason == OverTurnDetector.End.SIGN_OFF) stop()
             },
             onStatus = { label -> mutableState.update { it.copy(overStatus = label) } },
             onError = { message ->
-                mutableState.update { it.copy(overStatus = "Speech recognition unavailable · use Finish turn") }
+                mutableState.update { it.copy(overStatus = "Keyword recognition unavailable · pause to finish your turn") }
                 error(message)
             },
         )
@@ -170,11 +170,8 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun finishTalking() {
+        if (!state.value.ptt) return
         screenTalking = false; glassesTalking = false
-        if (state.value.settings.mode == ConversationMode.OVER) {
-            over.stop()
-            mutableState.update { it.copy(overStatus = "Waiting for reply") }
-        }
         gemini.setTalking(false)
     }
 

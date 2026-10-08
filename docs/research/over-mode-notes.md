@@ -47,7 +47,7 @@ or deliberately open a competing microphone.
 
 [DataStore 1.2.1](https://developer.android.com/jetpack/androidx/releases/datastore)
 is the documented stable Preferences dependency. It stores mode, patience,
-keyword and continuous-speech safety setting; JVM tests reopen the store from disk.
+keyword and Over silence timeout (superseding the original speech limit); JVM tests reopen the store from disk.
 [AudioTrack](https://developer.android.com/reference/android/media/AudioTrack#getPlaybackHeadPosition())
 provides the playback-head frame counter used to wait until queued/device-buffered
 model audio is played before opening the next activity.
@@ -78,6 +78,31 @@ only the PCM path is verified. `scripts/smoke_over.py --wav …` reproduces PCM.
   English model availability, gaps when a recognizer restarts, and echo behavior.
 - Actual pause tolerance in Auto at 500/2000/5000 ms; clamp/config serialization
   is tested, but real Auto microphone VAD behavior was not measured.
-- Continuous-speech energy threshold under quiet speech/noise/HFP resampling.
+- Silence detector energy/crossing thresholds under real quiet speech, breathing, wind, noise and HFP resampling.
 - Long-lived/reconnected hardware conversations and reply playback drain.
 - Text-only manual-activity failure reason; audio input succeeds.
+
+## Silence-rule correction (2026-10-07)
+
+Decision 10 now ends an Over turn only on the selected keyword or 10 seconds of
+continuous silence (5–30 seconds configurable). No speaking-duration limit or
+manual Finish turn remains. The client counts quiet samples in the shared 16 kHz
+stream using RMS/crossing-rate gating with 100 ms attack and bounded 200 ms weak
+release; timestamps or STT completion alone never count as silence. This is a
+local heuristic, not a provider VAD guarantee.
+
+Rechecked [DataStore documentation](https://developer.android.com/topic/libraries/architecture/datastore)
+and [Gemini wire reference](https://ai.google.dev/api/live) on 2026-10-07: transactional
+preference edits support deleting the legacy setting while writing the new
+10-second default; explicit activity control still uses disabled automatic VAD.
+A previously saved new silence setting wins over the legacy value. Unit tests
+verify persistence after reopening the store and both bounds.
+
+Verification: 39 JVM tests passed, including three minutes of uninterrupted
+synthetic voiced PCM, pauses restarting the full silence interval, exact silence
+expiry, boundary onsets, weak-energy hysteresis, DC/clicks and broadband phone/HFP
+noise. Re-ran `scripts/smoke_over.py`: real token HTTP 200, setupComplete, no reply
+during its 2.5-second pause, then activityEnd → 74,882 PCM response bytes and
+turnComplete with the correct answer and ignored sign-off. The script validates
+the Gemini protocol, not the Android detector or actual 10-second microphone
+behavior. Hardware speech/noise accuracy remains unverified as listed above.

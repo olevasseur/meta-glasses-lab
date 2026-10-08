@@ -32,10 +32,10 @@ fun ConversationSettingsControls(settings: ConversationSettings, enabled: Boolea
                         label = { Text(keyword) }, enabled = enabled)
                 }
             }
-            Text("Pause as long as you like. Say ‘over and out’ to stop the session.")
-            Text("Safety limit: ${settings.safetySeconds} seconds of continuous speech")
-            Slider(value = settings.safetySeconds.toFloat(), onValueChange = { onChange(settings.copy(safetySeconds = it.roundToInt())) },
-                valueRange = 10f..120f, steps = 21, enabled = enabled)
+            Text("Speak as long as you like. Say ‘over and out’ to stop the session.")
+            Text("End turn after silence: ${settings.overSilenceSeconds} seconds")
+            Slider(value = settings.overSilenceSeconds.toFloat(), onValueChange = { onChange(settings.copy(overSilenceSeconds = it.roundToInt())) },
+                valueRange = 5f..30f, steps = 24, enabled = enabled)
         }
     }
 }

@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 
 enum class ConversationMode(val wireName: String, val label: String) {
     AUTO("auto", "Auto"), PTT("ptt", "Push-to-talk"), OVER("over", "Over"),
@@ -17,12 +18,12 @@ data class ConversationSettings(
     val mode: ConversationMode = ConversationMode.AUTO,
     val silenceMs: Int = 2000,
     val keyword: String = "over",
-    val safetySeconds: Int = 45,
+    val overSilenceSeconds: Int = 10,
 ) {
     fun normalized() = copy(
         silenceMs = silenceMs.coerceIn(500, 5000),
         keyword = keyword.takeIf { it in KEYWORDS } ?: "over",
-        safetySeconds = safetySeconds.coerceIn(10, 120),
+        overSilenceSeconds = overSilenceSeconds.coerceIn(5, 30),
     )
 
     companion object { val KEYWORDS = listOf("over", "go ahead", "your turn") }
@@ -34,14 +35,23 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
     private val modeKey = stringPreferencesKey("mode")
     private val silenceKey = intPreferencesKey("silence_ms")
     private val keywordKey = stringPreferencesKey("over_keyword")
-    private val safetyKey = intPreferencesKey("over_safety_seconds")
+    private val legacySafetyKey = intPreferencesKey("over_safety_seconds")
+    private val overSilenceKey = intPreferencesKey("over_silence_seconds")
 
-    val settings = store.data.map { prefs ->
+    val settings = store.data.onStart {
+        store.edit {
+            if (legacySafetyKey in it) {
+                // Speech duration has different semantics: migrate to the silence default.
+                if (overSilenceKey !in it) it[overSilenceKey] = 10
+                it.remove(legacySafetyKey)
+            }
+        }
+    }.map { prefs ->
         ConversationSettings(
             mode = ConversationMode.entries.firstOrNull { it.wireName == prefs[modeKey] } ?: ConversationMode.AUTO,
             silenceMs = prefs[silenceKey] ?: 2000,
             keyword = prefs[keywordKey] ?: "over",
-            safetySeconds = prefs[safetyKey] ?: 45,
+            overSilenceSeconds = prefs[overSilenceKey] ?: 10,
         ).normalized()
     }
 
@@ -51,7 +61,8 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
             it[modeKey] = value.mode.wireName
             it[silenceKey] = value.silenceMs
             it[keywordKey] = value.keyword
-            it[safetyKey] = value.safetySeconds
+            it[overSilenceKey] = value.overSilenceSeconds
+            it.remove(legacySafetyKey)
         }
     }
 }

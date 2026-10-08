@@ -2,9 +2,20 @@ package com.olevasseur.glassesapp
 
 import org.junit.Assert.*
 import org.junit.Test
+import kotlin.math.PI
+import kotlin.math.sin
+import kotlin.random.Random
 
 class OverTurnDetectorTest {
-    private val voice = ByteArray(640) { if (it % 2 == 0) 0 else 8 } // 2048 PCM amplitude.
+    private fun pcm(sample: (Int) -> Int) = ByteArray(640).also { bytes ->
+        repeat(320) { i ->
+            val value = sample(i)
+            bytes[i * 2] = value.toByte()
+            bytes[i * 2 + 1] = (value shr 8).toByte()
+        }
+    }
+    private fun tone(amplitude: Int) = pcm { (amplitude * sin(2 * PI * 300 * it / 16_000)).toInt() }
+    private val voice = tone(2048)
     private val silence = ByteArray(640)
 
     @Test fun matchesOnlyNormalizedTrailingWords() {
@@ -59,36 +70,111 @@ class OverTurnDetectorTest {
         assertEquals(OverTurnDetector.End.SIGN_OFF, segmented.transcript("out", true, 900))
     }
 
-    @Test fun silenceAndNonKeywordFinalsNeverEndTheTurn() {
+    private fun keepOpen(detector: OverTurnDetector, audio: ByteArray, milliseconds: Int) {
+        repeat(milliseconds / 20) { assertNull(detector.audio(audio)) }
+    }
+
+    @Test fun tenSecondsOfContinuousSilenceEndsExactlyOnce() {
         val detector = OverTurnDetector("over")
-        for (time in 0L..120_000L step 20) {
-            assertNull(detector.audio(silence, time))
+        keepOpen(detector, voice, 1000)
+        detector.transcript("I am still thinking", true, 1000)
+        keepOpen(detector, silence, 9980)
+        assertNull(detector.tick(10_980))
+        assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(silence))
+        assertNull(detector.audio(silence))
+        assertNull(detector.transcript("over and out", true, 11_000))
+    }
+
+    @Test fun silenceAtStartAlsoEndsButMissingAudioDoesNotCountAsSilence() {
+        val detector = OverTurnDetector("over")
+        assertNull(detector.tick(100_000))
+        assertNull(detector.audio(byteArrayOf()))
+        keepOpen(detector, silence, 9980)
+        assertNull(detector.tick(1_000_000))
+        assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(silence))
+    }
+
+    @Test fun threeMinutesOfContinuousSpeechNeverEndsEvenAtShortestSetting() {
+        val detector = OverTurnDetector("over", silenceSeconds = 5)
+        for (time in 0L until 180_000L step 20) {
+            assertNull(detector.audio(voice))
             assertNull(detector.tick(time))
         }
-        detector.transcript("I am still thinking", true, 120_001)
-        assertNull(detector.tick(999_999))
+        keepOpen(detector, silence, 4980)
+        assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(silence))
     }
 
-    @Test fun safetyUsesContinuousSpeechNotSessionAgeOrAccumulatedSpeech() {
+    @Test fun pausesDoNotAccumulateAcrossSpeechOrRecognizerRestarts() {
         val detector = OverTurnDetector("over")
-        for (time in 0L until 30_000L step 20) assertNull(detector.audio(voice, time))
-        assertNull(detector.audio(silence, 31_000))
-        for (time in 50_000L until 95_000L step 20) assertNull(detector.audio(voice, time))
-        assertEquals(OverTurnDetector.End.SAFETY_TIMEOUT, detector.audio(voice, 95_000))
-        assertNull(detector.audio(voice, 95_020))
-        val custom = OverTurnDetector("over", safetySeconds = 10)
-        for (time in 0L until 10_000L step 20) custom.audio(voice, time)
-        assertEquals(OverTurnDetector.End.SAFETY_TIMEOUT, custom.audio(voice, 10_000))
+        repeat(20) {
+            keepOpen(detector, voice, 1000)
+            keepOpen(detector, silence, 9000)
+            detector.transcript("still thinking", true, it * 10_000L)
+        }
+        keepOpen(detector, silence, 980)
+        assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(silence))
     }
 
-    @Test fun newTurnDoesNotReusePreviousKeywordsOrSafetyClock() {
+    @Test fun speechBeginningJustBeforeTimeoutCanFinishItsOnsetDebounce() {
+        val detector = OverTurnDetector("over")
+        keepOpen(detector, silence, 9980)
+        keepOpen(detector, voice, 1000)
+        keepOpen(detector, silence, 9980)
+        assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(silence))
+    }
+
+    @Test fun breathsLowNoiseDcAndBroadbandNoiseDoNotKeepTheTurnOpen() {
+        val random = Random(7)
+        val hiss = pcm { random.nextInt(-4000, 4001) }
+        val hfpHiss = PcmResampler(8000).process(ShortArray(160) { random.nextInt(-4000, 4001).toShort() })
+        for (background in listOf(tone(500), pcm { 3000 }, hiss, hfpHiss)) {
+            val detector = OverTurnDetector("over")
+            keepOpen(detector, voice, 1000)
+            keepOpen(detector, background, 9980)
+            assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(background))
+        }
+    }
+
+    @Test fun repeatedClicksAndBriefEnergyBurstsDoNotResetSilence() {
+        val detector = OverTurnDetector("over")
+        repeat(9) {
+            keepOpen(detector, silence, 960)
+            keepOpen(detector, voice, 40)
+        }
+        keepOpen(detector, silence, 980)
+        // A click at the deadline can delay the decision only until the next quiet frame.
+        assertNull(detector.audio(voice))
+        assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(silence))
+    }
+
+    @Test fun weakEnergyHysteresisBridgesSyllablesButCannotLatchBackgroundForever() {
+        val weak = tone(800) // RMS between the 450 hold and 700 onset thresholds.
+        val detector = OverTurnDetector("over")
+        repeat(100) {
+            keepOpen(detector, voice, 200)
+            keepOpen(detector, weak, 100)
+        }
+        keepOpen(detector, voice, 200)
+        keepOpen(detector, weak, 10_160)
+        assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(weak))
+    }
+
+    @Test fun timeoutSettingClampsAndCountsPcmDurationNotCallbackCount() {
+        for ((setting, seconds) in listOf(-1 to 5, 5 to 5, 30 to 30, 99 to 30)) {
+            val detector = OverTurnDetector("over", silenceSeconds = setting)
+            // Half-size callbacks represent 10 ms, not 20 ms.
+            repeat(seconds * 100 - 1) { assertNull(detector.audio(ByteArray(320))) }
+            assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(ByteArray(320)))
+        }
+    }
+
+    @Test fun newTurnDoesNotReusePreviousKeywordsOrSilenceClock() {
         val first = OverTurnDetector("over")
-        first.transcript("over", true, 0)
-        assertNotNull(first.tick(1200))
+        keepOpen(first, silence, 9000)
+        first.transcript("over", true, 9000)
+        assertNotNull(first.tick(10_200))
         val next = OverTurnDetector("over")
-        assertNull(next.tick(100_000))
-        assertNull(next.audio(voice, 100_000))
-        next.transcript("over", true, 100_020)
-        assertNotNull(next.tick(101_220))
+        keepOpen(next, silence, 9980)
+        assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, next.audio(silence))
     }
 }

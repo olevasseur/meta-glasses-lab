@@ -5,23 +5,25 @@ Implemented and checked **2026-10-07**. Runtime conversation AI remains Gemini L
 ## Use
 
 Stop the conversation before changing settings. Choose **Auto**, **Push-to-talk**,
-or **Over**, then tap **Start**. Mode, Auto patience, Over keyword and safety
-limit persist locally in Preferences DataStore.
+or **Over**, then tap **Start**. Mode, Auto patience, Over keyword and silence
+timeout persist locally in Preferences DataStore.
 
 - **Auto:** set **Patience** from 500–5000 ms (default 2000 ms). Gemini waits for
   this much silence using the existing low-sensitivity automatic detection.
 - **Push-to-talk:** existing screen hold/release and glasses capture HOLD toggle
   remain available, including the existing 60-second limit.
-- **Over:** wait for the status to say **Listening for sign-off**. Speak and
-  pause freely; finish with the selected phrase: **over** (default), **go ahead**,
+- **Over:** wait for the status to say **Listening for sign-off**. Speak for as
+  long as you like; finish with the selected phrase: **over** (default), **go ahead**,
   or **your turn**. For example: “What is two plus two? Over.” Only the selected
   turn keyword is active. **Over and out** always stops the whole session.
-  **Finish turn** sends the current turn manually if recognition misses a phrase;
-  **Stop** closes the session immediately.
+  Alternatively, stop speaking for **10 continuous seconds** (configurable).
+  **Stop** closes the session immediately. There is no manual Finish turn button
+  in Over mode; if keyword recognition is unavailable, use the silence timeout.
 
 Over opens a manual activity when Gemini connects. The microphone streams
-continuously during the user's turn, including pauses. A recognized suffix or
-the continuous-speech safety limit sends `activityEnd`. Microphone capture stays
+continuously during the user's turn, including pauses. Only a recognized suffix or
+the configured continuous-silence timeout sends `activityEnd`. **There is no
+maximum turn length while the user keeps speaking.** Microphone capture stays
 open during the reply, but its audio is not sent to Gemini or the keyword
 recognizer. After `turnComplete` and playback drain, a fresh activity and
 recognizer begin. Over therefore does not support barge-in during replies.
@@ -42,17 +44,35 @@ use this fallback directly. Android 13/API 33 or later is required for this PCM
 injection fallback, even though the on-device recognizer factory exists at API 31.
 Install the offline English recognition model on the phone first.
 
-Recognition callbacks ending on silence only restart recognition; they never
-end the Gemini turn. Partial hypotheses must keep the same normalized text for
+Recognition callbacks ending on silence only restart recognition; they do not
+end the Gemini turn. The independent PCM detector owns the silence timeout.
+Partial hypotheses must keep the same normalized text for
 1.2 seconds before a suffix commits. Final “go ahead”, “your turn” and “over and
 out” commit immediately; “over” gets the same 1.2-second grace period so “and
 out” can follow. Matching ignores case, punctuation and whitespace and requires
 whole trailing words. It is not substring matching (“clover” does not match).
 
-The safety slider defaults to **45 seconds**, adjustable from 10–120 seconds.
-The clock measures sustained PCM energy; a gap over 800 ms resets it. It can end
-a turn only on an energetic audio frame, never during silence. This lightweight
-energy approximation uses RMS 600 on PCM16; it is not a semantic speech detector.
+**End turn after silence** defaults to **10 seconds**, adjustable from **5–30
+seconds** in one-second steps. A fresh full interval is required after speech
+resumes: short pauses never accumulate across speech. Silence before the first
+word also counts. The detector counts captured PCM samples, so missing microphone
+callbacks and recognizer restarts do not manufacture silence.
+
+The local energy gate removes DC, uses PCM16 RMS thresholds of 700 to start and
+450 to hold speech, and checks zero-crossing rate (0.008–0.20) to reject rumble
+and broadband hiss. Speech onset must last 100 ms, ignoring short clicks. The
+lower threshold bridges weak syllables for up to 200 ms; weak breathing or
+background energy cannot hold that state forever. Completely quiet frames count
+as silence immediately. An onset at the timeout boundary gets at most 100 ms to
+qualify; otherwise the accumulated silence still ends the turn. This is an energy
+heuristic, not semantic or speaker-specific VAD; thresholds need hardware checks.
+
+**Migration:** the old `over_safety_seconds` preference is removed atomically
+when settings load (or save). Existing installs receive the new 10-second
+`over_silence_seconds` default, regardless of the former speech limit. Mode,
+keyword and Auto patience are preserved. An already saved new silence value is
+preserved and clamped to 5–30 seconds. The different old semantics are deliberately
+not converted to a silence duration.
 
 ## Backend contract
 
@@ -76,20 +96,24 @@ No new backend secrets or environment variables are required.
 
 ## Verification
 
-- `cd android && ./gradlew assembleDebug testDebugUnitTest`: passed, 30 JVM tests,
-  including keyword revisions/sign-off precedence, silence and safety timing,
-  token requests and DataStore recreation.
-- `cd android && ./gradlew lintDebug`: passed, zero errors (eight existing
-  dependency/update and backup-declaration warnings).
-- `cd backend && uv run pytest`: 66 passed. Includes Over constraints, real SDK
+- `cd android && ./gradlew assembleDebug testDebugUnitTest`: passed, 39 JVM tests,
+  including keyword/sign-off precedence, exact 10-second silence, uninterrupted
+  three-minute speech with the shortest timeout, repeated nine-second pauses,
+  noisy/breath-like PCM, onset/release hysteresis, timeout bounds, token requests,
+  migration and DataStore recreation.
+- Prior implementation: `cd backend && uv run pytest`: 66 passed. Includes Over
+  constraints, real SDK
   HTTP serialization, patience clamping/types and resumption field-mask checks.
 - Real `/token` in-process HTTP request using the gitignored `.env`: Over HTTP
   200. Connected to the constrained v1beta WebSocket with the token header and
   minimal model + `sessionResumption:{}` setup; received `setupComplete`.
 - Sent `activityStart`, locally synthesized PCM speech asking two plus two and
   ending in “Over”, waited 2.5 seconds with **no reply**, then sent `activityEnd`.
-  Received 77,280 PCM bytes, the correct answer without sign-off acknowledgement,
-  and `turnComplete`. Credentials and returned token were never printed.
+  Received 74,882 PCM bytes, the correct answer without sign-off acknowledgement,
+  and `turnComplete`. Re-run **2026-10-07** with `scripts/smoke_over.py`.
+  Credentials and returned token were never printed. This verifies manual Gemini
+  activity boundaries; the Android silence/keyword detector is covered by JVM
+  tests, not by this Python protocol smoke test.
 
 Reproduce on macOS (the synthesis is a local test fixture, not app runtime AI):
 
@@ -115,12 +139,16 @@ Android SDK, with writable Gradle/Android-user/uv caches under `/tmp`.
 - Android recognizers may ignore PCM-source extras and open their own mic. A pipe
   that stops accepting data disables recognition with an error; it cannot stall
   Gemini upload. There is no fallback that intentionally races a second mic.
-  On unsupported phones, use **Finish turn** or switch to PTT/Auto after Stop.
+  On unsupported phones, pause for the configured silence interval or switch
+  to PTT/Auto after Stop.
 - Recognition mistakes or a stable partial ending in “over” can commit too soon;
   choose “your turn” if “over” occurs often in ordinary speech. The 1.2-second
   grace is finite: pause longer after “over” and it may commit before “and out”.
-- Sustained noise may trigger the energy-based safety limit; quiet speech may
-  miss it. Validate the threshold with HFP recordings before tuning it.
+- Quiet speech below the energy threshold may be classified as silence. Loud
+  tonal noise, wind or nearby voices may count as speech and delay the timeout.
+  Synthetic tests cover low noise, breath-like energy, DC, clicks and broadband
+  phone/HFP hiss; real Pixel/glasses recordings remain unverified. There is no
+  fallback speech-duration cap. Validate thresholds on those recordings.
 - A text-only manual-activity probe closed after `activityEnd`; PCM is the
   verified path and the committed smoke script uses PCM. The text-only failure
   was not diagnosed; the Android app does not use that path.

@@ -94,7 +94,7 @@ class OverSpeechRecognizer(
     private fun startPlatform(epoch: Int) {
         if (epoch != generation) return
         if (Build.VERSION.SDK_INT < 33 || !SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
-            onError("Over needs DAT speech or Android 13+ with on-device speech installed. Use Finish turn, or switch modes after Stop.")
+            onError("Voice keywords need DAT speech or Android 13+ with on-device speech installed. Pause to finish your turn, or switch modes after Stop.")
             return
         }
         try {
@@ -121,7 +121,7 @@ class OverSpeechRecognizer(
                 override fun onBeginningOfSpeech() = Unit
                 override fun onRmsChanged(rmsdB: Float) = Unit
                 override fun onBufferReceived(buffer: ByteArray?) = Unit
-                override fun onEndOfSpeech() = Unit // Silence is never activityEnd.
+                override fun onEndOfSpeech() = Unit // The shared-PCM detector owns the silence timeout.
                 override fun onPartialResults(partialResults: Bundle?) = result(partialResults, false)
                 override fun onSegmentResults(segmentResults: Bundle) = result(segmentResults, true)
                 override fun onResults(results: Bundle?) { result(results, true); restart() }
@@ -132,7 +132,7 @@ class OverSpeechRecognizer(
                     if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) restart()
                     else {
                         closePlatform()
-                        onError("On-device speech unavailable ($error). Use Finish turn; check the offline English speech model before restarting.")
+                        onError("On-device speech unavailable ($error). Pause to finish your turn; check the offline English speech model before restarting.")
                     }
                 }
             })
@@ -150,7 +150,7 @@ class OverSpeechRecognizer(
             onStatus("Starting on-device speech · shared microphone audio")
         } catch (_: Exception) {
             closePlatform()
-            onError("Could not start on-device speech. Use Finish turn, or switch modes after Stop.")
+            onError("Could not start on-device speech. Pause to finish your turn, or switch modes after Stop.")
         }
     }
 
@@ -167,7 +167,7 @@ class OverSpeechRecognizer(
                     // Ignore a failure from a pipe belonging to a previous turn.
                     if (writePipe == null && readPipe != null) {
                         closePlatform()
-                        onError("Speech service did not consume shared audio. Use Finish turn; this recognizer may not support PCM input.")
+                        onError("Speech service did not consume shared audio. Pause to finish your turn; this recognizer may not support PCM input.")
                     }
                 }
             }

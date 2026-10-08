@@ -8,7 +8,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-/** Keeps keyword recognition and its safety clock scoped to one manually opened user turn. */
+/** Keeps keyword recognition and silence detection scoped to one manually opened user turn. */
 class OverModeController(
     context: Context,
     private val scope: CoroutineScope,
@@ -27,7 +27,7 @@ class OverModeController(
 
     fun start(settings: ConversationSettings, forcePhone: Boolean) {
         stop()
-        detector = OverTurnDetector(settings.keyword, settings.safetySeconds)
+        detector = OverTurnDetector(settings.keyword, settings.overSilenceSeconds)
         listening = true
         onStatus("Preparing keyword recognition…")
         speech.start(forcePhone)
@@ -39,10 +39,9 @@ class OverModeController(
     fun audio(pcm: ByteArray) {
         if (!listening) return
         val epoch = generation
-        val now = SystemClock.elapsedRealtime()
         speech.audio(pcm)
         scope.launch {
-            if (epoch == generation) detector?.audio(pcm, now)?.let(::finish)
+            if (epoch == generation) detector?.audio(pcm)?.let(::finish)
         }
     }
 

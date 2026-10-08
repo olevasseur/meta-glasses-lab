@@ -40,7 +40,7 @@ Session config (backend-owned):
 
 Push-to-talk mode: app may request `{"mode":"ptt"}` → backend returns a token whose config has `automaticActivityDetection.disabled=true`; app sends `activityStart`/`activityEnd`.
 
-Over mode: `{"mode":"over"}` also disables automatic activity detection. Local DAT speech (or Android on-device STT on shared PCM) ends a user activity on the selected trailing phrase. Silence never ends it; a configurable continuous-speech safety limit defaults to 45 seconds. See [Over feature](features/over.md).
+Over mode: `{"mode":"over"}` also disables automatic activity detection. Local DAT speech (or Android on-device STT on shared PCM) ends a user activity on the selected trailing phrase. A local PCM speech-energy detector also ends the activity after 10 seconds of continuous silence (configurable from 5–30 seconds). There is no maximum turn length while speech continues. See [Over feature](features/over.md).
 
 ### `POST /tools/{name}`
 Header `X-App-Secret`. Body = the Gemini function call `args` object. Response = JSON object the app sends back as the `functionResponse.response`.

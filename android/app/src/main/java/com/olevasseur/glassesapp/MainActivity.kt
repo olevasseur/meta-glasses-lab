@@ -115,7 +115,6 @@ private fun ConversationScreen(
             }
             if (state.settings.mode == ConversationMode.OVER && state.running) {
                 Text(state.overStatus)
-                OutlinedButton(onClick = model::finishTalking, enabled = state.connected && state.talking) { Text("Finish turn") }
             }
             if (state.ptt) {
                 HoldToTalk(state.connected, state.talking, model::talk, model::finishTalking)
