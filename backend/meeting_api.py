@@ -9,6 +9,7 @@ from googleapiclient.errors import HttpError
 from pydantic import BaseModel, ConfigDict, Field
 
 from memory import MemoryConflict
+from gemini_resilience import GeminiUnavailable
 from memory_api import SessionId
 
 router = APIRouter()
@@ -44,5 +45,7 @@ async def end(meeting_id: SessionId):
         return result
     except MemoryConflict as exc:
         raise HTTPException(409, str(exc)) from exc
+    except GeminiUnavailable:
+        return {"status": "processing", "meeting_id": meeting_id, "message": "Transcript saved; Gemini retry pending"}
     except (APIError, httpx.HTTPError, ValueError, RuntimeError, OSError, GoogleAuthError, HttpError) as exc:
         raise HTTPException(502, 'Meeting saved; retry finalization. Check Gemini quota, Google consent (including drive.file), and exact destination title/alias.') from exc

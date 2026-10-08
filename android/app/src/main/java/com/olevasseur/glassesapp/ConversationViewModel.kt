@@ -131,11 +131,27 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                 sendApprovalResults()
             }, resetMotion = { gestures.disconnected(); coachNavigation.cancel() })
     }
+    private val offline: OfflineCapture by lazy {
+        OfflineCapture(application, viewModelScope, glasses.activeSession, backend, audio,
+            recap = { text ->
+                gemini.sendRecap(text).also { sent ->
+                    if (sent && state.value.settings.mode == ConversationMode.OVER) overAwaitingReply = true
+                }
+            }, status = { label -> mutableState.update { it.copy(lastTool = label) } })
+    }
+    private fun updateOffline(unavailable: Boolean = false) {
+        offline.update(state.value.running && !state.value.stopping && audioReady && state.value.handsFree.shouldRun &&
+            !state.value.meeting && state.value.translationLanguage == null, state.value.connected, unavailable)
+    }
+    suspend fun geminiHealth() = backend.geminiHealth()
+    fun offlineCaptures() = offline.review()
+
     private val gemini: GeminiSession = GeminiSession(
         scope = viewModelScope, backend = backend, audio = audio,
         onState = { label, connected ->
             if (!connected) { screenTalking = false; glassesTalking = false; overAwaitingReply = false; gestures.disconnected(); visualMemory.stop(); reading.pause(); coachNavigation.cancel() }
             mutableState.update { it.copy(gemini = label, connected = connected) }
+            updateOffline(unavailable = !connected && label.contains("retry in"))
             if (connected) { sendApprovalResults(); speakPendingRecap() }
             if (!state.value.meeting && state.value.settings.mode == ConversationMode.OVER) {
                 if (connected) beginOverTurn() else { overResumeJob?.cancel(); over.stop() }
@@ -168,10 +184,13 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         },
         localTool = { featureTools.tool(it) },
         onEvent = { event ->
+            if (event.interrupted) offline.interrupted()
+            else if (event.turnComplete) offline.turnComplete()
             if (event.interrupted || !event.inputText.isNullOrBlank() || !event.outputText.isNullOrBlank() || event.calls.isNotEmpty()) coachNavigation.cancel()
             if (!state.value.meeting && state.value.handsFree.shouldRun && audioReady) gestures.onEvent(event)
         },
         onApproval = { approvals.offer(it) },
+        canAnnounce = { approvals.state.value == null && gestures.state.value.question == null },
         onClientTool = { name, result ->
             if (state.value.handsFree.shouldRun && audioReady && !state.value.stopping) when (name) {
                 "start_meeting" -> startMeeting(result.optString("title", "Untitled"), result.optString("doc_name").takeUnless { it == "null" } ?: "")
@@ -379,6 +398,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             gestures.disconnected(); reading.pause()
         }
         gemini.suspendAudio(!value.shouldRun || !audioReady)
+        updateOffline()
     }
     fun setWorkoutSensitivity(value: Float) {
         if (!state.value.settingsLoaded || !value.isFinite()) return
@@ -435,8 +455,8 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                     val speechActivity = SpeechEnergyDetector()
                     var voicedSamples = 0
                     audio.start(forcePhone = state.value.mock || (state.value.meeting && state.value.meetingPhone), onAudio = { pcm ->
-                        gemini.sendAudio(if (muted) ByteArray(pcm.size) else pcm)
-                        over.audio(pcm)
+                        gemini.sendAudio(if (muted || offline.speaking) ByteArray(pcm.size) else pcm)
+                        if (!muted && !offline.speaking) { over.audio(pcm); offline.audio(pcm) }
                         // Over may have no transcript until sign-off; sustained speech is not idle.
                         if (!muted && speechActivity.accept(pcm)) {
                             voicedSamples += pcm.size / 2
@@ -455,6 +475,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                         roomCapture = state.value.meeting,
                     )
                     audioReady = true
+                    updateOffline()
                     gemini.suspendAudio(false)
                     service?.audioStarted()
                     if (!sessionStarted) {
@@ -470,6 +491,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                 catch (e: Exception) { error(e.message ?: "Cannot start audio"); stop() }
                 finally {
                     audioReady = false
+                    updateOffline()
                     gemini.suspendAudio(true)
                     overResumeJob?.cancel(); over.stop()
                     withContext(NonCancellable) { audio.stop() }
@@ -489,6 +511,16 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         if (state.value.meeting || !state.value.running || state.value.stopping || !state.value.connected ||
             !state.value.handsFree.shouldRun || !audioReady || overAwaitingReply ||
             state.value.settings.mode != ConversationMode.OVER) return
+        if (offline.speaking) {
+            overResumeJob?.cancel()
+            overResumeJob = viewModelScope.launch {
+                while (offline.speaking) delay(100)
+                audio.awaitPlaybackIdle()
+                speakPendingRecap()
+                beginOverTurn()
+            }
+            return
+        }
         gemini.setTalking(true)
         if (state.value.talking) over.start(state.value.settings, state.value.mock || state.value.route.startsWith("Phone"))
     }
@@ -525,6 +557,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         if (state.value.stopping || !state.value.running) return
         approvals.state.value?.let { approvals.reject(it.id) }
         mutableState.update { it.copy(stopping = true, connected = false, talking = false) }
+        offline.stop()
         overResumeJob?.cancel(); over.stop()
         visualMemory.stop()
         vision.stop()
@@ -612,6 +645,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                 if (state.value.settings.mode == ConversationMode.OVER) overAwaitingReply = true
             }
         }
+        offline.sendPendingRecap()
     }
 
     private fun appendTranscript(speaker: String, text: String) {
@@ -628,6 +662,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     override fun onCleared() {
+        offline.close()
         approvals.close()
         coachNavigation.cancel()
         overResumeJob?.cancel(); over.stop()

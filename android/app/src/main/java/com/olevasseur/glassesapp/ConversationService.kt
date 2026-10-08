@@ -97,7 +97,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
             while (true) {
                 delay(1_000)
                 if (controls.shouldRun && (model.workout.state.value.active || model.state.value.meeting ||
-                    model.state.value.visualCapturing)) activity()
+                    model.state.value.visualCapturing || (model.state.value.running && !model.state.value.connected))) activity()
                 if (controls.expired(now(), model.state.value.idleMinutes * 60_000L)) stopAll()
             }
         }

@@ -2,6 +2,7 @@
 import json
 import os
 
+from gemini_resilience import generate_content
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, ConfigDict, Field
@@ -48,7 +49,7 @@ def response_schema() -> dict:
 def summarize_meeting(text: str, *, reducing: bool = False) -> dict:
     with genai.Client(api_key=os.environ["GEMINI_API_KEY"], vertexai=False,
                       http_options=types.HttpOptions(api_version="v1beta", timeout=20_000)) as client:
-        response = client.models.generate_content(
+        response = generate_content(client,
             model=os.getenv("GEMINI_MEETING_MODEL") or os.getenv("GEMINI_SUMMARY_MODEL") or DEFAULT_SUMMARY_MODEL,
             contents=text,
             config=types.GenerateContentConfig(

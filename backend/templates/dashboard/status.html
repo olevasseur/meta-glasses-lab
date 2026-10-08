@@ -5,6 +5,7 @@
 <article><h2>Gemini</h2><p class="muted">Create one ephemeral token to check credentials and model access. The token is discarded.</p>
 <form method="post" action="/dashboard/status/token"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Test Gemini token</button></form>
 {% if token_result %}<p class="notice" role="status">{{ token_result }}</p>{% endif %}</article>
+<form method="post" action="/dashboard/status/gemini"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Check Gemini Live (cached 1 minute)</button></form>
 <h2>Recent errors</h2><p class="muted">Latest 50 server failures since restart. Request contents and credentials are excluded.</p>
 {% for error in errors %}<article><time>{{ error.timestamp }}</time><p>{{ error.operation }} · HTTP {{ error.status }}</p></article>
 {% else %}<p class="card">No server errors recorded.</p>{% endfor %}

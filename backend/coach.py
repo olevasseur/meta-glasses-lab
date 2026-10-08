@@ -9,6 +9,7 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Literal
 
+from gemini_resilience import generate_content, GeminiUnavailable
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -90,7 +91,7 @@ def extract_project(kind: str, source: str) -> Project:
         raise RuntimeError("Gemini is not configured")
     with genai.Client(api_key=key, vertexai=False,
                       http_options=types.HttpOptions(api_version="v1beta", timeout=20_000)) as client:
-        response = client.models.generate_content(
+        response = generate_content(client,
             model=os.getenv("GEMINI_COACH_MODEL", "gemini-3.5-flash"),
             contents=json.dumps({"kind": kind, "source": source}),
             config=types.GenerateContentConfig(
@@ -121,6 +122,7 @@ class Projects:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         db = sqlite3.connect(self.path, timeout=10)
         db.execute("CREATE TABLE IF NOT EXISTS project (id INTEGER PRIMARY KEY CHECK(id=1), body TEXT NOT NULL, position INTEGER NOT NULL, scale TEXT NOT NULL, kind TEXT NOT NULL)")
+        db.execute("CREATE TABLE IF NOT EXISTS pending_project(kind TEXT, source TEXT, result TEXT, PRIMARY KEY(kind,source))")
         try:
             with db:
                 yield db
@@ -131,10 +133,26 @@ class Projects:
         # Fetch/extract before the transaction: a failed replacement preserves the old project.
         if source.lower().startswith(("http:", "https:")):
             source = fetch_source(source)
-        project = extract_project(kind, source)
         with self.connect() as db:
+            saved = db.execute("SELECT result FROM pending_project WHERE kind=? AND source=?", (kind, source)).fetchone()
+        try:
+            project = Project.model_validate_json(saved[0]) if saved and saved[0] else extract_project(kind, source)
+        except GeminiUnavailable:
+            with self.connect() as db:
+                db.execute("INSERT OR IGNORE INTO pending_project VALUES (?,?,NULL)", (kind, source))
+            return {"status": "queued", "message": "Project source saved. Ask to start the same project when Gemini returns."}
+        with self.connect() as db:
+            db.execute("DELETE FROM pending_project WHERE kind=? AND source=?", (kind, source))
             db.execute("INSERT OR REPLACE INTO project VALUES (1, ?, 0, '1', ?)", (project.model_dump_json(), kind))
         return self.run("current_step", {})
+
+    def retry_pending(self):
+        with self.connect() as db:
+            rows = db.execute("SELECT kind,source FROM pending_project WHERE result IS NULL LIMIT 5").fetchall()
+        for row in rows:
+            result = extract_project(*row)
+            with self.connect() as db:
+                db.execute("UPDATE pending_project SET result=? WHERE kind=? AND source=?", (result.model_dump_json(), *row))
 
     def run(self, name: str, args: dict):
         request = {"start_project": StartRequest, "scale_project": ScaleRequest,

@@ -14,6 +14,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated
 
+from gemini_resilience import generate_content, GeminiUnavailable
 from google import genai
 from google.genai import types
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -65,7 +66,7 @@ def caption_image(jpeg: bytes) -> Caption:
         raise RuntimeError("Gemini is not configured")
     with genai.Client(api_key=key, vertexai=False,
                       http_options=types.HttpOptions(api_version="v1beta", timeout=20_000)) as client:
-        result = client.models.generate_content(
+        result = generate_content(client,
             model=os.getenv("GEMINI_VISUAL_MODEL") or DEFAULT_MODEL,
             contents=[types.Part.from_bytes(data=jpeg, mime_type="image/jpeg")],
             config=types.GenerateContentConfig(
@@ -126,6 +127,7 @@ class VisualMemory:
                 objects TEXT NOT NULL, place_type TEXT NOT NULL, readable_text TEXT NOT NULL,
                 label TEXT, location_label TEXT, pinned INTEGER NOT NULL, utc_offset INTEGER NOT NULL DEFAULT 0)""")
             db.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value REAL NOT NULL)")
+            db.execute("CREATE TABLE IF NOT EXISTS pending_captions(id TEXT PRIMARY KEY)")
             yield db
         finally:
             db.close()
@@ -136,6 +138,7 @@ class VisualMemory:
             if not re.fullmatch(r"[a-f0-9]{32}", frame_id):
                 raise ValueError("Invalid stored frame ID")
             (self.directory / f"{frame_id}.jpg").unlink(missing_ok=True)
+            db.execute("DELETE FROM pending_captions WHERE id=?", (frame_id,))
         db.execute(f"DELETE FROM frames WHERE {where}", args)
         return len(ids)
 
@@ -251,7 +254,12 @@ class VisualMemory:
             if cutoff and captured <= cutoff[0]:
                 db.commit()
                 return {"status": "discarded", "reason": "Capture predates deletion"}
-            caption = self.captioner(jpeg)  # Nothing saved if Gemini fails or returns invalid JSON.
+            pending = False
+            try:
+                caption = self.captioner(jpeg)
+            except GeminiUnavailable:
+                pending = True
+                caption = Caption(caption="Caption pending — Gemini unavailable", objects=[], place_type="", readable_text=[])
             frame_id = uuid.uuid4().hex
             path = self.directory / f"{frame_id}.jpg"
             try:
@@ -262,12 +270,27 @@ class VisualMemory:
                     frame_id, captured, caption.caption, json.dumps(caption.objects), caption.place_type,
                     json.dumps(caption.readable_text), frame.label, frame.location_label, int(frame.pinned), int(frame.captured_at.utcoffset().total_seconds()),
                 ))
+                if pending:
+                    db.execute("INSERT INTO pending_captions VALUES (?)", (frame_id,))
                 db.commit()
             except BaseException:
                 path.unlink(missing_ok=True)
                 raise
-            return {"status": "ok", "id": frame_id, "pinned": frame.pinned,
+            return {"status": "ok", "caption_status": "pending" if pending else "ready", "id": frame_id, "pinned": frame.pinned,
                     "captured_at": frame.captured_at.isoformat(), "caption": caption.caption}
+
+    def retry_captions(self):
+        with self.lock, self.database() as db:
+            self._prune(db)
+            db.commit()
+            for row in db.execute("SELECT id FROM pending_captions LIMIT 5").fetchall():
+                jpeg = (self.directory / f"{row[0]}.jpg").read_bytes()
+                caption = self.captioner(jpeg)
+                db.execute("UPDATE frames SET caption=?,objects=?,place_type=?,readable_text=? WHERE id=?",
+                           (caption.caption, json.dumps(caption.objects), caption.place_type,
+                            json.dumps(caption.readable_text), row[0]))
+                db.execute("DELETE FROM pending_captions WHERE id=?", (row[0],))
+                db.commit()
 
     def find(self, query: str):
         query_terms = terms(query)

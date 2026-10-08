@@ -25,9 +25,10 @@ class BackendClient(
     suspend fun token(ptt: Boolean, meeting: Boolean = false): LiveToken =
         token(if (ptt) ConversationMode.PTT else ConversationMode.AUTO, meeting = meeting)
 
-    suspend fun token(mode: ConversationMode, silenceMs: Int = 2000, translationLanguage: String? = null, meeting: Boolean = false): LiveToken {
+    suspend fun token(mode: ConversationMode, silenceMs: Int = 2000, translationLanguage: String? = null, meeting: Boolean = false, avoidModels: Set<String> = emptySet()): LiveToken {
         val body = if (meeting) JSONObject().put("mode", "meeting").put("silence_ms", silenceMs.coerceIn(500, 5000))
             else Translation.tokenRequest(mode, silenceMs, translationLanguage)
+        if (avoidModels.isNotEmpty()) body.put("avoid_models", JSONArray(avoidModels.toList()))
         val json = post(listOf("token"), body)
         val local = json.optJSONArray("client_tools")
         return LiveToken(json.getString("token"), json.getString("model"), json.getString("expires_at"),
@@ -51,6 +52,16 @@ class BackendClient(
         val url = base.newBuilder().addPathSegment("events")
             .addQueryParameter("after", after.toString()).addQueryParameter("wait", "20").build()
         return execute(Request.Builder().url(url).header("X-App-Secret", secret).get().build())
+    }
+
+    suspend fun geminiHealth(): JSONObject = execute(Request.Builder()
+        .url(base.newBuilder().addPathSegments("health/gemini").build())
+        .header("X-App-Secret", secret).get().build())
+
+    suspend fun offlineTool(id: String, call: FunctionCall): JSONObject {
+        val url = base.newBuilder().addPathSegment("tools").addPathSegment(call.name).build()
+        return execute(Request.Builder().url(url).header("X-App-Secret", secret).header("X-Offline-Id", id)
+            .post(call.args.toString().toRequestBody("application/json".toMediaType())).build())
     }
 
     suspend fun diagnosticHealth(): JSONObject = execute(Request.Builder()
@@ -111,7 +122,7 @@ class BackendClient(
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
                         try {
-                            if (!it.isSuccessful) throw IOException("Backend HTTP ${it.code}")
+                            if (!it.isSuccessful) throw BackendHttpException(it.code, runCatching { JSONObject(it.body?.string().orEmpty()).optString("detail") }.getOrDefault(""))
                             val result = JSONObject(it.body?.string() ?: error("Empty backend response"))
                             if (continuation.isActive) continuation.resume(result)
                         } catch (e: Exception) {
@@ -125,3 +136,5 @@ class BackendClient(
 }
 
 data class LiveToken(val token: String, val model: String, val expiresAt: String, val clientTools: Set<String> = emptySet())
+
+class BackendHttpException(val code: Int, val detail: String = "") : IOException("Backend HTTP $code")

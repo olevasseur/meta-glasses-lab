@@ -43,3 +43,13 @@ def isolated_security_state(monkeypatch):
         if isinstance(middleware, SecurityBoundary):
             middleware.windows.clear()
         middleware = getattr(middleware, "app", None)
+
+
+@pytest.fixture(autouse=True)
+def disable_ai_background_replay(monkeypatch):
+    # Tests exercise queues explicitly; never touch personal queued data on slow test runs.
+    import asyncio
+    import resilience_work
+    async def idle():
+        await asyncio.Event().wait()
+    monkeypatch.setattr(resilience_work, "retry_loop", idle)

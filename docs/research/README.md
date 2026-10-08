@@ -61,3 +61,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 - [App UI](app-ui.md) — **2026-10-08**: four-tab Material 3 phone UI, onboarding,
   accessibility/test tags, authenticated read-only review snapshot, unchanged
   service/approval ownership; instrumentation execution remains a device check.
+- [Gemini resilience](resilience.md) — **2026-10-08**: classified retries, model
+  fallback, on-device offline capture, durable text work and cached Live health;
+  both Live models completed real constrained setup and text defaults were
+  verified through the models list endpoint.

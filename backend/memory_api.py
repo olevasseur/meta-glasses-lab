@@ -8,6 +8,8 @@ from google.genai.errors import APIError
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from memory import Memory, MemoryConflict
+from gemini_resilience import GeminiUnavailable
+from resilience_work import defer
 
 memory = Memory()
 router = APIRouter()
@@ -46,5 +48,8 @@ def end_session(session_id: Annotated[str, Path(min_length=1, max_length=128, pa
         raise HTTPException(409, str(exc)) from exc
     except OSError as exc:
         raise HTTPException(503, "Memory storage unavailable") from exc
+    except GeminiUnavailable:
+        defer(memory, "summary", session_id)
+        return {"status": "processing", "message": "Transcript saved; summary queued"}
     except (APIError, httpx.HTTPError, RuntimeError, ValueError) as exc:
         raise HTTPException(502, "Memory summary failed; transcripts are saved. Retry ending this session.") from exc
