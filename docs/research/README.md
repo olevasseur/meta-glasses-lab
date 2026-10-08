@@ -69,3 +69,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 - [latency-notes.md](latency-notes.md) — **2026-10-08**: startup overlap, token HTTP keepalive, adaptive playback buffers, and measured Auto/PTT/Over latency boundaries.
 
 - [gemini-quota.md](gemini-quota.md) — **2026-10-08**: current project-specific quota reality, AI Pro $10/month credits, safe key probe (tier inconclusive), personal-use estimates and local metering limitations.
+
+- [HFP audio](hfp-audio.md) — **2026-10-08**: seeded narrowband/codec/loss/noise
+  stress channel, exact app resampler port, 8 kHz Vosk keyword proxy and paired
+  Gemini evaluation. Hardware codec, beamforming and SCO effects remain unverified.

@@ -17,6 +17,7 @@ import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
 import android.media.audiofx.AcousticEchoCanceler
+import android.media.audiofx.NoiseSuppressor
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -47,6 +48,8 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
         "Input: ${device(recorder?.routedDevice)}\nOutput: ${device(track?.routedDevice)}\n" +
             "${translationSpeaker.diagnosticOutput()}\nConfigured PCM: input=${recorder?.sampleRate ?: 0} Hz → Gemini=16000 Hz; output=${track?.sampleRate ?: 0} Hz\n" +
             "Playback buffer=${track?.bufferSizeInFrames ?: 0} frames; underruns=${track?.underrunCount ?: 0}\n" +
+            "AEC attached/enabled=${runCatching { echoCanceler?.enabled?.toString() ?: "not attached" }.getOrDefault("unknown")}; " +
+            "NS available=${runCatching { NoiseSuppressor.isAvailable().toString() }.getOrDefault("unknown")} (platform NS state unknown)\n" +
             "SCO=${manager.isBluetoothScoOn}; communication=${if (Build.VERSION.SDK_INT >= 31) device(manager.communicationDevice) else "legacy SCO"}"
     }
     private var recorder: AudioRecord? = null

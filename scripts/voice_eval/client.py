@@ -64,11 +64,11 @@ async def evaluate(case, pcm, http, secret, timeout=45, settle_seconds=5):
     if response.status_code!=200:
         raise RuntimeError(f'Token HTTP {response.status_code}')
     token=response.json()
-    result={'id':case['id'],'feature':case['feature'],'mode':case['mode'],
+    result={'id':case['id'],'feature':case['feature'],'mode':case['mode'],'model':token['model'],
             'calls':[],'input_transcript':'','output_transcript':'','audio_bytes':0,
             'response_times':[],'first_audio_s':None,'speech_end_s':len(pcm)/32000,
             'activity_end_s':None,'complete':False,'error':None,'cancelled_calls':[],
-            'resumption_updates':0,'usage':[],'max_send_lag_s':0,
+            'resumption_updates':0,'usage':[],'max_send_lag_s':0,'input_transcription_events':[],
             'token_s':token_seconds}
     connect_started=time.monotonic()
     async with metered_connection(connect, token, result, ENDPOINT,additional_headers={'Authorization':'Token '+token['token']},
@@ -171,7 +171,11 @@ async def evaluate(case, pcm, http, secret, timeout=45, settle_seconds=5):
                 if (content or 'toolCall' in event) and settling is not None:
                     settling.cancel()
                     settling=None
-                result['input_transcript']+=content.get('inputTranscription',{}).get('text','')
+                transcription=content.get('inputTranscription',{}).get('text','')
+                result['input_transcript']+=transcription
+                if transcription:
+                    result['input_transcription_events'].append({'time_s':now,
+                        'text':result['input_transcript'],'final':False})
                 output=content.get('outputTranscription',{}).get('text','')
                 result['output_transcript']+=output
                 parts=content.get('modelTurn',{}).get('parts',[])
@@ -230,6 +234,7 @@ async def evaluate(case, pcm, http, secret, timeout=45, settle_seconds=5):
                     await done_task
         except Exception as exc:
             result['error']=type(exc).__name__
+            result['close_code']=getattr(getattr(exc,'rcvd',None),'code',None)
         finally:
             receiver.cancel()
             if settling is not None:

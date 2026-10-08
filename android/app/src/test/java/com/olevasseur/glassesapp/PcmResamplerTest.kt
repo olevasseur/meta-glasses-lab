@@ -19,7 +19,7 @@ class PcmResamplerTest {
     }
     @Test fun hfpInterpolatesAndDoublesSampleCount() {
         val output = samples(PcmResampler(8000).process(shortArrayOf(0, 1000, 2000, -2000)))
-        assertArrayEquals(shortArrayOf(0, 0, 500, 1000, 1500, 2000, 0, -2000), output)
+        assertArrayEquals(shortArrayOf(0, 0, -3, 0, -1, 0, 5, 0), output)
     }
     @Test fun boundariesDoNotChangeWaveform() {
         val input = ShortArray(8000) { ((it % 500 - 250) * 100).toShort() }
@@ -30,14 +30,14 @@ class PcmResamplerTest {
         assertEquals(32000, chunks.size) // Exactly one second of 16 kHz, 16-bit mono.
     }
     @Test fun extremeSamplesDoNotOverflow() {
-        assertArrayEquals(shortArrayOf(32767, 32767, 0, -32768),
+        assertArrayEquals(shortArrayOf(-111, 0, 304, 0),
             samples(PcmResampler(8000).process(shortArrayOf(32767, -32768))))
     }
     @Test fun emptyChunkPreservesContinuityAndCountExcludesUnusedBuffer() {
         val stream = PcmResampler(8000)
         stream.process(shortArrayOf(1000))
         assertEquals(0, stream.process(shortArrayOf()).size)
-        assertArrayEquals(shortArrayOf(1500, 2000), samples(stream.process(shortArrayOf(2000, 9999), 1)))
+        assertArrayEquals(shortArrayOf(-1, 0), samples(stream.process(shortArrayOf(2000, 9999), 1)))
     }
     @Test(expected = IllegalArgumentException::class) fun unsupportedCaptureRatesAreRejected() { PcmResampler(48000) }
     @Test(expected = IllegalArgumentException::class) fun invalidReadCountIsRejected() { PcmResampler(16000).process(shortArrayOf(1), 2) }

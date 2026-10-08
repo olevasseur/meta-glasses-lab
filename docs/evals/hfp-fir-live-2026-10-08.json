@@ -1,0 +1,691 @@
+{
+  "baseline": "hfp-audio-eval-2026-10-08.json",
+  "baseline_attempts": 42,
+  "live_attempts": 7,
+  "results": [
+    {
+      "condition": "hfp-quiet",
+      "id": "note-inbox",
+      "channel": {
+        "condition": {
+          "name": "hfp-quiet",
+          "noise": "quiet",
+          "snr_db": 20,
+          "loss": 0,
+          "codec": "cvsd-like",
+          "bystander_db": -12
+        },
+        "seed": 42,
+        "lost_packets": [],
+        "packets": 169,
+        "loss_fraction": 0.0,
+        "speech_active_rms": 0.1893573044362704,
+        "output_rms": 0.08246774327304335
+      },
+      "audio_sha256": "4ab4ea0b791772db600260945484651ee271c52e9186fe2eb8eb8deaa4ee407d",
+      "live": {
+        "id": "note-inbox",
+        "feature": "notes",
+        "mode": "auto",
+        "model": "gemini-3.8-live",
+        "calls": [
+          {
+            "name": "append_to_doc",
+            "args": {
+              "text": "Buy oat milk tomorrow."
+            },
+            "time_s": 5.820049625006504,
+            "http_status": 200,
+            "response": {
+              "status": "ok",
+              "doc_title": "Inbox"
+            },
+            "valid": true,
+            "response_sent_s": 5.827468291972764
+          }
+        ],
+        "input_transcript": "Add a note to my inbox. Buy oat milk tomorrow.",
+        "output_transcript": "I've added that note to your inbox.",
+        "audio_bytes": 96000,
+        "response_times": [
+          5.819973250036128,
+          6.4736037499969825,
+          6.526605291990563,
+          6.548959375009872,
+          6.605492666945793,
+          6.659037709003314,
+          6.729700708994642,
+          6.806568042025901,
+          6.8932227089535445,
+          6.90974037500564
+        ],
+        "first_audio_s": 6.4736037499969825,
+        "speech_end_s": 3.381936041987501,
+        "activity_end_s": null,
+        "complete": true,
+        "error": null,
+        "cancelled_calls": [],
+        "resumption_updates": 1,
+        "usage": [
+          {
+            "promptTokenCount": 6376,
+            "responseTokenCount": 18,
+            "totalTokenCount": 6394,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4775
+              },
+              {
+                "modality": "AUDIO",
+                "tokenCount": 249
+              }
+            ],
+            "thoughtsTokenCount": 72
+          },
+          {
+            "promptTokenCount": 6420,
+            "responseTokenCount": 56,
+            "totalTokenCount": 6476,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4797
+              },
+              {
+                "modality": "AUDIO",
+                "tokenCount": 249
+              }
+            ],
+            "responseTokensDetails": [
+              {
+                "modality": "AUDIO",
+                "tokenCount": 56
+              }
+            ],
+            "thoughtsTokenCount": 64
+          }
+        ],
+        "max_send_lag_s": 0.010209999978542328,
+        "input_transcription_events": [
+          {
+            "time_s": 5.819950583972968,
+            "text": "Add a note to my inbox. Buy oat milk tomorrow.",
+            "final": false
+          }
+        ],
+        "end_reason": "turnComplete_settled",
+        "premature": false,
+        "first_audio_latency_s": 3.0916677080094814,
+        "tool_selection_ok": true,
+        "arguments_ok": true,
+        "false_trigger": false,
+        "negative": false,
+        "completed": true,
+        "observed_tools": [
+          "append_to_doc"
+        ]
+      }
+    },
+    {
+      "condition": "hfp-quiet",
+      "id": "memory-save",
+      "channel": {
+        "condition": {
+          "name": "hfp-quiet",
+          "noise": "quiet",
+          "snr_db": 20,
+          "loss": 0,
+          "codec": "cvsd-like",
+          "bystander_db": -12
+        },
+        "seed": 42,
+        "lost_packets": [],
+        "packets": 159,
+        "loss_fraction": 0.0,
+        "speech_active_rms": 0.20147867017344423,
+        "output_rms": 0.08407297477552036
+      },
+      "audio_sha256": "84f618da1eec7d6c99c9bee4eee34b83abc8e1f6d444b461e777997790528bcb",
+      "live": {
+        "id": "memory-save",
+        "feature": "long-term-memory",
+        "mode": "auto",
+        "model": "gemini-3.8-live",
+        "calls": [
+          {
+            "name": "remember",
+            "args": {
+              "key": "user.dog_name",
+              "fact": "The user has a dog named Maple."
+            },
+            "time_s": 5.433723957976326,
+            "http_status": 200,
+            "response": {
+              "status": "ok",
+              "fact": {
+                "id": 1,
+                "key": "user dog",
+                "text": "The user has a dog named Maple."
+              }
+            },
+            "valid": true,
+            "response_sent_s": 5.436995125026442
+          }
+        ],
+        "input_transcript": "Remember that my dog is named Maple.",
+        "output_transcript": "Got it, I'll remember that your dog is named Maple.",
+        "audio_bytes": 136322,
+        "response_times": [
+          5.433684958028607,
+          6.075612333021127,
+          6.118244832963683,
+          6.186483790981583,
+          6.2321078749373555,
+          6.25797145802062,
+          6.369985415949486,
+          6.435600250028074,
+          6.522894582943991,
+          6.628036416019313,
+          6.7241632079239935,
+          6.740896999952383
+        ],
+        "first_audio_s": 6.075612333021127,
+        "speech_end_s": 3.180216582957655,
+        "activity_end_s": null,
+        "complete": true,
+        "error": null,
+        "cancelled_calls": [],
+        "resumption_updates": 1,
+        "usage": [
+          {
+            "promptTokenCount": 6358,
+            "responseTokenCount": 27,
+            "totalTokenCount": 6385,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4771
+              },
+              {
+                "modality": "AUDIO",
+                "tokenCount": 235
+              }
+            ],
+            "thoughtsTokenCount": 79
+          },
+          {
+            "promptTokenCount": 6425,
+            "responseTokenCount": 77,
+            "totalTokenCount": 6502,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4805
+              },
+              {
+                "modality": "AUDIO",
+                "tokenCount": 235
+              }
+            ],
+            "responseTokensDetails": [
+              {
+                "modality": "AUDIO",
+                "tokenCount": 77
+              }
+            ],
+            "thoughtsTokenCount": 65
+          }
+        ],
+        "max_send_lag_s": 0.00211441598366946,
+        "input_transcription_events": [
+          {
+            "time_s": 5.42845549993217,
+            "text": "Remember that my dog is named Maple.",
+            "final": false
+          }
+        ],
+        "end_reason": "turnComplete_settled",
+        "premature": false,
+        "first_audio_latency_s": 2.8953957500634715,
+        "tool_selection_ok": true,
+        "arguments_ok": true,
+        "false_trigger": false,
+        "negative": false,
+        "completed": true,
+        "observed_tools": [
+          "remember"
+        ]
+      }
+    },
+    {
+      "condition": "hfp-quiet",
+      "id": "over-pause-1",
+      "channel": {
+        "condition": {
+          "name": "hfp-quiet",
+          "noise": "quiet",
+          "snr_db": 20,
+          "loss": 0,
+          "codec": "cvsd-like",
+          "bystander_db": -12
+        },
+        "seed": 42,
+        "lost_packets": [],
+        "packets": 1154,
+        "loss_fraction": 0.0,
+        "speech_active_rms": 0.18204751268614125,
+        "output_rms": 0.07691470705944539
+      },
+      "audio_sha256": "c6b230a05365c47fe0b4b381d88831c07365ad17035dda8432109412c47b5768",
+      "live": {
+        "id": "over-pause-1",
+        "feature": "over",
+        "mode": "over",
+        "model": "gemini-3.8-live",
+        "calls": [
+          {
+            "name": "append_to_doc",
+            "args": {
+              "text": "Picnic items: sandwiches, apples, umbrellas, and a blanket."
+            },
+            "time_s": 25.150355624966323,
+            "http_status": 200,
+            "response": {
+              "status": "ok",
+              "doc_title": "Inbox"
+            },
+            "valid": true,
+            "response_sent_s": 25.156636457890272
+          }
+        ],
+        "input_transcript": "I want to save a note to inbox about the picnic. Let me think. We need sandwiches and apples and I'm trying to remember what else we talked about. Oh yes, we also need umbrellas because the forecast might change and a blanket to sit on. Please save all of that. Over.",
+        "output_transcript": "I've saved the picnic items to your Inbox.",
+        "audio_bytes": 110400,
+        "response_times": [
+          25.150296874926426,
+          26.137514624977484,
+          26.167610374977812,
+          26.38186549989041,
+          26.433562957914546,
+          26.544936999911442,
+          26.552701249951497
+        ],
+        "first_audio_s": 26.137514624977484,
+        "speech_end_s": 23.082288916921243,
+        "activity_end_s": 24.283989957999438,
+        "complete": true,
+        "error": null,
+        "cancelled_calls": [],
+        "resumption_updates": 1,
+        "usage": [
+          {
+            "promptTokenCount": 6949,
+            "responseTokenCount": 27,
+            "totalTokenCount": 6976,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4824
+              },
+              {
+                "modality": "AUDIO",
+                "tokenCount": 773
+              }
+            ],
+            "thoughtsTokenCount": 77
+          },
+          {
+            "promptTokenCount": 7002,
+            "responseTokenCount": 63,
+            "totalTokenCount": 7065,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4855
+              },
+              {
+                "modality": "AUDIO",
+                "tokenCount": 773
+              }
+            ],
+            "responseTokensDetails": [
+              {
+                "modality": "AUDIO",
+                "tokenCount": 63
+              }
+            ],
+            "thoughtsTokenCount": 106
+          }
+        ],
+        "max_send_lag_s": 0.004802291980013251,
+        "input_transcription_events": [
+          {
+            "time_s": 24.655657791998237,
+            "text": "I want to save a note to inbox about the picnic. Let me think. We need sandwiches and apples and I'm trying to remember what else we talked about. Oh yes, we also need umbrellas because the forecast might change and a blanket to sit on. Please save all of that. Over.",
+            "final": false
+          }
+        ],
+        "end_reason": "turnComplete_settled",
+        "premature": false,
+        "first_audio_latency_s": 3.0552257080562413,
+        "tool_selection_ok": true,
+        "arguments_ok": true,
+        "false_trigger": false,
+        "negative": false,
+        "completed": true,
+        "observed_tools": [
+          "append_to_doc"
+        ]
+      }
+    },
+    {
+      "condition": "street-20dB-1pct",
+      "id": "over-pause-1",
+      "channel": {
+        "condition": {
+          "name": "street-20dB-1pct",
+          "noise": "street",
+          "snr_db": 20,
+          "loss": 0.01,
+          "codec": "cvsd-like",
+          "bystander_db": -12
+        },
+        "seed": 42,
+        "lost_packets": [
+          162,
+          163,
+          164,
+          165,
+          441,
+          442,
+          837,
+          838,
+          946,
+          947,
+          948,
+          949
+        ],
+        "packets": 1154,
+        "loss_fraction": 0.010398613518197574,
+        "speech_active_rms": 0.18204751268614125,
+        "output_rms": 0.0843127560178558
+      },
+      "audio_sha256": "2ada03ca8e412360ad417669dbb9a901e7116a594341a408c385f0dc0bf49bb1",
+      "live": {
+        "id": "over-pause-1",
+        "feature": "over",
+        "mode": "over",
+        "model": "gemini-3.8-live",
+        "calls": [
+          {
+            "name": "append_to_doc",
+            "args": {
+              "text": "We need sandwiches and apples and we also need umbrellas because the forecast might change and a blanket to sit on."
+            },
+            "time_s": 25.241552499937825,
+            "http_status": 200,
+            "response": {
+              "status": "ok",
+              "doc_title": "Inbox"
+            },
+            "valid": true,
+            "response_sent_s": 25.249582374934107
+          }
+        ],
+        "input_transcript": "I want to save a note to inbox about the picnic. We need sandwiches and apples and we also need umbrellas because the forecast might change and a blanket to sit on. Please save all of that.",
+        "output_transcript": "I've saved that note about the picnic to your Inbox.",
+        "audio_bytes": 126242,
+        "response_times": [
+          25.241465082974173,
+          25.90873525000643,
+          25.92557974997908,
+          25.992067582905293,
+          26.081548291957006,
+          26.09838283294812,
+          26.177351582911797,
+          26.28510124993045,
+          26.357928499928676,
+          26.463579041999765,
+          26.527743749902584
+        ],
+        "first_audio_s": 25.90873525000643,
+        "speech_end_s": 23.081548207905143,
+        "activity_end_s": 24.283717041951604,
+        "complete": true,
+        "error": null,
+        "cancelled_calls": [],
+        "resumption_updates": 1,
+        "usage": [
+          {
+            "promptTokenCount": 6928,
+            "responseTokenCount": 35,
+            "totalTokenCount": 6963,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4803
+              },
+              {
+                "modality": "AUDIO",
+                "tokenCount": 773
+              }
+            ],
+            "thoughtsTokenCount": 95
+          },
+          {
+            "promptTokenCount": 6989,
+            "responseTokenCount": 72,
+            "totalTokenCount": 7061,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4842
+              },
+              {
+                "modality": "AUDIO",
+                "tokenCount": 773
+              }
+            ],
+            "responseTokensDetails": [
+              {
+                "modality": "AUDIO",
+                "tokenCount": 72
+              }
+            ],
+            "thoughtsTokenCount": 56
+          }
+        ],
+        "max_send_lag_s": 0.002393541974015534,
+        "input_transcription_events": [
+          {
+            "time_s": 24.74191024992615,
+            "text": "I want to save a note to inbox about the picnic. We need sandwiches and apples and we also need umbrellas because the forecast might change and a blanket to sit on. Please save all of that.",
+            "final": false
+          }
+        ],
+        "end_reason": "turnComplete_settled",
+        "premature": false,
+        "first_audio_latency_s": 2.8271870421012864,
+        "tool_selection_ok": true,
+        "arguments_ok": true,
+        "false_trigger": false,
+        "negative": false,
+        "completed": true,
+        "observed_tools": [
+          "append_to_doc"
+        ]
+      }
+    },
+    {
+      "condition": "cafe-10dB-3pct",
+      "id": "memory-save",
+      "channel": {
+        "condition": {
+          "name": "cafe-10dB-3pct",
+          "noise": "cafe",
+          "snr_db": 10,
+          "loss": 0.03,
+          "codec": "msbc-like",
+          "bystander_db": -12
+        },
+        "seed": 42,
+        "lost_packets": [
+          6,
+          54,
+          55,
+          56,
+          57
+        ],
+        "packets": 159,
+        "loss_fraction": 0.031446540880503145,
+        "speech_active_rms": 0.20147867017344423,
+        "output_rms": 0.09311995584509068
+      },
+      "audio_sha256": "0e93936662b704209522adccfd602b3d07e795890a832b55ae02142ce0152dfc",
+      "live": {
+        "id": "memory-save",
+        "feature": "long-term-memory",
+        "mode": "auto",
+        "model": "gemini-3.8-live",
+        "calls": [],
+        "input_transcript": "",
+        "output_transcript": "",
+        "audio_bytes": 0,
+        "response_times": [],
+        "first_audio_s": null,
+        "speech_end_s": 3.1807419590186328,
+        "activity_end_s": null,
+        "complete": false,
+        "error": "ResponseTimeout",
+        "cancelled_calls": [],
+        "resumption_updates": 1,
+        "usage": [],
+        "max_send_lag_s": 0.00299054104834795,
+        "input_transcription_events": [],
+        "premature": false,
+        "first_audio_latency_s": null,
+        "tool_selection_ok": false,
+        "arguments_ok": false,
+        "false_trigger": false,
+        "negative": false,
+        "completed": false,
+        "observed_tools": []
+      }
+    },
+    {
+      "condition": "wind-0dB-5pct",
+      "id": "memory-save",
+      "channel": {
+        "condition": {
+          "name": "wind-0dB-5pct",
+          "noise": "wind",
+          "snr_db": 0,
+          "loss": 0.05,
+          "codec": "cvsd-like",
+          "bystander_db": -12
+        },
+        "seed": 42,
+        "lost_packets": [
+          6,
+          7,
+          8,
+          9,
+          54,
+          55,
+          56,
+          57
+        ],
+        "packets": 159,
+        "loss_fraction": 0.050314465408805034,
+        "speech_active_rms": 0.20147867017344423,
+        "output_rms": 0.09331965657394038
+      },
+      "audio_sha256": "2ab9741cdb58ac16d84b29efb3443c6195026a024c758691ed03ebc84489a637",
+      "live": {
+        "id": "memory-save",
+        "feature": "long-term-memory",
+        "mode": "auto",
+        "model": "gemini-3.8-live",
+        "calls": [],
+        "input_transcript": "",
+        "output_transcript": "",
+        "audio_bytes": 0,
+        "response_times": [],
+        "first_audio_s": null,
+        "speech_end_s": 3.1820893340045586,
+        "activity_end_s": null,
+        "complete": false,
+        "error": "ConnectionClosedError",
+        "cancelled_calls": [],
+        "resumption_updates": 1,
+        "usage": [],
+        "max_send_lag_s": 0.002130707842297852,
+        "input_transcription_events": [],
+        "close_code": 1011,
+        "premature": false,
+        "first_audio_latency_s": null,
+        "tool_selection_ok": false,
+        "arguments_ok": false,
+        "false_trigger": false,
+        "negative": false,
+        "completed": false,
+        "observed_tools": []
+      }
+    },
+    {
+      "condition": "kitchen-5dB-1pct",
+      "id": "memory-save",
+      "channel": {
+        "condition": {
+          "name": "kitchen-5dB-1pct",
+          "noise": "kitchen",
+          "snr_db": 5,
+          "loss": 0.01,
+          "codec": "msbc-like",
+          "bystander_db": -12
+        },
+        "seed": 42,
+        "lost_packets": [
+          65,
+          66
+        ],
+        "packets": 159,
+        "loss_fraction": 0.012578616352201259,
+        "speech_active_rms": 0.20147867017344423,
+        "output_rms": 0.09059860914851535
+      },
+      "audio_sha256": "cfd3d80da6819473b8fc40b4a556ad17244eaf4f24a04aee5328a27d9b1bd459",
+      "live": {
+        "id": "memory-save",
+        "feature": "long-term-memory",
+        "mode": "auto",
+        "model": "gemini-3.8-live",
+        "calls": [],
+        "input_transcript": "",
+        "output_transcript": "",
+        "audio_bytes": 0,
+        "response_times": [],
+        "first_audio_s": null,
+        "speech_end_s": 3.1822084999876097,
+        "activity_end_s": null,
+        "complete": false,
+        "error": "ResponseTimeout",
+        "cancelled_calls": [],
+        "resumption_updates": 1,
+        "usage": [],
+        "max_send_lag_s": 0.002455292036756873,
+        "input_transcription_events": [],
+        "premature": false,
+        "first_audio_latency_s": null,
+        "tool_selection_ok": false,
+        "arguments_ok": false,
+        "false_trigger": false,
+        "negative": false,
+        "completed": false,
+        "observed_tools": []
+      }
+    }
+  ],
+  "stopped": "Three consecutive errors"
+}

@@ -178,6 +178,9 @@ def test_live_receiver_waits_for_tool_result_and_audio(monkeypatch):
     assert result['complete'] and result['error'] is None
     assert len(result['calls'])==1 and result['audio_bytes']==4
     assert result['input_transcript']=='What is here?' and result['output_transcript']=='A mug.'
+    assert result['model'] == 'test'
+    assert [event['text'] for event in result['input_transcription_events']] == ['What is here?']
+    assert result['input_transcription_events'][0]['time_s'] >= 0
     assert result['first_audio_latency_s'] is not None
     assert all(result[key] >= 0 for key in ('token_s', 'websocket_s', 'setup_s'))
     assert '_usage_started' not in result

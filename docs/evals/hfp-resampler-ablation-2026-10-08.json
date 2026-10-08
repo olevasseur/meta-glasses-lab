@@ -1,0 +1,649 @@
+{
+  "taps": [
+    -0.0034007938073472178,
+    3.5160601162588015e-18,
+    0.005874663141781363,
+    -6.55374322886674e-18,
+    -0.013460182732808827,
+    1.2103866447427978e-17,
+    0.028187775807983873,
+    -1.9206763046166747e-17,
+    -0.053570071640107714,
+    2.6634277675371268e-17,
+    0.09819792118715082,
+    -3.310212557880001e-17,
+    -0.1938766655526016,
+    3.7491957095396593e-17,
+    0.6312391266489645,
+    1.0016164538939691,
+    0.6312391266489645,
+    3.7491957095396593e-17,
+    -0.1938766655526016,
+    -3.3102125578800013e-17,
+    0.09819792118715084,
+    2.6634277675371268e-17,
+    -0.05357007164010773,
+    -1.9206763046166756e-17,
+    0.028187775807983873,
+    1.210386644742799e-17,
+    -0.013460182732808837,
+    -6.55374322886674e-18,
+    0.005874663141781366,
+    3.5160601162588015e-18,
+    -0.0034007938073472178
+  ],
+  "results": [
+    {
+      "condition": "hfp-quiet",
+      "id": "note-inbox",
+      "reference": "Add a note to my Inbox: buy oat milk tomorrow.",
+      "linear": {
+        "text": "add a know can buy in bulk buyout milk tomorrow",
+        "errors": 6,
+        "words": 10,
+        "pcm_sha256": "ad9e22c71f39ac3aba80f1f23a1e13d20e12048d3daa78512003dd6178ac6755"
+      },
+      "fir": {
+        "text": "add a know to my inbox by oat milk tomorrow",
+        "errors": 2,
+        "words": 10,
+        "pcm_sha256": "4ab4ea0b791772db600260945484651ee271c52e9186fe2eb8eb8deaa4ee407d"
+      }
+    },
+    {
+      "condition": "hfp-quiet",
+      "id": "memory-save",
+      "reference": "Remember that my dog is named Maple.",
+      "linear": {
+        "text": "remember that my dog is named maple",
+        "errors": 0,
+        "words": 7,
+        "pcm_sha256": "ce2fd403c5860a4e4b8af91d348ec0ac6f58c6a944e1416f0553475b56838d5b"
+      },
+      "fir": {
+        "text": "remember that my dog is named maple",
+        "errors": 0,
+        "words": 7,
+        "pcm_sha256": "84f618da1eec7d6c99c9bee4eee34b83abc8e1f6d444b461e777997790528bcb"
+      }
+    },
+    {
+      "condition": "hfp-quiet",
+      "id": "small-joke",
+      "reference": "Tell me a short joke about a potato.",
+      "linear": {
+        "text": "tell me a short joke about a potato",
+        "errors": 0,
+        "words": 8,
+        "pcm_sha256": "b14511dc71925eea2a7cf483d89046abcae9f0c8c6dc9bb81313b15d1568ca06"
+      },
+      "fir": {
+        "text": "tell me a short joke about a potato",
+        "errors": 0,
+        "words": 8,
+        "pcm_sha256": "e74de7ecdeba771d7470ce60bd8cc2f86a8465a648e51f2ea0591459ebea6114"
+      }
+    },
+    {
+      "condition": "hfp-quiet",
+      "id": "small-thanks",
+      "reference": "Thanks, that is helpful.",
+      "linear": {
+        "text": "thank that is helpful",
+        "errors": 1,
+        "words": 4,
+        "pcm_sha256": "93262fa013ea57aa29689ce644a7df958cdf260d8991686cd4172fa388e1f875"
+      },
+      "fir": {
+        "text": "take that is helpful",
+        "errors": 1,
+        "words": 4,
+        "pcm_sha256": "eb6739617efc90a10f7044c76f417e8260d28b3c4ff7ee90cf279f89fb9a4152"
+      }
+    },
+    {
+      "condition": "hfp-quiet",
+      "id": "over-pause-1",
+      "reference": "Okay, I want to save a note to Inbox about the picnic. Let me think, we need sandwiches and apples, and I am trying to remember what else we talked about, oh yes, we also need umbrellas because the forecast might change, and a blanket to sit on. Please save all of that. Over.",
+      "linear": {
+        "text": "okay i wanna to the note to embark about the picnic i'm a think we need plan which is an apple and i'm trying to remember what else we talked about oh yeah we also need umbrella because the poor kept might change and a blanket on please save all of that over",
+        "errors": 19,
+        "words": 54,
+        "pcm_sha256": "febfc1addadf0164c163945885a8d702b99fbfa04d6f2495cf64d97c6b92aa31"
+      },
+      "fir": {
+        "text": "okay i wanna save a note to inbox about the picnic i'm a think we need sandwiches and apples and trying remember what else we talked about oh yes we also need umbrella because the forecast might change and a blanket to sit on please save all of that over",
+        "errors": 9,
+        "words": 54,
+        "pcm_sha256": "c6b230a05365c47fe0b4b381d88831c07365ad17035dda8432109412c47b5768"
+      }
+    },
+    {
+      "condition": "hfp-quiet",
+      "id": "auto-pause-1",
+      "reference": "Okay, I want to save a note to Inbox about the picnic. Let me think, we need sandwiches and apples, and I am trying to remember what else we talked about, oh yes, we also need umbrellas because the forecast might change, and a blanket to sit on. Please save all of that. Over.",
+      "linear": {
+        "text": "okay i wanna leave the note to embark about the picnic i'm a think we need plan which is an apple and i'm trying to remember what else we talked about oh yeah we also need umbrella because the poor kept might change and a blanket on please save all of that over",
+        "errors": 20,
+        "words": 54,
+        "pcm_sha256": "febfc1addadf0164c163945885a8d702b99fbfa04d6f2495cf64d97c6b92aa31"
+      },
+      "fir": {
+        "text": "okay i wanna save a note to inbox about the picnic i'm a think we need sandwiches and apples and i'm trying to remember what else we talked about oh yes we also need umbrella because the forecast might change and a blanket to sit on please save all of that over",
+        "errors": 7,
+        "words": 54,
+        "pcm_sha256": "c6b230a05365c47fe0b4b381d88831c07365ad17035dda8432109412c47b5768"
+      }
+    },
+    {
+      "condition": "street-20dB-1pct",
+      "id": "note-inbox",
+      "reference": "Add a note to my Inbox: buy oat milk tomorrow.",
+      "linear": {
+        "text": "that had an old can my environment by odell up tomorrow",
+        "errors": 9,
+        "words": 10,
+        "pcm_sha256": "ab9b93d395cce05d31093eeefe65808fbbf2820e7cc679ad156860037de8ee53"
+      },
+      "fir": {
+        "text": "that had a know to my inbox by odell tomorrow",
+        "errors": 6,
+        "words": 10,
+        "pcm_sha256": "28d1e378bc942525c9c7c62c90c8748df4cbd84c2815cc41dafa3f08418d3763"
+      }
+    },
+    {
+      "condition": "street-20dB-1pct",
+      "id": "memory-save",
+      "reference": "Remember that my dog is named Maple.",
+      "linear": {
+        "text": "that apart remember that my dog is named reading up on",
+        "errors": 5,
+        "words": 7,
+        "pcm_sha256": "606205ced061af09f1801319620ac394098c962f8b207ab7e92b35a22cfa9802"
+      },
+      "fir": {
+        "text": "that apart remember that my dog is named really a block",
+        "errors": 5,
+        "words": 7,
+        "pcm_sha256": "4666a92bac9325e022d36a9c1dd1618315ebd448f6344d6a38548ba1e145df1e"
+      }
+    },
+    {
+      "condition": "street-20dB-1pct",
+      "id": "small-joke",
+      "reference": "Tell me a short joke about a potato.",
+      "linear": {
+        "text": "that only short joke about a lot of",
+        "errors": 5,
+        "words": 8,
+        "pcm_sha256": "1e2d6c06190fec6f68bf38dfeaae94b3bf4327b8f56361434f7e4661d79356b4"
+      },
+      "fir": {
+        "text": "that ability for short joke about a lot of",
+        "errors": 5,
+        "words": 8,
+        "pcm_sha256": "d8269187b5d6eb00ba1217eb0989bef4f674deaa123a0295e0ba39ab402cdba7"
+      }
+    },
+    {
+      "condition": "street-20dB-1pct",
+      "id": "small-thanks",
+      "reference": "Thanks, that is helpful.",
+      "linear": {
+        "text": "that that time that it helpful",
+        "errors": 4,
+        "words": 4,
+        "pcm_sha256": "d46c6a7267f6eea186387dea13849620d6bc1565a791b1cb7b4eea14b8e3e6b4"
+      },
+      "fir": {
+        "text": "that i occupy my that is helpful",
+        "errors": 4,
+        "words": 4,
+        "pcm_sha256": "83443b5a86a6294cbf23872ae882e144edf3e062fc0eebce52fdce7cdb484a96"
+      }
+    },
+    {
+      "condition": "street-20dB-1pct",
+      "id": "over-pause-1",
+      "reference": "Okay, I want to save a note to Inbox about the picnic. Let me think, we need sandwiches and apples, and I am trying to remember what else we talked about, oh yes, we also need umbrellas because the forecast might change, and a blanket to sit on. Please save all of that. Over.",
+      "linear": {
+        "text": "that look at auction i want to leave a note to inbox about the picnic that american camera need a minute and we can have an apple and a popular timer for a minute that apocalypse imo remember what that up oh yeah and we also need umbrella because the for kept might change that and i'm a blanket save all of that over",
+        "errors": 41,
+        "words": 54,
+        "pcm_sha256": "ee2e1032a75e38e5a5dac59452abc505e24366f28a4a9b122892dfb7bc904da1"
+      },
+      "fir": {
+        "text": "that look at option i want to leave a note to inbox about the pick unlike cameroonian minute sandwich and of an hour and that upon the timer for a minute that a time i remember what else he set up my oh yeah rape and we also need umbrella because the forecast might change that and i'm a blanket on when save all of that are over",
+        "errors": 40,
+        "words": 54,
+        "pcm_sha256": "2ada03ca8e412360ad417669dbb9a901e7116a594341a408c385f0dc0bf49bb1"
+      }
+    },
+    {
+      "condition": "street-20dB-1pct",
+      "id": "auto-pause-1",
+      "reference": "Okay, I want to save a note to Inbox about the picnic. Let me think, we need sandwiches and apples, and I am trying to remember what else we talked about, oh yes, we also need umbrellas because the forecast might change, and a blanket to sit on. Please save all of that. Over.",
+      "linear": {
+        "text": "that look at auction i want to leave a note to inbox about the picnic that american camera need a minute and we can have an apple and a popular timer for a minute that apocalypse imo remember what that up oh yeah and we also need umbrella because the for kept might change that and i'm a blanket save all of that over",
+        "errors": 41,
+        "words": 54,
+        "pcm_sha256": "ee2e1032a75e38e5a5dac59452abc505e24366f28a4a9b122892dfb7bc904da1"
+      },
+      "fir": {
+        "text": "that look at option i want to leave a note to inbox about the pick american cameroonian minute sandwich and of an hour and that upon the timer for a minute a part timer remember what else he set up my oh yeah rape and we also need umbrella because the for kept might change that and i'm a blanket to sit on when save all of that are over",
+        "errors": 39,
+        "words": 54,
+        "pcm_sha256": "2ada03ca8e412360ad417669dbb9a901e7116a594341a408c385f0dc0bf49bb1"
+      }
+    },
+    {
+      "condition": "cafe-10dB-3pct",
+      "id": "note-inbox",
+      "reference": "Add a note to my Inbox: buy oat milk tomorrow.",
+      "linear": {
+        "text": "hello my ign by oh my",
+        "errors": 9,
+        "words": 10,
+        "pcm_sha256": "9c5a192154ed9da3c108036a2a79298e7b1d81e9cf11e53dfa5486970bf70658"
+      },
+      "fir": {
+        "text": "i don't know who my by by oh they'll money",
+        "errors": 11,
+        "words": 10,
+        "pcm_sha256": "348f24bc4e6d8e4a3b2498e96ba166edb2ba7fac2dea4a84e6a1d31119548f72"
+      }
+    },
+    {
+      "condition": "cafe-10dB-3pct",
+      "id": "memory-save",
+      "reference": "Remember that my dog is named Maple.",
+      "linear": {
+        "text": "remember that my dog and",
+        "errors": 3,
+        "words": 7,
+        "pcm_sha256": "8494937529a6b8fb0d64c678a1579c3d9c051f6c04ccfae25520fd9bcbec37c9"
+      },
+      "fir": {
+        "text": "remember that my dog's name",
+        "errors": 3,
+        "words": 7,
+        "pcm_sha256": "0e93936662b704209522adccfd602b3d07e795890a832b55ae02142ce0152dfc"
+      }
+    },
+    {
+      "condition": "cafe-10dB-3pct",
+      "id": "small-joke",
+      "reference": "Tell me a short joke about a potato.",
+      "linear": {
+        "text": "short joke about",
+        "errors": 5,
+        "words": 8,
+        "pcm_sha256": "eb2887441650b9284779fe418c5a4dd7593e6fc321424a6ddfdc55da6ec0c9d0"
+      },
+      "fir": {
+        "text": "short joke about africa",
+        "errors": 5,
+        "words": 8,
+        "pcm_sha256": "5142ffa89c125f12b1e6b08d9ed8558890ebb5148a7418fbb9985afe67cb3b90"
+      }
+    },
+    {
+      "condition": "cafe-10dB-3pct",
+      "id": "small-thanks",
+      "reference": "Thanks, that is helpful.",
+      "linear": {
+        "text": "that it helpful",
+        "errors": 2,
+        "words": 4,
+        "pcm_sha256": "1cec6cb063d43d9f0952ad1f9223689867dc80012635a7c0fdd7b7b21e44f214"
+      },
+      "fir": {
+        "text": "fact that is helpful",
+        "errors": 1,
+        "words": 4,
+        "pcm_sha256": "c5dee7aa33abf6cabc63b0ad96826a75b5b91c769955a9c207f379e5fed11f12"
+      }
+    },
+    {
+      "condition": "cafe-10dB-3pct",
+      "id": "over-pause-1",
+      "reference": "Okay, I want to save a note to Inbox about the picnic. Let me think, we need sandwiches and apples, and I am trying to remember what else we talked about, oh yes, we also need umbrellas because the forecast might change, and a blanket to sit on. Please save all of that. Over.",
+      "linear": {
+        "text": "i wanted even know about we can yeah we need umbrella report that might be in a blanket the older over",
+        "errors": 45,
+        "words": 54,
+        "pcm_sha256": "2153076d0dabee6d0b5cc318500ee05cfbcbeb9d01e2fe16a0d554a8d341af93"
+      },
+      "fir": {
+        "text": "i wouldn't even though and by about an hour  yeah the also need umbrella before my thing in a blanket save all them over",
+        "errors": 45,
+        "words": 54,
+        "pcm_sha256": "0cc4f5a42e831304d9af86f475b3b61a427100fce3267934c429af67f211c9b5"
+      }
+    },
+    {
+      "condition": "cafe-10dB-3pct",
+      "id": "auto-pause-1",
+      "reference": "Okay, I want to save a note to Inbox about the picnic. Let me think, we need sandwiches and apples, and I am trying to remember what else we talked about, oh yes, we also need umbrellas because the forecast might change, and a blanket to sit on. Please save all of that. Over.",
+      "linear": {
+        "text": "i wanted even know about we can yeah we need umbrella report that might be in a blanket the older over",
+        "errors": 45,
+        "words": 54,
+        "pcm_sha256": "2153076d0dabee6d0b5cc318500ee05cfbcbeb9d01e2fe16a0d554a8d341af93"
+      },
+      "fir": {
+        "text": "i wouldn't even though and by about the hour  yeah they also need umbrella before my thing in a blanket them over",
+        "errors": 46,
+        "words": 54,
+        "pcm_sha256": "0cc4f5a42e831304d9af86f475b3b61a427100fce3267934c429af67f211c9b5"
+      }
+    },
+    {
+      "condition": "wind-0dB-5pct",
+      "id": "note-inbox",
+      "reference": "Add a note to my Inbox: buy oat milk tomorrow.",
+      "linear": {
+        "text": "no to my inbox by oh come on",
+        "errors": 7,
+        "words": 10,
+        "pcm_sha256": "0345a5a464a20cf2ca76b221b5150ddc6ef00e8615bd9bb44a07c0d4ef625552"
+      },
+      "fir": {
+        "text": "no to my inbox by odell the money",
+        "errors": 7,
+        "words": 10,
+        "pcm_sha256": "d69b24648ce59c4a814e8869f9ff6a536e8bb6bda4853251bab218c91e752aaa"
+      }
+    },
+    {
+      "condition": "wind-0dB-5pct",
+      "id": "memory-save",
+      "reference": "Remember that my dog is named Maple.",
+      "linear": {
+        "text": "remember that my dog named on",
+        "errors": 2,
+        "words": 7,
+        "pcm_sha256": "73a717296282a762219bca1d3c2bbea93b75890cac12519412171bfd98941309"
+      },
+      "fir": {
+        "text": "remember that my dog is named very long",
+        "errors": 2,
+        "words": 7,
+        "pcm_sha256": "2ab9741cdb58ac16d84b29efb3443c6195026a024c758691ed03ebc84489a637"
+      }
+    },
+    {
+      "condition": "wind-0dB-5pct",
+      "id": "small-joke",
+      "reference": "Tell me a short joke about a potato.",
+      "linear": {
+        "text": "they'll be a or joke about",
+        "errors": 6,
+        "words": 8,
+        "pcm_sha256": "13f5ce6c0c0c119b9df34b254275239e9d8580d0f4eec9015824f6a00716971a"
+      },
+      "fir": {
+        "text": "me your or joke about",
+        "errors": 5,
+        "words": 8,
+        "pcm_sha256": "1f03bd690a3f59d14966dda7fa8197c1fa9ad3a738189376b04956c63e948746"
+      }
+    },
+    {
+      "condition": "wind-0dB-5pct",
+      "id": "small-thanks",
+      "reference": "Thanks, that is helpful.",
+      "linear": {
+        "text": "that kind of that didn't help",
+        "errors": 6,
+        "words": 4,
+        "pcm_sha256": "6a3dfc5cd9cceb9bb084d012a9590a030be574208cbff6ad8ffeb9149257e425"
+      },
+      "fir": {
+        "text": "the next time allotment helpful",
+        "errors": 4,
+        "words": 4,
+        "pcm_sha256": "792079c1faf8dcd976a5f1b5e9c195c6f4197c059e5c07ac2d98b1454ee8ea25"
+      }
+    },
+    {
+      "condition": "wind-0dB-5pct",
+      "id": "over-pause-1",
+      "reference": "Okay, I want to save a note to Inbox about the picnic. Let me think, we need sandwiches and apples, and I am trying to remember what else we talked about, oh yes, we also need umbrellas because the forecast might change, and a blanket to sit on. Please save all of that. Over.",
+      "linear": {
+        "text": "i wanted to the no que inbox about the picnic the camera the minute hand with you and an apple that rape and occupy timer what else we will do need of grow along or kept might change and i'm a blanket that on all oh that over",
+        "errors": 38,
+        "words": 54,
+        "pcm_sha256": "8dfb73e4f02d52c476c4a60ff8bfc750005354528ae12f3859845c275a807363"
+      },
+      "fir": {
+        "text": "going on i want to leave a note to inbox about the pic that of the comedy and sandwich and the line apple that upon an apostle timer about what else he said we're for a real to need umbrella or kept might change than i am i'm a blanket said on wednesday oh that for over",
+        "errors": 43,
+        "words": 54,
+        "pcm_sha256": "10bc5c9604c703efa82bd813353ef9f6bf9b9e9bc426c98c2a3c7087c88e48e7"
+      }
+    },
+    {
+      "condition": "wind-0dB-5pct",
+      "id": "auto-pause-1",
+      "reference": "Okay, I want to save a note to Inbox about the picnic. Let me think, we need sandwiches and apples, and I am trying to remember what else we talked about, oh yes, we also need umbrellas because the forecast might change, and a blanket to sit on. Please save all of that. Over.",
+      "linear": {
+        "text": "i wanted to the no que inbox about the picnic the camera the minute hand with you and an apple that rape and occupy timer what else we will do need of grow along with or kept might change them and i'm a blanket that clean think all oh that over",
+        "errors": 40,
+        "words": 54,
+        "pcm_sha256": "8dfb73e4f02d52c476c4a60ff8bfc750005354528ae12f3859845c275a807363"
+      },
+      "fir": {
+        "text": "going on i want to leave a note to inbox about the pic that of the comedy sandwiches oppo that upon a part timer upon what else he said we're for a real to need umbrella or kept might change than i am i'm a blanket said on wednesday oh that for over",
+        "errors": 41,
+        "words": 54,
+        "pcm_sha256": "10bc5c9604c703efa82bd813353ef9f6bf9b9e9bc426c98c2a3c7087c88e48e7"
+      }
+    },
+    {
+      "condition": "car-10dB-3pct",
+      "id": "note-inbox",
+      "reference": "Add a note to my Inbox: buy oat milk tomorrow.",
+      "linear": {
+        "text": "had a know to my environment by odell on",
+        "errors": 7,
+        "words": 10,
+        "pcm_sha256": "7f964544776581a2a8c8d9827ceb399e1781beea664daaf72b2572a50e474126"
+      },
+      "fir": {
+        "text": "i don't know to my inbox by odell martin",
+        "errors": 8,
+        "words": 10,
+        "pcm_sha256": "7d6ca1890a21cfb9ab32f35a61bb3890dfde5f18690f6e63e524555be0ceaacb"
+      }
+    },
+    {
+      "condition": "car-10dB-3pct",
+      "id": "memory-save",
+      "reference": "Remember that my dog is named Maple.",
+      "linear": {
+        "text": "that remember that my dog is named blog",
+        "errors": 2,
+        "words": 7,
+        "pcm_sha256": "0b020fe18d231864d7170d2d694d9b8fdbec2c71009181de5c1068acd2607420"
+      },
+      "fir": {
+        "text": "that amount remember that my dog is named a block",
+        "errors": 4,
+        "words": 7,
+        "pcm_sha256": "0e6f97ed29f677785b8c05b0a769f1a9d1ae4e0c2a89616ee7e285a780b44c22"
+      }
+    },
+    {
+      "condition": "car-10dB-3pct",
+      "id": "small-joke",
+      "reference": "Tell me a short joke about a potato.",
+      "linear": {
+        "text": "that only short joke about at a lot",
+        "errors": 5,
+        "words": 8,
+        "pcm_sha256": "1ee1bd7f8af172331bec478c7b27488e1acb1720d3dcaa2b6382a2745b56032b"
+      },
+      "fir": {
+        "text": "that i'm only a short joke about a lot of",
+        "errors": 6,
+        "words": 8,
+        "pcm_sha256": "1e12bdf793441ffc223d7c35c12dcab0b4abbd0ae6772a35168c08b744332e7c"
+      }
+    },
+    {
+      "condition": "car-10dB-3pct",
+      "id": "small-thanks",
+      "reference": "Thanks, that is helpful.",
+      "linear": {
+        "text": "that are behind that it helpful",
+        "errors": 4,
+        "words": 4,
+        "pcm_sha256": "ce507f91c679ad7ce3cc11786ef97cbb4793936ff61061f9ae94e2b8f34846b0"
+      },
+      "fir": {
+        "text": "that i the a that is helpful",
+        "errors": 4,
+        "words": 4,
+        "pcm_sha256": "68f2a33cd78793b0d9e5d8dcc0eb5bee28dbfdbf8a09d01463a541df5994923b"
+      }
+    },
+    {
+      "condition": "car-10dB-3pct",
+      "id": "over-pause-1",
+      "reference": "Okay, I want to save a note to Inbox about the picnic. Let me think, we need sandwiches and apples, and I am trying to remember what else we talked about, oh yes, we also need umbrellas because the forecast might change, and a blanket to sit on. Please save all of that. Over.",
+      "linear": {
+        "text": "that on i want to leave a note to inbox about the picnic that amount of money and weekend on an apple and that apartment hyperbole that upon a time i remember what yeah we also need of grow because the pork that might change that on a blanket that on they've all of that over",
+        "errors": 34,
+        "words": 54,
+        "pcm_sha256": "9f5325eda1ccb09ed25b04a13559f6a30cebe3e069a172831213ef4a0e285b8a"
+      },
+      "fir": {
+        "text": "that going on i want to leave a note to inbox about the pic that unlike cameroon sandwich and a pineapple that are popping up everywhere that amount of time are reaping what else applied for yet but we also need umbrella because the for kept might change than i am i'm a blanket to sit on save all of that over",
+        "errors": 37,
+        "words": 54,
+        "pcm_sha256": "fb7f073a55b8afb597f8d42e8f32349fd4e6e6e99b6c3496227589ab85bc12b9"
+      }
+    },
+    {
+      "condition": "car-10dB-3pct",
+      "id": "auto-pause-1",
+      "reference": "Okay, I want to save a note to Inbox about the picnic. Let me think, we need sandwiches and apples, and I am trying to remember what else we talked about, oh yes, we also need umbrellas because the forecast might change, and a blanket to sit on. Please save all of that. Over.",
+      "linear": {
+        "text": "that on i want to leave a note to inbox about the picnic that amount of money and weekend on an apple and that apartment hyperbole that upon the time i remember what yeah we also need of grow because the pork that might change that on a blanket that on they've all of that over",
+        "errors": 34,
+        "words": 54,
+        "pcm_sha256": "9f5325eda1ccb09ed25b04a13559f6a30cebe3e069a172831213ef4a0e285b8a"
+      },
+      "fir": {
+        "text": "that on i want to leave a note to inbox about the picnic that unlike cameroon sandwich and a pineapple that are popping up everywhere that amount of time i reaping what else applied for yet but we also need umbrella because the for kept might change than i am i'm a blanket to sit on save all of that over",
+        "errors": 35,
+        "words": 54,
+        "pcm_sha256": "fb7f073a55b8afb597f8d42e8f32349fd4e6e6e99b6c3496227589ab85bc12b9"
+      }
+    },
+    {
+      "condition": "kitchen-5dB-1pct",
+      "id": "note-inbox",
+      "reference": "Add a note to my Inbox: buy oat milk tomorrow.",
+      "linear": {
+        "text": "i don't know my inbox by oh my",
+        "errors": 8,
+        "words": 10,
+        "pcm_sha256": "6a810367bfdaf20cd91b95daa966e0401d33f27bf5ce9d8c1d6fb2094013fe41"
+      },
+      "fir": {
+        "text": "i don't know my inbox i also like",
+        "errors": 8,
+        "words": 10,
+        "pcm_sha256": "3856cad05baea663259d147423ffa5a4c1b55e37b7c5e2ef1e0a764c1dfc3adb"
+      }
+    },
+    {
+      "condition": "kitchen-5dB-1pct",
+      "id": "memory-save",
+      "reference": "Remember that my dog is named Maple.",
+      "linear": {
+        "text": "i got it made",
+        "errors": 7,
+        "words": 7,
+        "pcm_sha256": "afc06cfb2f8171449fb4e3e242434bb3410b50e6086a217b44e232fa27615768"
+      },
+      "fir": {
+        "text": "my dog named said",
+        "errors": 4,
+        "words": 7,
+        "pcm_sha256": "cfd3d80da6819473b8fc40b4a556ad17244eaf4f24a04aee5328a27d9b1bd459"
+      }
+    },
+    {
+      "condition": "kitchen-5dB-1pct",
+      "id": "small-joke",
+      "reference": "Tell me a short joke about a potato.",
+      "linear": {
+        "text": "short joke about",
+        "errors": 5,
+        "words": 8,
+        "pcm_sha256": "8c480aadd561203832580c47e279f14c2de8e44c7466573aac61acad48423ace"
+      },
+      "fir": {
+        "text": "short joke about",
+        "errors": 5,
+        "words": 8,
+        "pcm_sha256": "f697b5a255180738423408e013bb01786a9fadb094cab1c7afb1562e0837888c"
+      }
+    },
+    {
+      "condition": "kitchen-5dB-1pct",
+      "id": "small-thanks",
+      "reference": "Thanks, that is helpful.",
+      "linear": {
+        "text": "that it",
+        "errors": 3,
+        "words": 4,
+        "pcm_sha256": "07f2a3f1322f063fb140c07f945b9d8a48f289eb2a744a99895594122ce7cbba"
+      },
+      "fir": {
+        "text": "that is",
+        "errors": 2,
+        "words": 4,
+        "pcm_sha256": "fda6c193106b706155c5ea9f2520b3cead06e995cd109036d31aaa3678b7009a"
+      }
+    },
+    {
+      "condition": "kitchen-5dB-1pct",
+      "id": "over-pause-1",
+      "reference": "Okay, I want to save a note to Inbox about the picnic. Let me think, we need sandwiches and apples, and I am trying to remember what else we talked about, oh yes, we also need umbrellas because the forecast might change, and a blanket to sit on. Please save all of that. Over.",
+      "linear": {
+        "text": "i wouldn't even know who embody about that the yeah oh yeah we we'll need for a lot of work that might be in a blanket oh that over",
+        "errors": 45,
+        "words": 54,
+        "pcm_sha256": "b6aa47604aeb41a8b8058a3b79ef31aafcdbe57779659786fa59cab02411962b"
+      },
+      "fir": {
+        "text": "i wouldn't even though in by about it that  oh yeah we have a need for a long before half my in a blanket oh that over",
+        "errors": 46,
+        "words": 54,
+        "pcm_sha256": "287e583d1fd0c7f792a90b64a5472a45dd205dedf97d62e3d95f4a2547325821"
+      }
+    },
+    {
+      "condition": "kitchen-5dB-1pct",
+      "id": "auto-pause-1",
+      "reference": "Okay, I want to save a note to Inbox about the picnic. Let me think, we need sandwiches and apples, and I am trying to remember what else we talked about, oh yes, we also need umbrellas because the forecast might change, and a blanket to sit on. Please save all of that. Over.",
+      "linear": {
+        "text": "i wouldn't even know who embody about that the yeah oh yeah we we'll need for a lot of work that might be in a blanket oh that over",
+        "errors": 45,
+        "words": 54,
+        "pcm_sha256": "b6aa47604aeb41a8b8058a3b79ef31aafcdbe57779659786fa59cab02411962b"
+      },
+      "fir": {
+        "text": "i wouldn't even though by about it that  oh yeah we also need for a long before half my in a blanket oh that over",
+        "errors": 44,
+        "words": 54,
+        "pcm_sha256": "287e583d1fd0c7f792a90b64a5472a45dd205dedf97d62e3d95f4a2547325821"
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+The procedural environmental noise signals produced by hfp.py (street, cafe,
+wind, car, kitchen) are original synthetic signals dedicated to the public domain
+under CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/
+No third-party environmental recordings are used. They are representative
+spectral/temporal stressors, not calibrated recordings of those environments.
+Speech mixed as bystanders comes from the existing Gemini TTS fixture cache;
+its provenance is in the matching audio/*.json and it is not covered by this
+noise-only dedication. Vosk models retain their upstream Apache-2.0 license.

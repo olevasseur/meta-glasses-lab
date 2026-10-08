@@ -1,0 +1,2695 @@
+{
+  "source": "macOS say, Samantha, 175 words/minute",
+  "results": [
+    {
+      "text": "Please save all of that. Over.",
+      "expected": "keyword",
+      "condition": "clean",
+      "source_sha256": "6dce305ad1ecbc6479e34de5661176e2413e6245afd642234c5926a06e7c39e8",
+      "vosk": {
+        "text": "please save all of that over",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "please",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "please save",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "please save all of",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "please save all of that",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "please save all of that over",
+            "final": false
+          },
+          {
+            "time_s": 3.04,
+            "text": "please save all of that over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 3.5199999999999996
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 3.5199999999999996
+        }
+      }
+    },
+    {
+      "text": "Please save all of that. Over.",
+      "expected": "keyword",
+      "condition": "hfp-quiet",
+      "source_sha256": "6dce305ad1ecbc6479e34de5661176e2413e6245afd642234c5926a06e7c39e8",
+      "vosk": {
+        "text": "please save all of that over",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "play facebook",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "please save",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "please save all of",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "please save all of that",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "please save all of that over",
+            "final": false
+          },
+          {
+            "time_s": 3.04,
+            "text": "please save all of that over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 3.5199999999999996
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 3.5199999999999996
+        }
+      }
+    },
+    {
+      "text": "Please save all of that. Over.",
+      "expected": "keyword",
+      "condition": "street-20dB-1pct",
+      "source_sha256": "6dce305ad1ecbc6479e34de5661176e2413e6245afd642234c5926a06e7c39e8",
+      "vosk": {
+        "text": "please save all of that over",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "when they",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "when they've",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "we save all of",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "we save all of that",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "we save all of that over",
+            "final": false
+          },
+          {
+            "time_s": 3.04,
+            "text": "please save all of that over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 4.24
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 4.24
+        }
+      }
+    },
+    {
+      "text": "Please save all of that. Over.",
+      "expected": "keyword",
+      "condition": "cafe-10dB-3pct",
+      "source_sha256": "6dce305ad1ecbc6479e34de5661176e2413e6245afd642234c5926a06e7c39e8",
+      "vosk": {
+        "text": "they save all of that over",
+        "events": [
+          {
+            "time_s": 0.64,
+            "text": "the",
+            "final": false
+          },
+          {
+            "time_s": 0.88,
+            "text": "they say",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "they save all of that",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "they save all of that over",
+            "final": false
+          },
+          {
+            "time_s": 3.04,
+            "text": "they save all of that over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 3.5199999999999996
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 3.5199999999999996
+        }
+      }
+    },
+    {
+      "text": "Please save all of that. Over.",
+      "expected": "keyword",
+      "condition": "wind-0dB-5pct",
+      "source_sha256": "6dce305ad1ecbc6479e34de5661176e2413e6245afd642234c5926a06e7c39e8",
+      "vosk": {
+        "text": "made all of that over",
+        "events": [
+          {
+            "time_s": 1.12,
+            "text": "a",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "they made all of",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "they made all of that",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "they made all of that over",
+            "final": false
+          },
+          {
+            "time_s": 3.04,
+            "text": "made all of that over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 4.24
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 4.24
+        }
+      }
+    },
+    {
+      "text": "Please save all of that. Over.",
+      "expected": "keyword",
+      "condition": "car-10dB-3pct",
+      "source_sha256": "6dce305ad1ecbc6479e34de5661176e2413e6245afd642234c5926a06e7c39e8",
+      "vosk": {
+        "text": "please save all of that over",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "when they",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "please save all of",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "please save all of that",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "please save all of that over",
+            "final": false
+          },
+          {
+            "time_s": 3.04,
+            "text": "please save all of that over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 3.5199999999999996
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 3.5199999999999996
+        }
+      }
+    },
+    {
+      "text": "Please save all of that. Over.",
+      "expected": "keyword",
+      "condition": "kitchen-5dB-1pct",
+      "source_sha256": "6dce305ad1ecbc6479e34de5661176e2413e6245afd642234c5926a06e7c39e8",
+      "vosk": {
+        "text": "the hate all over",
+        "events": [
+          {
+            "time_s": 1.36,
+            "text": "they don't agree",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "they don't",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "they hate all over",
+            "final": false
+          },
+          {
+            "time_s": 3.04,
+            "text": "the hate all over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 4.24
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 4.24
+        }
+      }
+    },
+    {
+      "text": "Over.",
+      "expected": "keyword",
+      "condition": "clean",
+      "source_sha256": "f44501dd66c5a1f3fd280be112fd9d0db01643628a5d29f1bb6a789ebef4124a",
+      "vosk": {
+        "text": "over",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "over",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 2.08
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.08
+        }
+      }
+    },
+    {
+      "text": "Over.",
+      "expected": "keyword",
+      "condition": "hfp-quiet",
+      "source_sha256": "f44501dd66c5a1f3fd280be112fd9d0db01643628a5d29f1bb6a789ebef4124a",
+      "vosk": {
+        "text": "over",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "over",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 2.08
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.08
+        }
+      }
+    },
+    {
+      "text": "Over.",
+      "expected": "keyword",
+      "condition": "street-20dB-1pct",
+      "source_sha256": "f44501dd66c5a1f3fd280be112fd9d0db01643628a5d29f1bb6a789ebef4124a",
+      "vosk": {
+        "text": "over",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "over",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 2.08
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.08
+        }
+      }
+    },
+    {
+      "text": "Over.",
+      "expected": "keyword",
+      "condition": "cafe-10dB-3pct",
+      "source_sha256": "f44501dd66c5a1f3fd280be112fd9d0db01643628a5d29f1bb6a789ebef4124a",
+      "vosk": {
+        "text": "however",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "however",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "however",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Over.",
+      "expected": "keyword",
+      "condition": "wind-0dB-5pct",
+      "source_sha256": "f44501dd66c5a1f3fd280be112fd9d0db01643628a5d29f1bb6a789ebef4124a",
+      "vosk": {
+        "text": "however",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "over",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "however",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Over.",
+      "expected": "keyword",
+      "condition": "car-10dB-3pct",
+      "source_sha256": "f44501dd66c5a1f3fd280be112fd9d0db01643628a5d29f1bb6a789ebef4124a",
+      "vosk": {
+        "text": "over",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "over",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 2.08
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.08
+        }
+      }
+    },
+    {
+      "text": "Over.",
+      "expected": "keyword",
+      "condition": "kitchen-5dB-1pct",
+      "source_sha256": "f44501dd66c5a1f3fd280be112fd9d0db01643628a5d29f1bb6a789ebef4124a",
+      "vosk": {
+        "text": "over",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "over",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 2.08
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.08
+        }
+      }
+    },
+    {
+      "text": "Thank you. Over and out.",
+      "expected": "sign_off",
+      "condition": "clean",
+      "source_sha256": "c7f51961a5a4981b1131c98eb0792f6d859b5eecf0cc8a2a1b24aaf398813481",
+      "vosk": {
+        "text": "thank you over and out",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "thank you",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "thank you over",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "thank you over and over",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "thank you over and out",
+            "final": false
+          },
+          {
+            "time_s": 3.04,
+            "text": "thank you over and out",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "sign_off",
+          "time_s": 3.04
+        },
+        "aliases": {
+          "reason": "sign_off",
+          "time_s": 3.04
+        }
+      }
+    },
+    {
+      "text": "Thank you. Over and out.",
+      "expected": "sign_off",
+      "condition": "hfp-quiet",
+      "source_sha256": "c7f51961a5a4981b1131c98eb0792f6d859b5eecf0cc8a2a1b24aaf398813481",
+      "vosk": {
+        "text": "thank you over and out",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "thank you",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "thank you over",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "thank you over and out",
+            "final": false
+          },
+          {
+            "time_s": 3.04,
+            "text": "thank you over and out",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "sign_off",
+          "time_s": 3.04
+        },
+        "aliases": {
+          "reason": "sign_off",
+          "time_s": 3.04
+        }
+      }
+    },
+    {
+      "text": "Thank you. Over and out.",
+      "expected": "sign_off",
+      "condition": "street-20dB-1pct",
+      "source_sha256": "c7f51961a5a4981b1131c98eb0792f6d859b5eecf0cc8a2a1b24aaf398813481",
+      "vosk": {
+        "text": "thank you over and out",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "thank you",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "thank you over",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "thank you over and out",
+            "final": false
+          },
+          {
+            "time_s": 2.8,
+            "text": "thank you over and out",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "sign_off",
+          "time_s": 2.8
+        },
+        "aliases": {
+          "reason": "sign_off",
+          "time_s": 2.8
+        }
+      }
+    },
+    {
+      "text": "Thank you. Over and out.",
+      "expected": "sign_off",
+      "condition": "cafe-10dB-3pct",
+      "source_sha256": "c7f51961a5a4981b1131c98eb0792f6d859b5eecf0cc8a2a1b24aaf398813481",
+      "vosk": {
+        "text": "are very young",
+        "events": [
+          {
+            "time_s": 1.6,
+            "text": "president obama",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "over",
+            "final": false
+          },
+          {
+            "time_s": 2.56,
+            "text": "are very young",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Thank you. Over and out.",
+      "expected": "sign_off",
+      "condition": "wind-0dB-5pct",
+      "source_sha256": "c7f51961a5a4981b1131c98eb0792f6d859b5eecf0cc8a2a1b24aaf398813481",
+      "vosk": {
+        "text": "that is over and out",
+        "events": [
+          {
+            "time_s": 1.12,
+            "text": "that",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "that is",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "that is over",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "that is over and",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "that is over and out",
+            "final": false
+          },
+          {
+            "time_s": 2.8,
+            "text": "that is over and out",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "sign_off",
+          "time_s": 2.8
+        },
+        "aliases": {
+          "reason": "sign_off",
+          "time_s": 2.8
+        }
+      }
+    },
+    {
+      "text": "Thank you. Over and out.",
+      "expected": "sign_off",
+      "condition": "car-10dB-3pct",
+      "source_sha256": "c7f51961a5a4981b1131c98eb0792f6d859b5eecf0cc8a2a1b24aaf398813481",
+      "vosk": {
+        "text": "then came over and out",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "thank you",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "thank you over",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "then came over and out",
+            "final": false
+          },
+          {
+            "time_s": 2.8,
+            "text": "then came over and out",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "sign_off",
+          "time_s": 2.8
+        },
+        "aliases": {
+          "reason": "sign_off",
+          "time_s": 2.8
+        }
+      }
+    },
+    {
+      "text": "Thank you. Over and out.",
+      "expected": "sign_off",
+      "condition": "kitchen-5dB-1pct",
+      "source_sha256": "c7f51961a5a4981b1131c98eb0792f6d859b5eecf0cc8a2a1b24aaf398813481",
+      "vosk": {
+        "text": "oh my god",
+        "events": [
+          {
+            "time_s": 1.6,
+            "text": "oh",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "oh my",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "oh my god",
+            "final": false
+          },
+          {
+            "time_s": 2.56,
+            "text": "oh my god",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "I am getting older.",
+      "expected": null,
+      "condition": "clean",
+      "source_sha256": "7577c1f0e876ebe758fe1baacaf49e0179697d63e1504961d94fa6d42f34a469",
+      "vosk": {
+        "text": "i am getting older",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "i am",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "i am getting",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "i am getting older",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "i am getting older",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.08
+        }
+      }
+    },
+    {
+      "text": "I am getting older.",
+      "expected": null,
+      "condition": "hfp-quiet",
+      "source_sha256": "7577c1f0e876ebe758fe1baacaf49e0179697d63e1504961d94fa6d42f34a469",
+      "vosk": {
+        "text": "i am getting older",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "i am",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "i am getting",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "i am getting older",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "i am getting older",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.08
+        }
+      }
+    },
+    {
+      "text": "I am getting older.",
+      "expected": null,
+      "condition": "street-20dB-1pct",
+      "source_sha256": "7577c1f0e876ebe758fe1baacaf49e0179697d63e1504961d94fa6d42f34a469",
+      "vosk": {
+        "text": "i am getting older",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "i am",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "i am getting",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "i am getting older",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "i am getting older",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.08
+        }
+      }
+    },
+    {
+      "text": "I am getting older.",
+      "expected": null,
+      "condition": "cafe-10dB-3pct",
+      "source_sha256": "7577c1f0e876ebe758fe1baacaf49e0179697d63e1504961d94fa6d42f34a469",
+      "vosk": {
+        "text": "hi i'm getting older",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "hi i'm",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "hi i'm getting",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "hi i'm getting older",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "hi i'm getting older",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.08
+        }
+      }
+    },
+    {
+      "text": "I am getting older.",
+      "expected": null,
+      "condition": "wind-0dB-5pct",
+      "source_sha256": "7577c1f0e876ebe758fe1baacaf49e0179697d63e1504961d94fa6d42f34a469",
+      "vosk": {
+        "text": "i am getting older",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "i am",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "i am getting",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "i am getting older",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "i am getting older",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.32
+        }
+      }
+    },
+    {
+      "text": "I am getting older.",
+      "expected": null,
+      "condition": "car-10dB-3pct",
+      "source_sha256": "7577c1f0e876ebe758fe1baacaf49e0179697d63e1504961d94fa6d42f34a469",
+      "vosk": {
+        "text": "i am getting older",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "i'm",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "i am getting",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "i am getting older",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "i am getting older",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.08
+        }
+      }
+    },
+    {
+      "text": "I am getting older.",
+      "expected": null,
+      "condition": "kitchen-5dB-1pct",
+      "source_sha256": "7577c1f0e876ebe758fe1baacaf49e0179697d63e1504961d94fa6d42f34a469",
+      "vosk": {
+        "text": "i am getting older",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "i",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "i am getting",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "i am getting older",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "i am getting older",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.08
+        }
+      }
+    },
+    {
+      "text": "Roll over there.",
+      "expected": null,
+      "condition": "clean",
+      "source_sha256": "8703df6c11b925b09d8e99b83b7ff79bf395e571c0dec2ff3f6662d6173d4e0f",
+      "vosk": {
+        "text": "roll over there",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "roll over",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "roll over there",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "roll over there",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Roll over there.",
+      "expected": null,
+      "condition": "hfp-quiet",
+      "source_sha256": "8703df6c11b925b09d8e99b83b7ff79bf395e571c0dec2ff3f6662d6173d4e0f",
+      "vosk": {
+        "text": "well over there",
+        "events": [
+          {
+            "time_s": 0.64,
+            "text": "well",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "well over",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "well over there",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "well over there",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Roll over there.",
+      "expected": null,
+      "condition": "street-20dB-1pct",
+      "source_sha256": "8703df6c11b925b09d8e99b83b7ff79bf395e571c0dec2ff3f6662d6173d4e0f",
+      "vosk": {
+        "text": "well over there",
+        "events": [
+          {
+            "time_s": 0.64,
+            "text": "well",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "well over",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "well over there",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "well over there",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Roll over there.",
+      "expected": null,
+      "condition": "cafe-10dB-3pct",
+      "source_sha256": "8703df6c11b925b09d8e99b83b7ff79bf395e571c0dec2ff3f6662d6173d4e0f",
+      "vosk": {
+        "text": "the over there",
+        "events": [
+          {
+            "time_s": 1.12,
+            "text": "the over the",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "the over there",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "the over there",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Roll over there.",
+      "expected": null,
+      "condition": "wind-0dB-5pct",
+      "source_sha256": "8703df6c11b925b09d8e99b83b7ff79bf395e571c0dec2ff3f6662d6173d4e0f",
+      "vosk": {
+        "text": "over there",
+        "events": [
+          {
+            "time_s": 1.12,
+            "text": "nobody",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "over there",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "over there",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Roll over there.",
+      "expected": null,
+      "condition": "car-10dB-3pct",
+      "source_sha256": "8703df6c11b925b09d8e99b83b7ff79bf395e571c0dec2ff3f6662d6173d4e0f",
+      "vosk": {
+        "text": "well over there",
+        "events": [
+          {
+            "time_s": 0.64,
+            "text": "well",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "well over",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "well over there",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "well over there",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Roll over there.",
+      "expected": null,
+      "condition": "kitchen-5dB-1pct",
+      "source_sha256": "8703df6c11b925b09d8e99b83b7ff79bf395e571c0dec2ff3f6662d6173d4e0f",
+      "vosk": {
+        "text": "no over here",
+        "events": [
+          {
+            "time_s": 1.12,
+            "text": "no over",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "no over there",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "no over here",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Please read the overview.",
+      "expected": null,
+      "condition": "clean",
+      "source_sha256": "43eee073f74ccb5e0e98bc11df9eac3f101767400f4495b1821b4b70e78d7227",
+      "vosk": {
+        "text": "please read the overview",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "please",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "please read the",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "please read the over",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "please read the",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "please read the overview",
+            "final": false
+          },
+          {
+            "time_s": 2.56,
+            "text": "please read the overview",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Please read the overview.",
+      "expected": null,
+      "condition": "hfp-quiet",
+      "source_sha256": "43eee073f74ccb5e0e98bc11df9eac3f101767400f4495b1821b4b70e78d7227",
+      "vosk": {
+        "text": "please read the overview",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "please",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "please read the",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "please read the over",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "please read the",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "please read the overview",
+            "final": false
+          },
+          {
+            "time_s": 2.56,
+            "text": "please read the overview",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Please read the overview.",
+      "expected": null,
+      "condition": "street-20dB-1pct",
+      "source_sha256": "43eee073f74ccb5e0e98bc11df9eac3f101767400f4495b1821b4b70e78d7227",
+      "vosk": {
+        "text": "please read the overview",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "please",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "please read the",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "please read the over",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "please read the",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "please read the overview",
+            "final": false
+          },
+          {
+            "time_s": 2.56,
+            "text": "please read the overview",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Please read the overview.",
+      "expected": null,
+      "condition": "cafe-10dB-3pct",
+      "source_sha256": "43eee073f74ccb5e0e98bc11df9eac3f101767400f4495b1821b4b70e78d7227",
+      "vosk": {
+        "text": "really",
+        "events": [
+          {
+            "time_s": 0.64,
+            "text": "the",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "we love",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "we want",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "really",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Please read the overview.",
+      "expected": null,
+      "condition": "wind-0dB-5pct",
+      "source_sha256": "43eee073f74ccb5e0e98bc11df9eac3f101767400f4495b1821b4b70e78d7227",
+      "vosk": {
+        "text": "read the overview",
+        "events": [
+          {
+            "time_s": 1.12,
+            "text": "read the",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "read the overview",
+            "final": false
+          },
+          {
+            "time_s": 2.56,
+            "text": "read the overview",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Please read the overview.",
+      "expected": null,
+      "condition": "car-10dB-3pct",
+      "source_sha256": "43eee073f74ccb5e0e98bc11df9eac3f101767400f4495b1821b4b70e78d7227",
+      "vosk": {
+        "text": "please read the overview",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "when we",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "please read the",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "please read the other",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "please read the over the",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "please read the overview",
+            "final": false
+          },
+          {
+            "time_s": 2.56,
+            "text": "please read the overview",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Please read the overview.",
+      "expected": null,
+      "condition": "kitchen-5dB-1pct",
+      "source_sha256": "43eee073f74ccb5e0e98bc11df9eac3f101767400f4495b1821b4b70e78d7227",
+      "vosk": {
+        "text": "yeah the",
+        "events": [
+          {
+            "time_s": 0.64,
+            "text": "the",
+            "final": false
+          },
+          {
+            "time_s": 3.07525,
+            "text": "yeah the",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "The clover is green.",
+      "expected": null,
+      "condition": "clean",
+      "source_sha256": "676c2c7558682ff126c353e378381b6d61681f87e56f9427726048e70fd35e1a",
+      "vosk": {
+        "text": "the clover is green",
+        "events": [
+          {
+            "time_s": 0.64,
+            "text": "the",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "the clover",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "the clover is",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "the clover as green",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "the clover is green",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "the clover is green",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "The clover is green.",
+      "expected": null,
+      "condition": "hfp-quiet",
+      "source_sha256": "676c2c7558682ff126c353e378381b6d61681f87e56f9427726048e70fd35e1a",
+      "vosk": {
+        "text": "the cover is green",
+        "events": [
+          {
+            "time_s": 0.64,
+            "text": "the",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "the cover his",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "the cover his green",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "the cover is green",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "The clover is green.",
+      "expected": null,
+      "condition": "street-20dB-1pct",
+      "source_sha256": "676c2c7558682ff126c353e378381b6d61681f87e56f9427726048e70fd35e1a",
+      "vosk": {
+        "text": "the clover and green",
+        "events": [
+          {
+            "time_s": 0.64,
+            "text": "the",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "the clover and",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "the clover and green",
+            "final": false
+          },
+          {
+            "time_s": 2.56,
+            "text": "the clover and green",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "The clover is green.",
+      "expected": null,
+      "condition": "cafe-10dB-3pct",
+      "source_sha256": "676c2c7558682ff126c353e378381b6d61681f87e56f9427726048e70fd35e1a",
+      "vosk": {
+        "text": "the over a free",
+        "events": [
+          {
+            "time_s": 0.64,
+            "text": "the",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "the over a",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "the over a free",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "the over a free",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "The clover is green.",
+      "expected": null,
+      "condition": "wind-0dB-5pct",
+      "source_sha256": "676c2c7558682ff126c353e378381b6d61681f87e56f9427726048e70fd35e1a",
+      "vosk": {
+        "text": "margaret green",
+        "events": [
+          {
+            "time_s": 1.12,
+            "text": "very",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "margaret green",
+            "final": false
+          },
+          {
+            "time_s": 2.56,
+            "text": "margaret green",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "The clover is green.",
+      "expected": null,
+      "condition": "car-10dB-3pct",
+      "source_sha256": "676c2c7558682ff126c353e378381b6d61681f87e56f9427726048e70fd35e1a",
+      "vosk": {
+        "text": "the clover and green",
+        "events": [
+          {
+            "time_s": 0.64,
+            "text": "the",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "the clover",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "the clover a",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "the clover a grain",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "the clover a grain of",
+            "final": false
+          },
+          {
+            "time_s": 2.56,
+            "text": "the clover and green",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "The clover is green.",
+      "expected": null,
+      "condition": "kitchen-5dB-1pct",
+      "source_sha256": "676c2c7558682ff126c353e378381b6d61681f87e56f9427726048e70fd35e1a",
+      "vosk": {
+        "text": "oh right wing",
+        "events": [
+          {
+            "time_s": 1.12,
+            "text": "oh right",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "oh right right",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "oh right wing",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "oh right wing",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Turn over the page.",
+      "expected": null,
+      "condition": "clean",
+      "source_sha256": "20e9354bdb82fade9deb11e406988e520834e395d5a8a4489ffde6016858d9bc",
+      "vosk": {
+        "text": "turn over the page",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "turn",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "turn over the",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "turn over the page",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "turn over the page",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Turn over the page.",
+      "expected": null,
+      "condition": "hfp-quiet",
+      "source_sha256": "20e9354bdb82fade9deb11e406988e520834e395d5a8a4489ffde6016858d9bc",
+      "vosk": {
+        "text": "turn over the page",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "turn",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "turn over the",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "turn over the past",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "turn over the page",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "turn over the page",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Turn over the page.",
+      "expected": null,
+      "condition": "street-20dB-1pct",
+      "source_sha256": "20e9354bdb82fade9deb11e406988e520834e395d5a8a4489ffde6016858d9bc",
+      "vosk": {
+        "text": "turn over the page",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "turn",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "turn over the",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "turn over the past",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "turn over the page",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "turn over the page",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Turn over the page.",
+      "expected": null,
+      "condition": "cafe-10dB-3pct",
+      "source_sha256": "20e9354bdb82fade9deb11e406988e520834e395d5a8a4489ffde6016858d9bc",
+      "vosk": {
+        "text": "hanover over the case",
+        "events": [
+          {
+            "time_s": 1.12,
+            "text": "hanover the",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "hanover the case",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "hanover over the case",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Turn over the page.",
+      "expected": null,
+      "condition": "wind-0dB-5pct",
+      "source_sha256": "20e9354bdb82fade9deb11e406988e520834e395d5a8a4489ffde6016858d9bc",
+      "vosk": {
+        "text": "you're no better page",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "you're not",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "you're not going to",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "you're not going to pay",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "you're no better",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "you're no better page",
+            "final": false
+          },
+          {
+            "time_s": 2.32,
+            "text": "you're no better page",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Turn over the page.",
+      "expected": null,
+      "condition": "car-10dB-3pct",
+      "source_sha256": "20e9354bdb82fade9deb11e406988e520834e395d5a8a4489ffde6016858d9bc",
+      "vosk": {
+        "text": "turn over the page",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "turn",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "turn over the",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "turn over the past",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "turn over the page",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "turn over the page",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Turn over the page.",
+      "expected": null,
+      "condition": "kitchen-5dB-1pct",
+      "source_sha256": "20e9354bdb82fade9deb11e406988e520834e395d5a8a4489ffde6016858d9bc",
+      "vosk": {
+        "text": "over the case",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "hang on",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "over the",
+            "final": false
+          },
+          {
+            "time_s": 1.36,
+            "text": "over the past",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "over the case",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "over the case",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Is it over?",
+      "expected": null,
+      "condition": "clean",
+      "source_sha256": "084022d0c67c6318717ce48114f44402147c2aac4cfb282647ff0db89eaeb1de",
+      "vosk": {
+        "text": "is it over",
+        "events": [
+          {
+            "time_s": 0.64,
+            "text": "if",
+            "final": false
+          },
+          {
+            "time_s": 0.88,
+            "text": "is it",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "is it over",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "is it over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 2.3200000000000003
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.3200000000000003
+        }
+      }
+    },
+    {
+      "text": "Is it over?",
+      "expected": null,
+      "condition": "hfp-quiet",
+      "source_sha256": "084022d0c67c6318717ce48114f44402147c2aac4cfb282647ff0db89eaeb1de",
+      "vosk": {
+        "text": "is it over",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "is it",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "is it over",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "is it over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 2.3200000000000003
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.3200000000000003
+        }
+      }
+    },
+    {
+      "text": "Is it over?",
+      "expected": null,
+      "condition": "street-20dB-1pct",
+      "source_sha256": "084022d0c67c6318717ce48114f44402147c2aac4cfb282647ff0db89eaeb1de",
+      "vosk": {
+        "text": "is it over",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "is it",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "is it over",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "is it over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 2.3200000000000003
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.3200000000000003
+        }
+      }
+    },
+    {
+      "text": "Is it over?",
+      "expected": null,
+      "condition": "cafe-10dB-3pct",
+      "source_sha256": "084022d0c67c6318717ce48114f44402147c2aac4cfb282647ff0db89eaeb1de",
+      "vosk": {
+        "text": "the developer",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "the",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "the developer",
+            "final": false
+          },
+          {
+            "time_s": 1.84,
+            "text": "the developer",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Is it over?",
+      "expected": null,
+      "condition": "wind-0dB-5pct",
+      "source_sha256": "084022d0c67c6318717ce48114f44402147c2aac4cfb282647ff0db89eaeb1de",
+      "vosk": {
+        "text": "we've been over",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "you know",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "we've been over",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "we've been over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 2.3200000000000003
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.3200000000000003
+        }
+      }
+    },
+    {
+      "text": "Is it over?",
+      "expected": null,
+      "condition": "car-10dB-3pct",
+      "source_sha256": "084022d0c67c6318717ce48114f44402147c2aac4cfb282647ff0db89eaeb1de",
+      "vosk": {
+        "text": "is it over",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "is it",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "is it over",
+            "final": false
+          },
+          {
+            "time_s": 2.08,
+            "text": "is it over",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": "keyword",
+          "time_s": 2.3200000000000003
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 2.3200000000000003
+        }
+      }
+    },
+    {
+      "text": "Is it over?",
+      "expected": null,
+      "condition": "kitchen-5dB-1pct",
+      "source_sha256": "084022d0c67c6318717ce48114f44402147c2aac4cfb282647ff0db89eaeb1de",
+      "vosk": {
+        "text": "they get older",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "the good",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "the get over",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "they get older",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": "keyword",
+          "time_s": 1.6
+        }
+      }
+    },
+    {
+      "text": "Your turn.",
+      "expected": null,
+      "condition": "clean",
+      "source_sha256": "131d26bc62a521ac229134dba7da51411e4b9f4f31f6dbd741a0cee70ce333b9",
+      "vosk": {
+        "text": "your turn",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "your turn",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "your turn",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Your turn.",
+      "expected": null,
+      "condition": "hfp-quiet",
+      "source_sha256": "131d26bc62a521ac229134dba7da51411e4b9f4f31f6dbd741a0cee70ce333b9",
+      "vosk": {
+        "text": "your turn",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "your",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "your turn",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "your turn",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Your turn.",
+      "expected": null,
+      "condition": "street-20dB-1pct",
+      "source_sha256": "131d26bc62a521ac229134dba7da51411e4b9f4f31f6dbd741a0cee70ce333b9",
+      "vosk": {
+        "text": "your turn",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "your",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "your turn",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "your turn",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Your turn.",
+      "expected": null,
+      "condition": "cafe-10dB-3pct",
+      "source_sha256": "131d26bc62a521ac229134dba7da51411e4b9f4f31f6dbd741a0cee70ce333b9",
+      "vosk": {
+        "text": "your turn",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "your",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "your current",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "your turn",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Your turn.",
+      "expected": null,
+      "condition": "wind-0dB-5pct",
+      "source_sha256": "131d26bc62a521ac229134dba7da51411e4b9f4f31f6dbd741a0cee70ce333b9",
+      "vosk": {
+        "text": "your turn",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "you're",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "your turn",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "your turn",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Your turn.",
+      "expected": null,
+      "condition": "car-10dB-3pct",
+      "source_sha256": "131d26bc62a521ac229134dba7da51411e4b9f4f31f6dbd741a0cee70ce333b9",
+      "vosk": {
+        "text": "your turn",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "your",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "your turn",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "your turn",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    },
+    {
+      "text": "Your turn.",
+      "expected": null,
+      "condition": "kitchen-5dB-1pct",
+      "source_sha256": "131d26bc62a521ac229134dba7da51411e4b9f4f31f6dbd741a0cee70ce333b9",
+      "vosk": {
+        "text": "the okay",
+        "events": [
+          {
+            "time_s": 0.88,
+            "text": "you",
+            "final": false
+          },
+          {
+            "time_s": 1.12,
+            "text": "the okay",
+            "final": false
+          },
+          {
+            "time_s": 1.6,
+            "text": "the okay",
+            "final": true
+          }
+        ],
+        "exact": {
+          "reason": null,
+          "time_s": null
+        },
+        "aliases": {
+          "reason": null,
+          "time_s": null
+        }
+      }
+    }
+  ]
+}
