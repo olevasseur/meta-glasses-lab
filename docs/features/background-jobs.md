@@ -6,6 +6,16 @@ Implemented and checked **2026-10-07 (America/Toronto)**. Gemini Live remains th
 voice assistant. The explicitly requested developer/research tools launch the
 Mac's logged-in Codex CLI; no OpenAI API client, API key, or voice provider is added.
 
+## Claude and both agents (2026-10-08)
+
+`codex_task` and `deep_research` now accept `agent: codex|claude|both` (default
+Codex). Say “tell Claude to …”, “have Claude research …”, or “have both try …”.
+Both gets isolated worktrees and a Gemini spoken comparison; research merges
+sources and notes disagreements. Coding remains Tier 2 for every agent, with
+agent/repo/exact instruction bound to approval. Dashboard Jobs/Approvals shows
+agent selection; Settings controls enablement/model. See [Claude jobs](claude-jobs.md)
+for restrictions, deadlines, persistence, configuration and the external smoke.
+
 ## Voice and buttons
 
 - “Ask Codex to fix the failing tests in valiant.” Gemini previews the exact repo
@@ -67,8 +77,8 @@ into Gemini tokens along with the existing tools; `lock_additional_fields=[]`
 and client-owned `sessionResumption` are preserved.
 
 ```text
-POST /tools/codex_task   {repo, instruction, confirm?: false, job_id?: string}
-POST /tools/deep_research {topic, doc_name?: "Glasses Research"}
+POST /tools/codex_task   {repo, instruction, agent?: "codex", confirm?: false, job_id?: string}
+POST /tools/deep_research {topic, agent?: "codex", doc_name?: "Glasses Research"}
 POST /tools/job_status   {job_id?: string}
 POST /tools/cancel_job   {job_id}
 GET /events?after=0&wait=20
@@ -141,9 +151,9 @@ Known boundaries:
   immediately after enqueue can lose the spoken announcement; `job_status` still
   retains the result. A process death between delivery and cursor persistence can
   repeat an announcement. This is not an exactly-once audio contract.
-- The two-step server flow enforces a stored preview, unchanged payload and expiry;
-  Gemini is responsible for hearing the user's actual consent. There is no
-  independent backend proof of a spoken yes.
+- Approval binds the exact stored agent/repo/task and expiry. Only app-owned
+  device input or authenticated dashboard review authorizes execution; spoken
+  yes and model confirmation fields do not.
 - Sandbox restrictions provide write/network boundaries, not a container for
   hostile repositories. Read access is not restricted to the working directory.
   Use trusted allowlisted repos; review generated changes locally before taking
@@ -170,7 +180,7 @@ recreation. Tests isolate the job runner from personal queued work.
 
 Jobs use main's registry, memory routes and service-owned conversation lifecycle.
 `lock_additional_fields=[]` and client-owned `sessionResumption` are unchanged.
-Gesture confirmation can approve the exact job preview; event announcements fall
+Tiered device approval can approve the exact job preview; event announcements fall
 back to notifications while speech/replies/confirmations or call pauses are active.
 Physical combined workflows and real Codex/Docs execution were not re-tested.
 

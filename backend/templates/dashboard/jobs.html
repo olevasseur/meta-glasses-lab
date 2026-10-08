@@ -1,0 +1,14 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<p>Jobs retain their worktrees and reports on the Mac. Checks in agent reports are self-reported.</p>
+{% for job in jobs %}<article>
+<h2>{{ job.agent|title }} · {{ job.kind }} · {{ job.status }}</h2>
+<p>{{ job.summary }}</p><p class="mono">{{ job.job_id }}</p>
+{% if job.worktree %}<p>Worktree: {{ job.worktree }}<br>Branch: {{ job.branch }}</p>{% endif %}
+{% for agent, run in job.get('runs', {}).items() %}<details><summary>{{ agent|title }} · {{ run.status }}</summary>
+<p>{{ run.summary }}</p><p>Worktree: {{ run.worktree|default('—') }}<br>Branch: {{ run.branch|default('—') }}</p>
+<p>{{ run.tests|default('See agent report for reported checks.') }}</p>
+<pre class="text" hx-disable>{{ run.diff_stats|default('') }}{{ run.untracked_files|default('') }}</pre>
+<pre class="text" hx-disable>{{ run.report }}</pre></details>{% endfor %}
+</article>{% else %}<p>No jobs yet.</p>{% endfor %}
+{% endblock %}

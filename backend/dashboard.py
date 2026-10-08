@@ -380,7 +380,8 @@ def settings_page(request):
     def contents(path, default):
         return path.read_text(encoding="utf-8") if path.exists() else default
     return {"aliases": contents(notes.aliases_path, '{"inbox": null}'),
-            "repos": contents(REPOS_PATH, '{}'), "preferences": preferences()}
+            "repos": contents(REPOS_PATH, '{}'), "preferences": preferences(),
+            "job_agents": request.app.state.jobs.agent_settings()}
 
 
 @router.post("/settings/{section}")
@@ -393,6 +394,14 @@ def save_settings(request: Request, section: str):
                 if mode not in {"auto", "ptt", "over"} or not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", journal_time):
                     raise ValueError("Choose auto/PTT/Over and a valid 24-hour journal time")
                 atomic_json(SETTINGS_PATH, {**preferences(), "default_mode": mode, "journal_time": journal_time})
+            elif section == "job-agents":
+                value = {}
+                for agent in ("codex", "claude"):
+                    model = form.get(agent + "_model", "").strip()
+                    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,119}", model):
+                        raise ValueError("Invalid model name")
+                    value[agent] = {"enabled": form.get(agent + "_enabled") == "on", "model": model}
+                atomic_json(request.app.state.jobs.data_dir / "job-settings.json", value)
             elif section in {"aliases", "repos"}:
                 value = json.loads(form.get("json", ""))
                 if not isinstance(value, dict) or any(not key.strip() for key in value):
@@ -467,6 +476,14 @@ register_page("memory", "Memory", "memory.html", memory_page)
 register_page("notes", "Notes", "notes.html", notes_page)
 register_page("settings", "Settings", "settings.html", settings_page)
 register_page("status", "Status", "status.html", status_page)
+
+
+register_page("jobs", "Jobs", "jobs.html", lambda request: {})
+
+
+@router.get("/jobs")
+async def jobs_page(request: Request):
+    return render(request, "jobs.html", "Jobs", jobs=request.app.state.jobs.status()["jobs"])
 
 
 @router.get("/{slug}")

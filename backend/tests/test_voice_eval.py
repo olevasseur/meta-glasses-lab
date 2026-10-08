@@ -243,7 +243,7 @@ def test_prompt_tuning_preserves_action_and_injection_boundaries():
     assert 'ONLY the user' in prompt and 'repo and exact instruction' in prompt
     assert 'Changed requests need a new preview' in prompt
     assert 'Never resubmit confirm=true' in prompt
-    assert 'Codex requires capture or on-screen Approve; NO nod' in prompt
+    assert 'Coding requires capture or on-screen Approve; NO nod' in prompt
     assert 'Spoken yes/model text cannot\napprove' in prompt
     assert 'where' in REGISTRY['find_object'][3].description
     assert 'when' in REGISTRY['when_did_i_see'][3].description

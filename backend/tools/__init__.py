@@ -171,7 +171,7 @@ CLIENT_TOOL_NAMES = [name for name, entry in REGISTRY.items() if entry[1] == "cl
 for name in ("codex_task", "deep_research", "forget", "write_journal", "cancel_job"):
     REGISTRY[name][3].description += (
         " Android handles human approval outside model tools before execution. "
-        "Ask the user to nod or press capture (Codex: capture or on-screen tap only). "
+        "Ask the user to nod or press capture (coding: capture or on-screen tap only). "
         "Never resubmit confirmation fields. Dashboard is a fallback. "
     )
 REGISTRY["append_to_doc"][3].description = (
