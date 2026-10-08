@@ -5,6 +5,7 @@ import hmac
 import http.client
 import os
 import sqlite3
+import time
 from contextlib import asynccontextmanager, suppress
 from typing import Literal
 
@@ -20,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 import gemini
 import dashboard
+import diagnostic_logs
 import memory_api
 import translation
 import workouts
@@ -80,6 +82,7 @@ async def lifespan(app):
 
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+app.include_router(diagnostic_logs.router)
 app.include_router(memory_api.router)
 app.include_router(visual_api.router)
 app.include_router(workouts.router)
@@ -102,7 +105,20 @@ async def authenticate(request: Request, call_next):
         return JSONResponse(status_code=503, content={"detail": "APP_SHARED_SECRET is not configured"})
     if not hmac.compare_digest(supplied.encode("utf-8"), secret.encode("utf-8")):
         return JSONResponse(status_code=401, content={"detail": "Invalid app secret"})
+    started = time.monotonic()
     response = await call_next(request)
+    path = request.url.path
+    feature = None
+    if path == "/token":
+        feature = "gemini"
+    elif path.startswith("/tools/") and path.rsplit("/", 1)[-1] in REGISTRY:
+        owner = REGISTRY[path.rsplit("/", 1)[-1]][1]
+        feature = {"visual": "visual-memory", "workouts": "workout", "translation": "translator",
+                   "meeting_control": "meeting", "client": "tools"}.get(owner, owner)
+    elif path.startswith(("/transcripts", "/sessions/", "/meetings/", "/visual/", "/workouts")):
+        feature = "visual-memory" if path.startswith("/visual/") else "meeting" if path.startswith("/meetings/") else "workout" if path.startswith("/workouts") else "memory"
+    if feature:
+        await asyncio.to_thread(diagnostic_logs.record_request, feature, response.status_code, round((time.monotonic() - started) * 1000))
     response.headers["Cache-Control"] = "no-store"
     return response
 

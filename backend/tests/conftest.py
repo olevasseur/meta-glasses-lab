@@ -23,3 +23,9 @@ def disable_journal_schedule(monkeypatch):
 @pytest.fixture(autouse=True)
 def isolated_visual_archive(monkeypatch, tmp_path):
     monkeypatch.setattr(visual_api, "memory", VisualMemory(tmp_path / "visual"))
+
+
+@pytest.fixture(autouse=True)
+def isolated_diagnostic_logs(monkeypatch, tmp_path):
+    import diagnostic_logs
+    monkeypatch.setattr(diagnostic_logs, "store", diagnostic_logs.LogStore(tmp_path / "logs"))

@@ -42,6 +42,8 @@ class HeadGestures(context: Context, private val scope: CoroutineScope,
     private val confirmation = GestureConfirmation()
     private var lastSampleAt = 0L
 
+    private val diagnosticMotion = MutableStateFlow(false)
+    fun requestDiagnosticMotion(enabled: Boolean) { diagnosticMotion.value = enabled }
     private val motionRequested = MutableStateFlow(false)
     fun requestMotion(enabled: Boolean) { motionRequested.value = enabled }
 
@@ -55,9 +57,9 @@ class HeadGestures(context: Context, private val scope: CoroutineScope,
         navigate: (HeadGesture) -> Boolean = { false },
     ) {
         scope.launch {
-            combine(sessions, state.map { it.enabled }.distinctUntilChanged(), workoutDemand, motionRequested) { session, enabled, workout, requested ->
+            combine(sessions, state.map { it.enabled }.distinctUntilChanged(), workoutDemand, motionRequested, diagnosticMotion) { session, enabled, workout, requested, diagnostic ->
                 workoutMotion = workout
-                session.takeIf { enabled || workout || requested }
+                session.takeIf { enabled || workout || requested || diagnostic }
             }.distinctUntilChanged().collectLatest { session ->
                 onWorkoutUnavailable()
                 unavailable(if (!state.value.enabled) "Off" else "Start a conversation with connected glasses")

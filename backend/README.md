@@ -192,3 +192,12 @@ the locked versions. See [dated verification and unverified items](../docs/resea
 No M2 runtime functions are stubbed. Live token issuance, OAuth consent, real Docs
 writes, and phone/glasses integration still need credentials and device testing.
 Memory and transcript endpoints belong to M3 and are not implemented here.
+
+## Live hardware diagnostics
+
+Authenticated `POST /logs`, `GET /logs`, and `GET /diagnostics/health` support the
+phone diagnostics screen. Open **Live logs** in the dashboard or run
+`uv run python ../scripts/tail_logs.py --feature audio`. Logs rotate under ignored
+`backend/data/logs/`. See [Diagnostics](../docs/features/diagnostics.md) and the
+[consolidated hardware test plan](../docs/hardware-test-plan.md), including the
+current three-scope optional Google OAuth setup for merged meeting support.

@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -157,6 +158,11 @@ private fun ConversationScreen(
     requestGlassesPermission: () -> Unit,
     requestCameraPermission: () -> Unit,
 ) {
+    var showDiagnostics by rememberSaveable { mutableStateOf(false) }
+    if (showDiagnostics) {
+        DiagnosticsScreen(state, model) { showDiagnostics = false }
+        return
+    }
     Surface(Modifier.fillMaxSize()) {
         Column(Modifier.safeDrawingPadding()) {
             if (state.visualCapturing) Surface(color = MaterialTheme.colorScheme.errorContainer) {
@@ -164,6 +170,7 @@ private fun ConversationScreen(
             }
         Column(Modifier.padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("the glasses app", style = MaterialTheme.typography.headlineMedium)
+            OutlinedButton(onClick = { showDiagnostics = true }) { Text("Diagnostics") }
             Text("Glasses: ${state.glasses}")
             Text("Gemini: ${state.gemini}")
             Text("Audio: ${state.route}")

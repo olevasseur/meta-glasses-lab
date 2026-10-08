@@ -53,6 +53,12 @@ class BackendClient(
         return execute(Request.Builder().url(url).header("X-App-Secret", secret).get().build())
     }
 
+    suspend fun diagnosticHealth(): JSONObject = execute(Request.Builder()
+        .url(base.newBuilder().addPathSegments("diagnostics/health").build())
+        .header("X-App-Secret", secret).get().build())
+
+    suspend fun uploadLogs(entries: JSONArray): JSONObject = post(listOf("logs"), JSONObject().put("entries", entries))
+
     suspend fun workout(log: JSONObject): JSONObject = post(listOf("workouts"), log)
     suspend fun startMeeting(id: String, metadata: JSONObject): JSONObject = post(
         listOf("meetings", "start"), JSONObject(metadata.toString()).put("meeting_id", id),
