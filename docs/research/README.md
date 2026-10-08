@@ -48,3 +48,6 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 - [Diagnostics](diagnostics.md) — **2026-10-08**: actual DAT metadata/audio routing,
   bounded remote logs, dashboard polling, credential-safe Live setup smoke, and
   current Google OAuth Console paths for the consolidated hardware session.
+
+- [emulator-smoke.md](emulator-smoke.md) — **2026-10-08**: API 36 headless emulator,
+  DAT camera/Inputs/Motion/Speech simulation, WAV capture and real-Gemini test boundaries.

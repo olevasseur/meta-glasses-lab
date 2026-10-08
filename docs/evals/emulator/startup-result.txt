@@ -1,0 +1,26 @@
+2026-10-08 — emulator startup evidence (sanitized)
+
+API image: system-images;android-36;google_apis;arm64-v8a, revision 7
+Emulator: 37.2.12.0, build 16428233
+AVD: mgl-smoke-api36-5580
+
+Headless attempt:
+INFO | Android emulator version 37.2.12.0 (build_id 16428233)
+INFO | Graphics backend: gfxstream
+INFO | Found systemPath /tmp/emulator-sdk/system-images/android-36/google_apis/arm64-v8a/
+Exit: SIGILL (Illegal instruction)
+macOS crash frame: init_cache_info + 52
+Instruction: 0xd53b0029
+
+Hidden-window probe:
+Incompatible processor. This Qt build requires the following features:
+    neon
+Exit: SIGABRT
+
+Host queries:
+sysctl -n hw.cachelinesize: Operation not permitted
+sysctl -n hw.optional.neon: Operation not permitted
+sysctl -n kern.hv_support: Operation not permitted
+
+Android did not boot. APK was not installed. Instrumentation and screenshot
+capture did not run. No app runtime pass or crash-free result is claimed.

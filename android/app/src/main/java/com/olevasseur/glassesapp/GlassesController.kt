@@ -48,6 +48,7 @@ class GlassesController(
     val activeSession = mutableSession.asStateFlow()
     private var deviceSession: DeviceSession? = null
     private var mock: MockGlasses? = null
+    internal val mockDevice get() = if (BuildConfig.DEBUG) mock else null
     private val kit by lazy { MockDeviceKit.getInstance(context) }
 
     fun initialize(): Boolean {

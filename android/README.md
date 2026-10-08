@@ -107,3 +107,11 @@ ignored debug properties, start/reuse the backend, reverse port 8787, build/inst
 launch, and tail structured logs. Open **Diagnostics** on the phone and follow
 [the consolidated hardware test plan](../docs/hardware-test-plan.md).
 See [Diagnostics](../docs/features/diagnostics.md) for probes, measurements and limits.
+
+## Automated API 36 smoke (real Gemini)
+
+Run `scripts/emulator_smoke.sh` from the repository root. It builds and installs
+the real debug APK and instrumentation APK, uses DAT mock camera/Inputs/Motion,
+injects WAV speech, verifies live replies/vision/Over/Stop, and shuts down its
+headless emulator. See [results and rerun configuration](../docs/evals/emulator-smoke.md)
+and [debug fixture controls](../docs/features/emulator-smoke.md).

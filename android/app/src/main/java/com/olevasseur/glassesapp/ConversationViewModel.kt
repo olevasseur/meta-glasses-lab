@@ -384,7 +384,10 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
     fun setMock(enabled: Boolean) {
         if (state.value.handsFree.armed || state.value.running || state.value.stopping) return
-        if (glasses.setMock(enabled)) mutableState.update { it.copy(mock = enabled) }
+        if (glasses.setMock(enabled)) {
+            SmokeHooks.mockChanged(enabled)
+            mutableState.update { it.copy(mock = enabled) }
+        }
     }
 
     internal fun startSession() {
