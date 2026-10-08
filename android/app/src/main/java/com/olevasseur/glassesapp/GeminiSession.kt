@@ -244,6 +244,13 @@ class GeminiSession(
         return sent
     }
 
+    fun canNavigateCoach(): Boolean = synchronized(sendLock) {
+        active && ready && !audioSuspended && translationLanguage == null &&
+            !replyPending && audio.playbackIdle && !audio.translationSpeaker.playing &&
+            (!talking || settings.mode == ConversationMode.OVER) &&
+            socket?.let { it.queueSize() <= 256_000 } == true
+    }
+
     fun sendJobEvent(event: JobEvent): Boolean = sendIdleText(LiveProtocol.jobEvent(event))
 
     fun sendWorkoutCue(text: String): Boolean = sendIdleText(gestureTextTurn(text))

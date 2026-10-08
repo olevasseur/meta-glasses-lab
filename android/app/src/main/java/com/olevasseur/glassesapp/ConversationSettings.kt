@@ -28,6 +28,7 @@ data class ConversationSettings(
     val translationLanguage: String? = null,
     val translationPhoneSpeaker: Boolean = false,
     val workoutSensitivity: Float = 0.5f,
+    val coachNodNavigation: Boolean = true,
 ) {
     fun normalized() = copy(
         workoutSensitivity = if (workoutSensitivity.isFinite()) workoutSensitivity.coerceIn(0f, 1f) else 0.5f,
@@ -52,6 +53,7 @@ val Context.conversationSettingsStore by preferencesDataStore(
 
 class ConversationSettingsStore(private val store: DataStore<Preferences>) {
     private val workoutKey = floatPreferencesKey("workout_sensitivity")
+    private val coachNavigationKey = booleanPreferencesKey("coach_nod_navigation")
     private val legacyWorkoutKey = floatPreferencesKey("sensitivity")
     private val idleKey = intPreferencesKey("idle_minutes")
     private val modeKey = stringPreferencesKey("mode")
@@ -84,6 +86,7 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
             translationLanguage = prefs[translationLanguageKey],
             translationPhoneSpeaker = prefs[translationSpeakerKey] ?: false,
             workoutSensitivity = prefs[workoutKey] ?: 0.5f,
+            coachNodNavigation = prefs[coachNavigationKey] ?: true,
         ).normalized()
     }
 
@@ -98,6 +101,7 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
         val value = settings.normalized()
         store.edit {
             it[workoutKey] = value.workoutSensitivity
+            it[coachNavigationKey] = value.coachNodNavigation
             it.remove(legacyWorkoutKey)
             it[idleKey] = value.idleMinutes
             it[modeKey] = value.mode.wireName

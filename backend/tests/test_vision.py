@@ -21,7 +21,8 @@ def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
     result = gemini.create_token("fake-key", gemini.DEFAULT_MODEL, mode)
     assert result["client_tools"] == ["await_gesture_confirmation", "look", "set_watch_mode",
                                                "start_workout", "stop_workout", "workout_status",
-                                               "read_text", "submit_reading", "reading_control"]
+                                               "read_text", "submit_reading", "reading_control",
+                                               "check_progress", "set_timer", "list_timers", "cancel_timer", "set_nod_navigation"]
     body, = captured
     assert "tools" in body["fieldMask"]
     assert "sessionResumption" not in body["fieldMask"]
@@ -36,8 +37,10 @@ def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
         "start_workout", "stop_workout", "workout_status", "workout_history",
         "read_text", "submit_reading", "reading_control",
         "write_journal", "read_journal", "morning_brief",
+        "start_project", "next_step", "previous_step", "repeat_step", "current_step", "how_much", "scale_project",
+        "check_progress", "set_timer", "list_timers", "cancel_timer", "set_nod_navigation",
     }
-    assert len(setup["tools"][0]["functionDeclarations"]) == 23
+    assert len(setup["tools"][0]["functionDeclarations"]) == 35
     for name, field, kind in [("look", "question", "STRING"), ("set_watch_mode", "on", "BOOLEAN")]:
         tool = declarations[name]
         assert "Client-executed" in tool["description"]

@@ -2,6 +2,7 @@
 
 import asyncio
 import hmac
+import http.client
 import os
 import sqlite3
 from contextlib import asynccontextmanager
@@ -25,6 +26,7 @@ import workouts
 from journal import Journal, JournalDateError, schedule_loop
 from memory import MemoryConflict
 from jobs import Jobs
+from coach import Projects
 from notes import BACKEND_DIR, Notes
 from tools import REGISTRY
 
@@ -46,6 +48,7 @@ def record_note(document, text):
 
 
 notes = Notes(on_append=record_note)
+projects = Projects()
 
 
 @asynccontextmanager
@@ -147,6 +150,15 @@ async def dispatch_tool(name: str, args: dict | None = None):
     if owner == "translation":
         # Validated commands only: persona state belongs to each phone session.
         return getattr(translation, method)(**request.model_dump())
+    if owner == "coach":
+        try:
+            return await asyncio.to_thread(projects.run, name, request.model_dump())
+        except ValidationError as exc:
+            raise HTTPException(422, "Invalid coach arguments or extracted project") from exc
+        except ValueError as exc:
+            raise HTTPException(422, "Invalid project source or URL; use a public HTTPS text page or dictate instructions") from exc
+        except (APIError, httpx.HTTPError, RuntimeError, OSError, sqlite3.Error, http.client.HTTPException) as exc:
+            raise HTTPException(502, "Coach operation failed; check current_step before retrying") from exc
     if owner == "jobs":
         # Jobs owns an event-loop-bound SQLite connection and schedules async work.
         try:

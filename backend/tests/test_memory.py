@@ -181,6 +181,8 @@ def test_context_budget_and_latest_three_summaries(store):
     context = store.context(gemini.PROMPT_PATH.read_text())
     assert len(context.encode()) <= 8000
     assert "submit_reading" in context
+    assert "start_project" in context
+    assert "Pending yes/no questions" in context
     assert "at most twice" in context
     assert "What you know about the user" in context
     assert "Session marker 4" in context
@@ -209,6 +211,8 @@ def test_token_locks_memory_and_registry_but_not_resumption(client, store, monke
         "start_translation", "stop_translation",
         "read_text", "submit_reading", "reading_control",
         "write_journal", "read_journal", "morning_brief",
+        "start_project", "next_step", "previous_step", "repeat_step", "current_step", "how_much", "scale_project",
+        "check_progress", "set_timer", "list_timers", "cancel_timer", "set_nod_navigation",
         "start_workout", "stop_workout", "workout_status", "workout_history",
     }
     assert config.lock_additional_fields == [] and live.session_resumption is None

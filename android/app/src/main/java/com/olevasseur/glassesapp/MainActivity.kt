@@ -104,6 +104,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         requestPermissions()
+        CoachAlarm(this).restore()
     }
 
     private fun requestPermissions() {
@@ -216,6 +217,8 @@ private fun ConversationScreen(
                     OutlinedButton(onClick = model.glasses::mockDoubleTap, enabled = state.connected && state.handsFree.shouldRun) { Text("Simulate double-tap") }
                 }
             }
+            TextButton(onClick = { CoachAlarm.openAlarms(model.getApplication()) }) { Text("Allow precise timers") }
+            Text("Ask: Start a cooking project, next step, double the recipe, or set a pasta timer for 8 minutes.", style = MaterialTheme.typography.bodySmall)
             Text("Live transcript", style = MaterialTheme.typography.titleMedium)
             if (state.transcript.isEmpty()) Text("Your conversation will appear here.")
             state.transcript.forEach { line -> Text("${line.speaker}: ${line.text}") }

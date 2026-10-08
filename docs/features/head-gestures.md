@@ -1,22 +1,25 @@
 # Head gestures
 
 Implemented and verified **2026-10-07**. Nod for yes and shake for no during a
-Gemini yes/no confirmation. Raw IMU readings stay on the phone; Gemini receives
-only `[gesture: nod = yes]` or `[gesture: shake = no]` as a complete text turn.
+Gemini yes/no confirmation. Outside a pending confirmation, an active
+[cooking/DIY project](cooking-diy-coach.md) uses nod=next step and shake=repeat
+when project navigation is enabled. Raw IMU readings stay on the phone. Confirmations send
+`[gesture: nod = yes]` or `[gesture: shake = no]` as a complete text turn; project
+navigation sends the already-executed backend result for Gemini to read aloud.
 
 ## Use
 
 1. Enable the experimental Motion capability for the app in Meta Wearables
    Developer Center. Register/connect the glasses as usual; there is no extra
    DAT runtime permission dialog for motion.
-2. Turn on **Head gestures · confirmations**, then **Start** a conversation.
+2. Turn on **Head gestures · confirmations / projects**, then **Start** a conversation.
    Works in Auto, Push-to-talk and Over; motion shares the capture-button DAT
    session with Over speech recognition.
-3. Wait for **● Live · nod yes / shake no**. Hold still for at least a quarter
+3. Wait for **● Live · confirmations / project steps**. Hold still for at least a quarter
    second, then nod down and back, or shake left–right–center. Either direction
    works. Pause briefly at the end. **Last gesture** shows detection and whether
    it was sent. Movements outside a pending question are detected for calibration
-   but are not sent.
+   but are not sent unless an active cooking/DIY project accepts navigation.
 4. Try by voice: “Ask me whether I want the color blue, and let me answer with a
    head gesture.” After Gemini asks the question, nod or shake. For notes, ask
    “Add this note to Work Log.” If the document needs disambiguation, Gemini may
@@ -28,7 +31,8 @@ only `[gesture: nod = yes]` or `[gesture: shake = no]` as a complete text turn.
    the conversation but retains armed controls; app/notification Stop disarms
    and releases the shared session. Call/focus pauses clear pending confirmations. Enablement and sensitivity persist locally.
 
-There is no voice command to change the setting. The model uses the local
+“Enable nod navigation” also enables this setting for cooking/DIY projects;
+“Disable nod navigation” disables only project navigation. The model uses the local
 `await_gesture_confirmation(question)` tool before speaking a yes/no question.
 Its response says ready/unavailable; it never writes or deletes anything. The
 backend's `forget` tool also accepts a valid nod to its specific pending

@@ -329,6 +329,8 @@ async def test_confirmation_bound_to_original_path_and_root(service, processes):
     ("write_journal", {}, "journal", "write_journal"),
     ("read_journal", {"date": "yesterday"}, "journal", "read_journal"),
     ("morning_brief", {}, "journal", "morning_brief"),
+    ("start_project", {"kind": "cooking", "source": "Test recipe"}, "coach", "run"),
+    ("current_step", {}, "coach", "run"),
 ])
 def test_blocking_tools_do_not_block_job_events(monkeypatch, service, name, args, owner, method):
     from concurrent.futures import ThreadPoolExecutor
@@ -336,7 +338,7 @@ def test_blocking_tools_do_not_block_job_events(monkeypatch, service, name, args
 
     entered, release, finished = Event(), Event(), Event()
 
-    def blocking_tool(**kwargs):
+    def blocking_tool(*positional, **kwargs):
         entered.set()
         try:
             assert release.wait(5), "Tool dispatch blocked the job event loop"
@@ -347,6 +349,8 @@ def test_blocking_tools_do_not_block_job_events(monkeypatch, service, name, args
     monkeypatch.setenv("APP_SHARED_SECRET", "test")
     monkeypatch.setattr(app, "Jobs", lambda _: service)
     target = app.notes if owner == "notes" else app.workouts if owner == "workouts" else app.memory_api.memory
+    if owner == "coach":
+        target = app.projects
     if owner == "journal":
         target = Mock()
         monkeypatch.setattr(app, "journal_service", lambda: target)

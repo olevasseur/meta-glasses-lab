@@ -19,7 +19,7 @@ fun GestureControls(state: HeadGesturesState, onEnabled: (Boolean) -> Unit, onSe
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Switch(state.enabled, onEnabled, modifier = Modifier.semantics { contentDescription = "Head gestures" })
-            Text("Head gestures · confirmations")
+            Text("Head gestures · confirmations / projects")
         }
         Text("${if (state.live) "●" else "○"} ${state.status}",
             color = if (state.live) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)

@@ -20,6 +20,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 | [google-docs-notes.md](google-docs-notes.md) | Voice → Google Docs | Backend function tool, Desktop OAuth client published to production, Inbox doc + alias map + rapidfuzz. Keep API is Workspace-only. |
 | [head-gestures.md](head-gestures.md) | Head gestures (2026-10-07) | Real DAT Motion 1.0.0, pure Kotlin detector, explicit Gemini confirmation tool; auto/PTT real API smoke passed. Hardware thresholds/axes still need validation. |
 | [workout-coach.md](workout-coach.md) | Workout coach (2026-10-07) | Reuses one DAT motion stream; synthetic rep profiles, monotonic intervals, SQLite workout history. Human accuracy and physical cue latency unverified. |
+| [cooking-diy-coach.md](cooking-diy-coach.md) | Cooking/DIY projects and app timers (2026-10-07) | Real Gemini extraction schema, Android exact alarms/TTS; merged DAT Motion nod-next/shake-repeat with confirmation precedence. |
 
 ## Reconciled conflicts
 - **Token locking vs resumption (2026-10-06):** the backend initially locked the whole setup, which would make Gemini ignore the app's resumption handle. Fixed: `lock_additional_fields=[]` and `sessionResumption` left client-owned. See docs/architecture.md.

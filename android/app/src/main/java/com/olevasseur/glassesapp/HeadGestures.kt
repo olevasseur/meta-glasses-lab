@@ -48,6 +48,7 @@ class HeadGestures(context: Context, private val scope: CoroutineScope) {
         workoutDemand: Flow<Boolean> = flowOf(false),
         onWorkoutSample: (HeadMotionSample) -> Unit = {},
         onWorkoutUnavailable: () -> Unit = {},
+        navigate: (HeadGesture) -> Boolean = { false },
     ) {
         scope.launch {
             combine(sessions, state.map { it.enabled }.distinctUntilChanged(), workoutDemand) { session, enabled, workout ->
@@ -64,14 +65,14 @@ class HeadGestures(context: Context, private val scope: CoroutineScope) {
                         if (workoutMotion || !state.value.enabled) {
                             confirmation.clear(); detector.reset()
                             mutableState.update { it.copy(live = true, question = null,
-                                status = if (workoutMotion) "Workout motion · confirmations paused" else "Off") }
+                                status = if (workoutMotion) "Workout motion · gestures paused" else "Off") }
                             return@collectGlassesMotion
                         }
-                        mutableState.update { it.copy(live = true, status = "Live · nod yes / shake no") }
+                        mutableState.update { it.copy(live = true, status = "Live · confirmations / project steps") }
                         val gesture = detector.add(sample)
                         if (gesture != null) {
-                            val sent = confirmation.answer(gesture, lastSampleAt, send)
-                            mutableState.update { it.copy(lastGesture = "${gesture.name.lowercase()} · ${if (sent) "sent" else "no pending answer"}", question = confirmation.question) }
+                            val sent = confirmation.route(gesture, lastSampleAt, send, navigate)
+                            mutableState.update { it.copy(lastGesture = "${gesture.name.lowercase()} · ${if (sent) "handled" else "no action"}", question = confirmation.question) }
                         }
                     }, onStatus = { label -> onWorkoutUnavailable(); unavailable(label) })
                 } catch (e: CancellationException) { throw e }

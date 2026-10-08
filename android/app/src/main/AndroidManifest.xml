@@ -11,8 +11,12 @@
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <queries>
+        <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
         <intent><action android:name="android.speech.RecognitionService" /></intent>
     </queries>
     <application android:allowBackup="false" android:dataExtractionRules="@xml/data_extraction_rules" android:icon="@drawable/ic_glasses" android:label="the glasses app"
@@ -20,6 +24,14 @@
         <meta-data android:name="com.meta.wearable.mwdat.APPLICATION_ID" android:value="0" />
         <meta-data android:name="com.meta.wearable.mwdat.CLIENT_TOKEN" android:value="0" />
         <meta-data android:name="com.meta.wearable.mwdat.ANALYTICS_OPT_OUT" android:value="true" />
+        <service android:name=".CoachAlarmService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
+        <receiver android:name=".CoachAlarmReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
         <service android:name=".ConversationService" android:exported="false"
             android:foregroundServiceType="microphone|connectedDevice" android:stopWithTask="false" />
         <service android:name=".ConversationTileService" android:exported="true"

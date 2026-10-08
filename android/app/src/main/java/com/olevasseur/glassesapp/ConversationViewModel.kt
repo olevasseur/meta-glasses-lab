@@ -100,7 +100,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val gemini: GeminiSession = GeminiSession(
         scope = viewModelScope, backend = backend, audio = audio,
         onState = { label, connected ->
-            if (!connected) { screenTalking = false; glassesTalking = false; overAwaitingReply = false; gestures.disconnected(); reading.pause() }
+            if (!connected) { screenTalking = false; glassesTalking = false; overAwaitingReply = false; gestures.disconnected(); reading.pause(); coachNavigation.cancel() }
             mutableState.update { it.copy(gemini = label, connected = connected) }
             if (state.value.settings.mode == ConversationMode.OVER) {
                 if (connected) beginOverTurn() else { overResumeJob?.cancel(); over.stop() }
@@ -131,11 +131,24 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         },
         localTool = { call ->
             if (!state.value.handsFree.shouldRun || !audioReady) ToolResult(toolError("Conversation is paused"))
+            else if (call.name in COACH_TOOL_NAMES) coachTool(call, backend::tool, vision::tool, coachAlarms::tool, ::setNodNavigation)
             else if (call.name in ReadToMeController.TOOL_NAMES) reading.tool(call)
             else (workout.localTool(call) ?: gestures.localTool(call))?.let { ToolResult(it) } ?: vision.tool(call)
         },
-        onEvent = { event -> if (state.value.handsFree.shouldRun && audioReady) gestures.onEvent(event) },
+        onEvent = { event ->
+            if (event.interrupted || !event.inputText.isNullOrBlank() || !event.outputText.isNullOrBlank() || event.calls.isNotEmpty()) coachNavigation.cancel()
+            if (state.value.handsFree.shouldRun && audioReady) gestures.onEvent(event)
+        },
     )
+    private val coachAlarms by lazy { CoachAlarm(application) }
+    private val coachNavigation by lazy {
+        CoachNavigation(viewModelScope,
+            allowed = { state.value.handsFree.shouldRun && audioReady && state.value.settings.coachNodNavigation &&
+                gestures.state.value.enabled && gestures.state.value.live && gestures.state.value.question == null &&
+                !workout.state.value.needsMotion && gemini.canNavigateCoach() },
+            backend = backend::tool, announce = ::sendGesture,
+            onResult = { result -> mutableState.update { it.copy(lastTool = result) } })
+    }
     private val camera: GlassesCamera by lazy {
         GlassesCamera(viewModelScope, glasses) { label -> mutableState.update { it.copy(camera = label) } }
     }
@@ -180,6 +193,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private var stopJob: Job? = null
 
     fun setGestures(enabled: Boolean) {
+        coachNavigation.cancel()
         gestures.setEnabled(enabled)
         if (state.value.running && !state.value.stopping) {
             // Disabling Motion must not stop a camera sharing this session.
@@ -188,12 +202,23 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
+    private fun setNodNavigation(enabled: Boolean): org.json.JSONObject {
+        coachNavigation.cancel()
+        saveSettings(state.value.settings.copy(coachNodNavigation = enabled))
+        if (enabled && !gestures.state.value.enabled) setGestures(true)
+        return org.json.JSONObject().put("status", "ok").put("on", enabled)
+            .put("motion_available", gestures.state.value.live && !workout.state.value.needsMotion)
+            .put("message", if (enabled) "Nod advances an active project; shake repeats. Confirmations take precedence. Wait for live Motion; otherwise use voice."
+                else "Project gesture navigation disabled; gesture confirmations keep their setting.")
+    }
+
     init {
         workout.bind { text ->
             gestures.state.value.question == null && gemini.sendWorkoutCue(text)
         }
         gestures.observe(glasses.activeSession, ::sendGesture,
-            workout.state.map { it.needsMotion }.distinctUntilChanged(), workout::onSample, workout::motionUnavailable)
+            workout.state.map { it.needsMotion }.distinctUntilChanged(), workout::onSample, workout::motionUnavailable,
+            navigate = coachNavigation::gesture)
         viewModelScope.launch {
             workout.state.map { it.needsMotion }.distinctUntilChanged().collect { needed ->
                 if (needed && state.value.running && !state.value.stopping) glasses.startInputs()
@@ -238,6 +263,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         muted = value.muted
         mutableState.update { it.copy(handsFree = value) }
         if (!value.shouldRun) {
+            coachNavigation.cancel()
             audioReady = false
             overResumeJob?.cancel(); over.stop()
             workout.stop(interrupted = true)
@@ -386,6 +412,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         vision.stop()
         reading.clear()
         workout.stop(interrupted = true)
+        coachNavigation.cancel()
         gemini.stop()
         memory.stop()
         gestures.disconnected()
@@ -413,6 +440,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     override fun onCleared() {
+        coachNavigation.cancel()
         overResumeJob?.cancel(); over.stop()
         vision.stop()
         reading.clear()

@@ -38,6 +38,13 @@ class GestureConfirmation {
 
     fun expire(nowMs: Long) { if (question != null && nowMs >= deadline) clear() }
 
+    fun route(gesture: HeadGesture, nowMs: Long, send: (String) -> Boolean,
+              navigate: (HeadGesture) -> Boolean): Boolean {
+        // A pending question owns this movement even before turnComplete, on expiry,
+        // or when sending fails. Never fall through from a failed yes/no answer.
+        return if (question != null) answer(gesture, nowMs, send) else navigate(gesture)
+    }
+
     fun answer(gesture: HeadGesture, nowMs: Long, send: (String) -> Boolean): Boolean {
         expire(nowMs)
         if (!waiting || question == null) return false

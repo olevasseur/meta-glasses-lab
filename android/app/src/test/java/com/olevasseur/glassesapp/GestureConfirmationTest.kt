@@ -7,6 +7,24 @@ import org.junit.Test
 class GestureConfirmationTest {
     private fun request(id: String = "confirm") = FunctionCall(id, GestureConfirmation.TOOL, JSONObject().put("question", "Use Work Log?"))
 
+    @Test fun confirmationAlwaysPrecedesCoachEvenBeforeReadyOnExpiryOrFailedSend() {
+        for (gesture in HeadGesture.entries) {
+            val gate = GestureConfirmation()
+            gate.request(request(), true, 0)
+            val neverNavigate: (HeadGesture) -> Boolean = { error("Confirmation must own the gesture") }
+            assertFalse(gate.route(gesture, 100, { error("Not ready") }, neverNavigate))
+            gate.onEvent(ServerEvent(turnComplete = true))
+            assertFalse(gate.route(gesture, 200, { false }, neverNavigate))
+            gate.request(request(), true, 0)
+            gate.onEvent(ServerEvent(turnComplete = true))
+            assertFalse(gate.route(gesture, 30_000, { error("Expired") }, neverNavigate))
+            gate.request(request(), true, 31_000)
+            gate.onEvent(ServerEvent(turnComplete = true))
+            assertTrue(gate.route(gesture, 31_100, { it == gesture.text }, neverNavigate))
+            assertTrue(gate.route(gesture, 31_200, { error("No pending question") }, { it == gesture }))
+        }
+    }
+
     @Test fun oneExplicitQuestionOneAnswerAfterModelTurn() {
         val gate = GestureConfirmation()
         val sent = mutableListOf<String>()
