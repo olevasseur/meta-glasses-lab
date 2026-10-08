@@ -21,11 +21,12 @@ A personal voice assistant for Meta smart glasses that **doesn't cut you off**, 
 | Workout coach | "Start squats, 3 sets of 12" — reps counted from head motion | [workout-coach.md](docs/features/workout-coach.md) |
 | Visual memory (opt-in) | "Where did I leave my keys?" — objects/places only, never faces | [visual-memory.md](docs/features/visual-memory.md) |
 | Dashboard | http://localhost:8787/dashboard | [dashboard.md](docs/features/dashboard.md) |
+| Approvals | Nod / capture button / tap — Gemini can never approve | [device-approvals.md](docs/features/device-approvals.md) |
+| Resilience | Retries, backup model, offline notes when Gemini is down | [resilience.md](docs/features/resilience.md) |
+| App UI | Talk · Features · Memory & Notes · Settings | [app-ui.md](docs/features/app-ui.md) |
 
 ## Status (2026-10-08)
-- Backend 368 tests, Android 181 tests passing. Real Gemini / Codex checks passed per feature (see each doc).
-- **Not yet verified on physical Pixel + glasses.** Google OAuth not configured yet.
-
-## Docs
-- [Architecture & contract](docs/architecture.md) · [Decisions](docs/decisions.md) · [Research index](docs/research/README.md) · [Agent workflow](docs/workflow.md) · [AGENTS.md](AGENTS.md)
-- Setup: [backend/README.md](backend/README.md), [android/README.md](android/README.md)
+- Backend 488 tests, Android 226 tests passing. Real Gemini / Codex checks passed per feature (see each doc).
+- **Emulator smoke PASS** on main: real APK on Android 16 emulator + DAT mock glasses + real Gemini (`scripts/emulator_smoke.sh`, screenshots in `docs/evals/emulator/`).
+- Voice eval: 68/68 tool selection, 0/10 false triggers (`docs/evals/`). Security review + tiered hardware approvals (`docs/security-review.md`).
+- **Not yet verified on physical Pixel + glasses.** Start with `scripts/dev_up.sh` and follow `docs/hardware-test-plan.md`. Google OAuth not configured yet.
