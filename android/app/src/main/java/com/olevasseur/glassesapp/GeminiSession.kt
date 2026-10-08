@@ -47,6 +47,7 @@ class GeminiSession(
     private var active = false
     private var audioSuspended = false
     private val meetingGate = MeetingGate()
+    private var meetingInteraction = false
     private val meetingAudio = MeetingAudioBuffer()
     private var wakeFallback: Job? = null
     private var replayingWake = false
@@ -80,10 +81,11 @@ class GeminiSession(
         start(ConversationSettings(mode = if (pushToTalk) ConversationMode.PTT else ConversationMode.AUTO))
     }
 
-    fun start(options: ConversationSettings, meeting: Boolean = false) {
+    fun start(options: ConversationSettings, meeting: Boolean = false, meetingInteraction: Boolean = false) {
         stop()
         synchronized(sendLock) {
             settings = options.normalized().let { if (meeting) it.copy(translationLanguage = null) else it }
+            this.meetingInteraction = meetingInteraction
             meetingGate.configure(meeting, settings.meetingOver)
             active = true; ptt = settings.mode != ConversationMode.AUTO && !meeting
         }
@@ -297,7 +299,7 @@ class GeminiSession(
         val job = scope.launch(start = CoroutineStart.LAZY) {
             val toolStartedMs = elapsedMs()
             val result = try {
-                if (meetingGate.active && call.name in setOf("start_translation", "stop_translation")) {
+                if ((meetingGate.active || meetingInteraction) && call.name in setOf("start_translation", "stop_translation")) {
                     ToolResult(toolError("Stop the meeting before starting translation"))
                 } else if (translationLanguage != null && call.name !in setOf("start_translation", "stop_translation")) {
                     ToolResult(toolError("Leave translation mode to use assistant tools"))
@@ -491,6 +493,7 @@ class GeminiSession(
             active = false; ready = false; talking = false; replyPending = false
             meetingAudio.clear()
             meetingGate.configure(false)
+            meetingInteraction = false
             socket?.close(1000, "User stopped"); socket = null
         }
         wakeFallback?.cancel(); replayingWake = false

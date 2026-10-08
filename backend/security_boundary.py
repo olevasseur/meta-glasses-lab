@@ -52,7 +52,7 @@ class SecurityBoundary:
                 return await reject(status, 'Authentication failed')
         if path == '/dashboard/login' and not self.allow('login', 30):
             return await reject(429, 'Too many login attempts; wait a minute')
-        expensive = path in {'/token', '/visual/frames', '/tools/start_project', '/dashboard/status/token', '/health/gemini', '/dashboard/status/gemini'} or path.endswith('/end')
+        expensive = path in {'/token', '/visual/frames', '/tools/start_project', '/dashboard/status/token', '/health/gemini', '/dashboard/status/gemini'} or path.endswith(('/end', '/process'))
         lane, limit = ('expensive', 30) if expensive else ('browser', 240) if browser else ('api', 240)
         if not self.allow(lane, limit):
             return await reject(429, 'Request rate exceeded; wait a minute')
@@ -62,7 +62,8 @@ class SecurityBoundary:
         self.active += 1
         self.events += int(event)
         try:
-            bound = 64_000 if browser else 4_000_000 if path in {'/transcripts', '/visual/frames'} else 500_000
+            audio_chunk = path.startswith('/meetings/') and '/chunks/' in path
+            bound = 2_000_000 if audio_chunk else 64_000 if browser else 4_000_000 if path in {'/transcripts', '/visual/frames'} else 500_000
             body = bytearray()
             try:
                 async with asyncio.timeout(15):

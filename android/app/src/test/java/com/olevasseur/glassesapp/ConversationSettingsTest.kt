@@ -36,6 +36,7 @@ class ConversationSettingsTest {
             }
             assertEquals(ConversationSettings(silenceMs = 500, overSilenceSeconds = 30), settings.settings.first())
             assertEquals(5000, ConversationSettings(silenceMs = 9999).normalized().silenceMs)
+            assertEquals("okay ", ConversationSettings(meetingWakePhrase = "okay ").normalized().meetingWakePhrase)
             assertEquals(10, ConversationSettings().overSilenceSeconds)
             assertEquals(5, ConversationSettings(overSilenceSeconds = -1).normalized().overSilenceSeconds)
         } finally { scope.coroutineContext[Job]!!.cancelAndJoin() }
@@ -43,7 +44,7 @@ class ConversationSettingsTest {
 
     @Test fun modeKeywordPatienceAndSilencePersistAcrossStoreRecreation() = runBlocking {
         val file = File(temporary.root, "saved.preferences_pb")
-        val expected = ConversationSettings(ConversationMode.OVER, 3250, "go ahead", 25)
+        val expected = ConversationSettings(ConversationMode.OVER, 3250, "go ahead", 25, meetingWakePhrase = "okay helper")
         val firstScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val first = ConversationSettingsStore(PreferenceDataStoreFactory.create(scope = firstScope) { file })
         first.save(expected)

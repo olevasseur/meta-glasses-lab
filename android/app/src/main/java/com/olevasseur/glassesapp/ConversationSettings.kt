@@ -30,10 +30,12 @@ data class ConversationSettings(
     val workoutSensitivity: Float = 0.5f,
     val coachNodNavigation: Boolean = true,
     val meetingPhone: Boolean = true,
+    val meetingWakePhrase: String = "hey glasses",
     val meetingOver: Boolean = false,
     val thinkingCue: Boolean = false,
 ) {
     fun normalized() = copy(
+        meetingWakePhrase = meetingWakePhrase.take(80).ifBlank { "hey glasses" },
         workoutSensitivity = if (workoutSensitivity.isFinite()) workoutSensitivity.coerceIn(0f, 1f) else 0.5f,
         silenceMs = silenceMs.coerceIn(500, 5000),
         idleMinutes = HandsFreeState.idleMinutes(idleMinutes),
@@ -57,6 +59,7 @@ val Context.conversationSettingsStore by preferencesDataStore(
 class ConversationSettingsStore(private val store: DataStore<Preferences>) {
     private val thinkingCueKey = booleanPreferencesKey("thinking_cue")
     private val meetingPhoneKey = booleanPreferencesKey("meeting_phone")
+    private val meetingWakeKey = stringPreferencesKey("meeting_wake_phrase")
     private val meetingOverKey = booleanPreferencesKey("meeting_over")
     private val workoutKey = floatPreferencesKey("workout_sensitivity")
     private val coachNavigationKey = booleanPreferencesKey("coach_nod_navigation")
@@ -94,6 +97,7 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
             workoutSensitivity = prefs[workoutKey] ?: 0.5f,
             coachNodNavigation = prefs[coachNavigationKey] ?: true,
             meetingPhone = prefs[meetingPhoneKey] ?: true,
+            meetingWakePhrase = prefs[meetingWakeKey] ?: "hey glasses",
             meetingOver = prefs[meetingOverKey] ?: false,
             thinkingCue = prefs[thinkingCueKey] ?: false,
         ).normalized()
@@ -110,6 +114,7 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
         val value = settings.normalized()
         store.edit {
             it[meetingPhoneKey] = value.meetingPhone
+            it[meetingWakeKey] = value.meetingWakePhrase
             it[meetingOverKey] = value.meetingOver
             it[thinkingCueKey] = value.thinkingCue
             it[workoutKey] = value.workoutSensitivity

@@ -75,3 +75,14 @@ Shake/60-second timeout calls `/approvals/{id}/deny`; backend requests expire in
 five minutes. The tool registry never exposes these endpoints. Gemini receives
 pending and completed results but cannot consume approvals. Dashboard remains a
 fallback. See [device approvals](features/device-approvals.md).
+
+### Chunked meeting capture (2026-10-08)
+
+New meetings set `chunked:true` at `/meetings/start`. The phone stores PCM16
+16 kHz mono WAV in rolling ~60-second chunks with two seconds overlap, uploads
+raw WAV to `/meetings/{id}/chunks/{index}?start_ms=N`, and retries by index/hash.
+The backend durably queues non-Live audio transcription; `/process` advances a
+chunk, and `/end?chunk_count=N` waits for the complete manifest and transcripts
+before the existing minutes/export steps. Local wake phrase “hey glasses” or
+Ask/capture HOLD opens one short normal Live exchange while recording continues.
+No continuous meeting Live session is used. See [chunked meetings](features/meeting-chunked.md).

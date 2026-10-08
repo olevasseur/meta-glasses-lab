@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from threading import Lock
 
 from memory import MemoryConflict
+from meeting_chunks import MeetingChunks
 from meeting_docs import prepare_document, write_minutes
 from meeting_summary import CHUNK_CHARS, REDUCE_FAN_IN, pack_summaries, render_minutes, summarize_meeting
 
@@ -16,6 +17,7 @@ class Meetings:
         self.memory, self.notes = memory, notes
         # ponytail: single personal backend worker; durable job queue if multi-worker is needed.
         self.lock = Lock()
+        self.chunks = MeetingChunks(self)
 
     def _load(self, db, meeting_id):
         db.execute('''CREATE TABLE IF NOT EXISTS meetings (
@@ -27,11 +29,11 @@ class Meetings:
     def _save(db, m):
         db.execute('INSERT OR REPLACE INTO meetings VALUES (?,?)', (m['id'], json.dumps(m)))
 
-    def start(self, meeting_id: str, title: str, doc_name: str | None = None):
+    def start(self, meeting_id: str, title: str, doc_name: str | None = None, chunked: bool = False):
         with self.lock, self.memory.lock, self.memory.db() as db:
             existing = self._load(db, meeting_id)
             if existing:
-                if (existing['title'], existing['doc_name']) != (title, doc_name):
+                if (existing['title'], existing['doc_name'], existing.get('chunked', False)) != (title, doc_name, chunked):
                     raise MemoryConflict('Meeting metadata cannot change')
                 return {'status': 'ok', 'meeting_id': meeting_id}
             now = datetime.now(UTC).isoformat()
@@ -40,7 +42,7 @@ class Meetings:
                 raise MemoryConflict('Session already ended')
             db.execute('INSERT OR IGNORE INTO sessions(id,started_at) VALUES (?,?)', (meeting_id, now))
             self._save(db, {'id': meeting_id, 'title': title, 'doc_name': doc_name, 'started_at': now,
-                            'phase': 'recording', 'offset': 0, 'partials': [], 'reduced': [], 'document': None})
+                            'chunked': chunked, 'phase': 'recording', 'offset': 0, 'partials': [], 'reduced': [], 'document': None})
         return {'status': 'ok', 'meeting_id': meeting_id}
 
     def reject_export(self, meeting_id):
@@ -66,6 +68,8 @@ class Meetings:
                     return self._result(m)
                 # The Android outbox invokes end only after all chunks are acknowledged.
                 if m['phase'] == 'recording':
+                    if not self.chunks.ready(db, m):
+                        return {'status': 'processing', 'phase': 'transcribing', 'meeting_id': meeting_id}
                     db.execute('UPDATE sessions SET ended_at=? WHERE id=?', (datetime.now(UTC).isoformat(), meeting_id))
                     m['phase'] = 'map'
                     self._save(db, m)

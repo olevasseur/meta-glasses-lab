@@ -96,6 +96,19 @@ class GeminiSessionTest {
         """{"toolCall":{"functionCalls":[{"id":"$id","name":"$name","args":{}}]}}"""
     private val audioMessage = """{"serverContent":{"modelTurn":{"parts":[{"inlineData":{"mimeType":"audio/pcm;rate=24000","data":"AQI="}}]}}}"""
 
+    @Test fun meetingInteractionUsesNormalTokenAndRejectsTranslationSwitch() = runBlocking {
+        Fixture(this).use { f ->
+            f.session.start(ConversationSettings(), meetingInteraction = true)
+            val socket = f.nextSocket()
+            assertEquals("auto", f.tokenRequests.single().getString("mode"))
+            socket.receive(tool(name = "start_translation")); yield(); yield()
+            assertEquals(0, f.backendCalls.get())
+            assertTrue(socket.sent.any { it.contains("Stop the meeting") })
+            socket.receive(audioMessage); yield()
+            assertEquals(1, f.audio.chunks.size) // Addressed short session has ordinary playback.
+        }
+    }
+
     @Test fun pausedSessionRejectsRemoteAndLocalToolsAndAudio() = runBlocking {
         var localCalls = 0
         Fixture(this, { localCalls++; ToolResult(JSONObject()) }).use { f ->

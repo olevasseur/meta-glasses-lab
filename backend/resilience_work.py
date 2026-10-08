@@ -31,10 +31,11 @@ async def retry_loop():
     import app
     import memory_api
     import visual_api
+    import meeting_api
     while True:
         await asyncio.sleep(60)
         actions = [lambda: retry_saved(memory_api.memory, app.journal_service()),
-                   visual_api.memory.retry_captions, app.projects.retry_pending]
+                   visual_api.memory.retry_captions, app.projects.retry_pending, meeting_api.service.chunks.process]
         for action in actions:
             try:
                 await asyncio.to_thread(action)
