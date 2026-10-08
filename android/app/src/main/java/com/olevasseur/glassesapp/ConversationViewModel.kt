@@ -30,6 +30,8 @@ data class ConversationState(
     val connected: Boolean = false,
     val talking: Boolean = false,
     val mock: Boolean = false,
+    val camera: String = "Camera off",
+    val watchMode: Boolean = false,
     val transcript: List<TranscriptLine> = emptyList(),
     val lastTool: String = "None",
     val error: String? = null,
@@ -48,7 +50,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val gemini = GeminiSession(
         scope = viewModelScope, backend = backend, audio = audio,
         onState = { label, connected ->
-            if (!connected) { screenTalking = false; glassesTalking = false }
+            if (!connected) { screenTalking = false; glassesTalking = false; vision.stop() }
             mutableState.update { it.copy(gemini = label, connected = connected) }
         },
         onTranscript = ::appendTranscript,
@@ -59,7 +61,15 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             mutableState.update { it.copy(talking = value) }
         },
         onFatal = { message -> error(message); stop() },
+        localTool = { vision.tool(it) },
     )
+    private val camera: GlassesCamera by lazy {
+        GlassesCamera(viewModelScope, glasses) { label -> mutableState.update { it.copy(camera = label) } }
+    }
+    private val vision: VisionController by lazy {
+        VisionController(viewModelScope, camera::capture, gemini::sendImage, camera::stop,
+            onWatch = { enabled -> mutableState.update { it.copy(watchMode = enabled) } }, onError = ::error)
+    }
     val glasses = GlassesController(application, viewModelScope,
         onGlasses = { label -> mutableState.update { it.copy(glasses = label) } },
         onInputs = { label -> mutableState.update { it.copy(inputs = label) } },
@@ -114,9 +124,14 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
     fun finishTalking() { screenTalking = false; glassesTalking = false; gemini.setTalking(false) }
 
+    fun setWatchMode(enabled: Boolean) {
+        if (!enabled || state.value.connected) vision.setWatchMode(enabled)
+    }
+
     fun stop() {
         if (state.value.stopping || !state.value.running) return
         mutableState.update { it.copy(stopping = true, connected = false, talking = false) }
+        vision.stop()
         gemini.stop()
         glasses.stopInputs()
         screenTalking = false; glassesTalking = false
@@ -139,6 +154,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     override fun onCleared() {
+        vision.stop()
         gemini.close(); glasses.close()
         // viewModelScope is already cancelled; finish releasing platform audio on a cleanup scope.
         val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)

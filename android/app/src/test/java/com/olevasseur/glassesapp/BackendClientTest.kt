@@ -9,6 +9,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class BackendClientTest {
+    @Test fun tokenAdvertisesClientExecutedTools() = runBlocking {
+        MockWebServer().use { server ->
+            server.start()
+            server.enqueue(MockResponse().setBody("""{"token":"auth_tokens/test","model":"gemini-3.8-live","expires_at":"2026-10-07T21:00:00Z","client_tools":["look","set_watch_mode"]}"""))
+            val backend = BackendClient(OkHttpClient(), server.url("/").toString(), "test")
+            assertEquals(setOf("look", "set_watch_mode"), backend.token(false).clientTools)
+        }
+    }
     @Test fun tokenModesAndToolRelayFollowBackendContract() = runBlocking {
         MockWebServer().use { server ->
             server.start()

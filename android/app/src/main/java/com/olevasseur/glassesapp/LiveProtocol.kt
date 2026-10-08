@@ -27,9 +27,17 @@ object LiveProtocol {
         JSONObject().put(if (start) "activityStart" else "activityEnd", JSONObject()),
     ).toString()
 
-    fun toolResponse(call: FunctionCall, response: JSONObject): String = JSONObject().put(
+    fun image(jpeg: ByteArray): String = JSONObject().put("realtimeInput", JSONObject().put(
+        "video", JSONObject().put("mimeType", "image/jpeg")
+            .put("data", Base64.getEncoder().encodeToString(jpeg)),
+    )).toString()
+
+    fun toolResponse(call: FunctionCall, response: JSONObject, jpeg: ByteArray? = null): String = JSONObject().put(
         "toolResponse", JSONObject().put("functionResponses", JSONArray().put(
-            JSONObject().put("id", call.id).put("name", call.name).put("response", response),
+            JSONObject().put("id", call.id).put("name", call.name).put("response", response).apply {
+                if (jpeg != null) put("parts", JSONArray().put(JSONObject().put("inlineData",
+                    JSONObject().put("mimeType", "image/jpeg").put("data", Base64.getEncoder().encodeToString(jpeg)))))
+            },
         )),
     ).toString()
 

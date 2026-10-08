@@ -27,6 +27,7 @@ class GeminiSession(
     private val onTool: (String) -> Unit,
     private val onTalking: (Boolean) -> Unit,
     private val onFatal: (String) -> Unit,
+    private val localTool: suspend (FunctionCall) -> ToolResult = { ToolResult(toolError("Vision is unavailable")) },
 ) {
     private val client = OkHttpClient.Builder().readTimeout(0, TimeUnit.MILLISECONDS)
         .pingInterval(20, TimeUnit.SECONDS).build()
@@ -158,24 +159,27 @@ class GeminiSession(
         onTool("${call.name}: running…")
         toolJobs[call.id] = scope.launch {
             val result = try {
-                backend.tool(call)
+                routeTool(call, token?.clientTools.orEmpty(), localTool, backend::tool)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 // Never automatically replay a POST whose side effects may already have happened.
-                JSONObject().put("status", "error").put("message", "Tool request failed; outcome may be unknown. Ask the user before retrying.")
+                ToolResult(toolError("Tool request failed; outcome may be unknown. Ask the user before retrying."))
             }
             if (call.id !in cancelledCalls && active) {
-                responses[call.id] = call to result
-                onTool("${call.name}: $result")
-                deliver(call, result)
+                // Retain no captured images across reconnects or duplicate calls. A lost visual
+                // response needs a fresh look, not a cached success describing an old frame.
+                responses[call.id] = call to if (result.jpeg == null) result.response
+                    else toolError("This visual response cannot be replayed; request a fresh look if needed.")
+                onTool("${call.name}: ${result.response}")
+                deliver(call, result.response, result.jpeg)
             }
             toolJobs.remove(call.id)
         }
     }
 
-    private fun deliver(call: FunctionCall, result: JSONObject) {
-        val sent = synchronized(sendLock) { ready && socket?.send(LiveProtocol.toolResponse(call, result)) == true }
+    private fun deliver(call: FunctionCall, result: JSONObject, jpeg: ByteArray? = null) {
+        val sent = synchronized(sendLock) { ready && socket?.send(LiveProtocol.toolResponse(call, result, jpeg)) == true }
         if (sent) pendingResponses -= call.id else pendingResponses += call.id
     }
 
@@ -183,11 +187,17 @@ class GeminiSession(
         if (active && ready && (!ptt || talking)) {
             val ws = socket ?: return@synchronized
             // Don't accumulate stale microphone data behind a stalled connection.
-            if (ws.queueSize() > 256_000 || !ws.send(LiveProtocol.audio(pcm))) {
+            if (ws.queueSize() > 1_000_000 || !ws.send(LiveProtocol.audio(pcm))) {
                 ready = false
                 scope.launch { reconnect("Audio uplink stalled") }
             }
         }
+    }
+
+    fun sendImage(jpeg: ByteArray): Boolean = synchronized(sendLock) {
+        val ws = socket
+        // Drop frames under backpressure; never queue a camera backlog behind audio.
+        active && ready && ws != null && ws.queueSize() < 64_000 && ws.send(LiveProtocol.image(jpeg))
     }
 
     fun setTalking(value: Boolean) {

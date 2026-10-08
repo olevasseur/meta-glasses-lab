@@ -27,7 +27,7 @@ backend (Python/FastAPI on the Mac; phone reaches it via `adb reverse tcp:8787 t
 Request: `{}` (header `X-App-Secret: <shared secret from .env APP_SHARED_SECRET>`)
 Response:
 ```json
-{"token": "<gemini ephemeral token name>", "model": "gemini-3.8-live", "expires_at": "<ISO8601>"}
+{"token": "<gemini ephemeral token name>", "model": "gemini-3.8-live", "expires_at": "<ISO8601>", "client_tools": ["look", "set_watch_mode"]}
 ```
 The backend locks the session config into the token (`liveConnectConstraints`): model, system instruction, voice, VAD, tool declarations. The app connects to the Live API WebSocket with this token and sends a minimal setup message.
 
@@ -37,6 +37,10 @@ Session config (backend-owned):
 - **Locking:** the token uses `lock_additional_fields=[]`, so only the fields above are locked (sent as `fieldMask`). `sessionResumption` is intentionally **not** locked: the app sends `sessionResumption: {}` on first connect and `{"handle": "<latest>"}` on reconnect. A global lock makes Gemini ignore the client's handle, so every ~10-minute connection rollover would silently start a fresh conversation.
 - `responseModalities: ["AUDIO"]`, input + output audio transcription enabled
 - Tools: function declarations (see below)
+
+`client_tools` identifies declarations executed on Android, not `/tools`. M4 adds
+`look(question)` and `set_watch_mode(on)`. Camera frames go directly to Gemini;
+see [M4 vision](features/m4-vision.md) for lifecycle and image-bound tool responses.
 
 Push-to-talk mode: app may request `{"mode":"ptt"}` → backend returns a token whose config has `automaticActivityDetection.disabled=true`; app sends `activityStart`/`activityEnd`.
 

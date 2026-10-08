@@ -69,6 +69,8 @@ def token(request: TokenRequest):
 
 @app.post("/tools/{name}")
 def dispatch_tool(name: str, args: dict | None = None):
+    if name in gemini.CLIENT_TOOL_NAMES:
+        raise HTTPException(400, "This tool must be executed on the glasses app")
     if name != "append_to_doc":
         raise HTTPException(404, "Unknown tool")
     try:

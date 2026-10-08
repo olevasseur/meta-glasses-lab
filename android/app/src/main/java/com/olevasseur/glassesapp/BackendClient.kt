@@ -23,7 +23,9 @@ class BackendClient(
 
     suspend fun token(ptt: Boolean): LiveToken {
         val json = post(listOf("token"), if (ptt) JSONObject().put("mode", "ptt") else JSONObject())
-        return LiveToken(json.getString("token"), json.getString("model"), json.getString("expires_at"))
+        val local = json.optJSONArray("client_tools")
+        return LiveToken(json.getString("token"), json.getString("model"), json.getString("expires_at"),
+            List(local?.length() ?: 0) { local!!.getString(it) }.toSet())
     }
 
     suspend fun tool(call: FunctionCall): JSONObject {
@@ -58,4 +60,4 @@ class BackendClient(
     }
 }
 
-data class LiveToken(val token: String, val model: String, val expiresAt: String)
+data class LiveToken(val token: String, val model: String, val expiresAt: String, val clientTools: Set<String> = emptySet())

@@ -81,7 +81,7 @@ def test_token_config_and_response(client, gemini_client, mode):
     after = datetime.now(UTC)
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
-    assert set(response.json()) == {"token", "model", "expires_at"}
+    assert set(response.json()) == {"token", "model", "expires_at", "client_tools"}
     assert response.json()["token"] == "auth_tokens/test"
     assert response.json()["model"] == "gemini-3.8-live"
     client_mock, factory = gemini_client
