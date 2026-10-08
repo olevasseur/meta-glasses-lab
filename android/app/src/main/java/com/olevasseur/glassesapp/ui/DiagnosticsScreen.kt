@@ -50,6 +50,15 @@ fun DiagnosticsScreen(state: ConversationState, model: ConversationViewModel, ba
     var lastProbeRoute by remember { mutableStateOf("") }
     var level by remember { mutableFloatStateOf(0f) }
     var tick by remember { mutableLongStateOf(0L) }
+    var quota by remember { mutableStateOf("Quota not checked") }
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            quota = try { quotaDiagnostic(model.usage()) }
+                catch (e: CancellationException) { throw e }
+                catch (_: Exception) { "Quota unavailable; local totals may be incomplete" }
+            delay(30_000)
+        }
+    }
     var geminiHealth by remember { mutableStateOf("Gemini backend probe: not checked") }
     var checkingGemini by remember { mutableStateOf(false) }
     var offlineReview by remember { mutableStateOf("") }
@@ -152,6 +161,7 @@ fun DiagnosticsScreen(state: ConversationState, model: ConversationViewModel, ba
             Text("Microphone RMS: %.1f%%".format(level * 100))
             LinearProgressIndicator(progress = { level.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
             Text("Gemini: ${state.gemini}\nResumption handle age: ${DiagnosticMetrics.handleUpdatedMs?.let { "${(tick - it).coerceAtLeast(0) / 1000} s" } ?: "none / unavailable"}")
+            Text(quota)
             Text(geminiHealth)
             Button(onClick = { offlineReview = model.offlineCaptures() }) { Text("Review offline captures") }
             if (offlineReview.isNotEmpty()) Text(offlineReview)

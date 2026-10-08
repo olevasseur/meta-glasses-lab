@@ -20,11 +20,11 @@ PYTHONPATH=scripts uv run --project backend python -m voice_eval.batch_tts
 PYTHONPATH=scripts uv run --project backend python -m voice_eval --label before \
   --prompt scripts/voice_eval/baseline-system.md \
   --tool-declarations scripts/voice_eval/baseline-tools.json \
-  --tts-model gemini-3.8-flash-tts --workers 3
+  --tts-model gemini-3.8-flash-tts --workers 1
 
 # Evaluate the current prompt and descriptions against the same audio.
 PYTHONPATH=scripts uv run --project backend python -m voice_eval --label after \
-  --tts-model gemini-3.8-flash-tts --workers 3
+  --tts-model gemini-3.8-flash-tts --workers 1
 
 cd backend && uv run pytest
 ```
@@ -35,8 +35,12 @@ infrastructure attempts with matching prompt/tool hashes and TTS model; earlier
 error attempts remain in the JSON. Semantic misses are never retried by that flag. Default output is
 `docs/evals/voice-eval-<date>.json` plus a Markdown report, checkpointed after each
 case. `--case ID` is repeatable; `--timeout` bounds waiting after audio input.
-Workers are separate processes so each has independent backend patches/storage.
-The default is one worker; three were used for the recorded comparison.
+Cases run in a separate worker process with disposable backend patches/storage.
+Only one worker is now allowed, and the entire selected run must fit the shared
+[daily evaluation allowance](usage-meter.md) before provider access. Select a
+small subset with `--case` or explicitly configure appropriate budgets after
+checking AI Studio; the full comparison above exceeds the default allowance.
+Three workers were used for the historical recorded comparison.
 
 For individual regeneration, e.g. after a batch is rejected:
 

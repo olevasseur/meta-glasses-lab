@@ -1,0 +1,20 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<h1>Usage</h1>
+<p>{{ usage.day }} · quota days reset at Pacific midnight · configured tier: {{ usage.tier }}</p>
+{% for warning in usage.warnings %}<p role="alert">⚠ {{ warning }}</p>{% endfor %}
+<h2>Today / local daily soft caps</h2>
+<table><tr><th>Metric</th><th>Today</th><th>Soft cap</th></tr>
+{% for key, value in usage.today.items() %}<tr><td>{{ key|replace('_', ' ') }}</td><td>{{ value|round(2) }}</td><td>{{ usage.soft_caps.get(key, '—') }}</td></tr>{% endfor %}</table>
+<h2>Known project limits</h2>
+<p>Copy current per-model limits from <a href="https://aistudio.google.com/usage?tab=rate-limit">AI Studio</a> into GEMINI_QUOTA_FILE. Empty means unknown, never unlimited.</p>
+<pre>{{ usage.known_limits|tojson(indent=2) }}</pre>
+<table><tr><th>Model / quota</th><th>Today</th><th>Configured daily limit</th></tr>
+{% for row in usage.comparisons %}<tr><td>{{ row.model }} / {{ row.metric }}</td><td>{{ row.used }}</td><td>{{ row.limit }}</td></tr>{% endfor %}</table>
+<h2>Last 7 quota days</h2>
+<p>{{ usage.seven_days.calls }} calls / connections · {{ usage.seven_days.minutes|round(2) }} Live minutes · {{ usage.seven_days.total_tokens }} reported tokens. Daily limits apply separately each day.</p>
+<table><tr><th>Day / model</th><th>Kind</th><th>Calls / connections</th><th>Minutes</th><th>Input tokens</th><th>Output tokens</th><th>Total tokens</th><th>Failed / unreported</th></tr>
+{% for row in usage.rows %}<tr><td>{{ row.day }}<br>{{ row.model }}</td><td>{{ row.kind }}</td><td>{{ row.calls }}</td><td>{{ row.minutes }}</td><td>{{ row.input_tokens if row.input_tokens is not none else 'unknown' }}</td><td>{{ row.output_tokens if row.output_tokens is not none else 'unknown' }}</td><td>{{ row.total_tokens if row.total_tokens is not none else 'unknown' }}</td><td>{{ row.failed }} / {{ row.unreported }}</td></tr>{% endfor %}
+</table>
+<p>Local observations since installation only. Live connections include reconnects; minutes are connected time, not billed audio time. Missing reports, other worktrees and other project clients are excluded. Token totals are reported usage, not a bill. Soft caps cannot guarantee no charges.</p>
+{% endblock %}

@@ -5,7 +5,7 @@ import hashlib
 import json
 import os
 import sys
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
@@ -16,6 +16,7 @@ from .audio import MODEL, assemble, cached_path, read, insert_pause, mix_noise
 from .client import evaluate
 from .metrics import aggregate, render, score
 from .simulator import backend
+from .quota import reserve_live
 
 
 def run_case(case, prompt, tts_model, timeout, tools_file=None):
@@ -87,21 +88,29 @@ def main():
     output.parent.mkdir(parents=True,exist_ok=True)
     report=json.loads(output.read_text()) if output.exists() else {'date':str(datetime.now().date()),'runs':[]}
     previous=next((r for r in report['runs'] if r['label']==args.label),None)
-    measurements=prompt_metrics(args.prompt,args.tool_declarations)
     if previous is not None:
         if not args.retry_errors:
             parser.error('Label already exists; choose a new label or --retry-errors')
-        if any(previous['prompt_metrics'][k]!=measurements[k] for k in ('system_sha256','tools_sha256')) or previous['tts_model']!=args.tts_model or previous['live_model']!=os.getenv('GEMINI_LIVE_MODEL','gemini-3.8-live'):
-            parser.error('Retries require the same prompt, tools, Live and TTS models')
-        failed={r['id'] for r in previous['results'] if r.get('error')}
+        finished={r['id'] for r in previous['results'] if not r.get('error')}
+        failed={c['id'] for c in previous['cases']} - finished
         cases=[c for c in previous['cases'] if c['id'] in failed]
         if not cases:
             parser.error('No infrastructure errors to retry')
+    elif args.retry_errors:
+        parser.error('No such label to retry')
+    if args.workers != 1:
+        parser.error('Live evaluations require --workers 1 to preserve hardware quota')
+    try:
+        reserve_live(cases, args.timeout)
+    except ValueError as exc:
+        parser.error(str(exc))
+    measurements=prompt_metrics(args.prompt,args.tool_declarations)
+    if previous is not None:
+        if any(previous['prompt_metrics'][k]!=measurements[k] for k in ('system_sha256','tools_sha256')) or previous['tts_model']!=args.tts_model or previous['live_model']!=os.getenv('GEMINI_LIVE_MODEL','gemini-3.8-live'):
+            parser.error('Retries require the same prompt, tools, Live and TTS models')
         run=previous
         run.setdefault('earlier_error_attempts',[]).extend(r for r in run['results'] if r['id'] in failed)
     else:
-        if args.retry_errors:
-            parser.error('No such label to retry')
         run={'label':args.label,'live_model':os.getenv('GEMINI_LIVE_MODEL','gemini-3.8-live'),
              'tts_model':args.tts_model,'prompt_metrics':measurements,
              'cases':cases,'results':[]}
@@ -113,14 +122,16 @@ def main():
         temp.write_text(json.dumps(report,indent=2,ensure_ascii=False)+'\n')
         temp.replace(output)
         output.with_suffix('.md').write_text(render(report))
-    with ProcessPoolExecutor(max_workers=max(1,min(4,args.workers))) as pool:
-        futures={pool.submit(run_case,c,str(Path(args.prompt).resolve()),args.tts_model,args.timeout,args.tool_declarations):c for c in cases}
-        for completed,future in enumerate(as_completed(futures),1):
-            result=future.result()
+    with ProcessPoolExecutor(max_workers=1) as pool:
+        for completed, case in enumerate(cases, 1):
+            result=pool.submit(run_case,case,str(Path(args.prompt).resolve()),args.tts_model,args.timeout,args.tool_declarations).result()
             run['results']=[r for r in run['results'] if r['id']!=result['id']]
             run['results'].append(result)
             save()
             print(f"{args.label} {completed}/{len(cases)} {result['id']} selection={result['tool_selection_ok']} args={result['arguments_ok']} error={result['error']}",flush=True)
+            if result.get('error'):
+                print('Stopping evaluation after infrastructure failure; preserve shared quota.', flush=True)
+                break
     print(json.dumps(run['metrics'],indent=2))
     raise SystemExit(1 if any(r['error'] for r in run['results']) else 0)
 

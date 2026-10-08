@@ -61,3 +61,11 @@ def isolated_token_transport():
     token_transport.close()
     yield
     token_transport.close()
+
+
+@pytest.fixture(autouse=True)
+def isolate_usage(monkeypatch, tmp_path):
+    monkeypatch.setenv("USAGE_DB", str(tmp_path / "usage.sqlite3"))
+    monkeypatch.delenv("GEMINI_QUOTA_FILE", raising=False)
+    for key in ("LIVE_SESSIONS", "LIVE_MINUTES", "TEXT_CALLS", "TOTAL_TOKENS", "EVAL_PERCENT"):
+        monkeypatch.delenv("USAGE_" + key, raising=False)

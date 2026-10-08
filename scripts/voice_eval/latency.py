@@ -1,7 +1,7 @@
 """Sequential latency probe; real Live, disposable memory and simulated Docs writes.
 
 PYTHONPATH=scripts uv run --project backend python -m voice_eval.latency --label before
-One label opens exactly samples * 3 sessions (default six); stops on any error.
+One label reserves samples * 3 sessions (default six); stops on any error.
 """
 import argparse
 import asyncio
@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 from .audio import cached_path, read
 from .client import evaluate
+from .quota import reserve_live
 from .runner import ROOT
 from .simulator import backend
 
@@ -60,6 +61,10 @@ def main():
     cases = json.loads(Path(__file__).with_name('cases.json').read_text())
     case = next(c for c in cases if c['id'] == 'note-inbox')
     pcm = bytes(9600) + read(cached_path(case['segments'][0], case['voice'], 'gemini-3.8-flash-tts'))
+    try:
+        reserve_live([case] * (args.samples * 3), 30)
+    except ValueError as exc:
+        parser.error(str(exc))
     run = {'label': args.label, 'pcm_sha256': hashlib.sha256(pcm).hexdigest(),
            'speech_seconds': len(pcm)/32000, 'cold_transport': args.cold_transport, 'results': []}
     report['runs'].append(run)

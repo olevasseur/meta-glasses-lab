@@ -5,6 +5,7 @@ import time
 
 import httpx
 from google.genai import types
+from usage import meter
 
 LIVE_DEFAULTS = "gemini-3.8-live,gemini-3.1-flash-live-preview"
 TEXT_DEFAULTS = "gemini-3.5-flash-lite,gemini-2.5-flash"
@@ -50,12 +51,16 @@ def generate_content(client, *, model, sleep=time.sleep, jitter=random.random, c
             request_config = config.model_copy(update={"http_options": types.HttpOptions(
                 timeout=max(1, int(remaining * 1000)), retry_options=types.HttpRetryOptions(attempts=1))})
             try:
-                return client.models.generate_content(model=candidate, config=request_config, **kwargs)
+                response = client.models.generate_content(model=candidate, config=request_config, **kwargs)
             except Exception as exc:
+                meter.record(candidate, failed=True)
                 if not transient(exc) and getattr(exc, "code", None) != 404:
                     raise
                 last = exc
                 saw_transient |= transient(exc)
+            else:
+                meter.record(candidate, response=response)
+                return response
         if not saw_transient:
             raise last  # All models missing is configuration, not an outage.
         if attempt == 0:

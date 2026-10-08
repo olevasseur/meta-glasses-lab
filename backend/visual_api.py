@@ -3,6 +3,7 @@
 import asyncio
 import logging
 
+from usage import meter
 import approvals
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -34,7 +35,10 @@ def report_status(request: CaptureStatus):
 @router.post("/visual/frames")
 def capture(frame: Frame):
     try:
-        return memory.capture(frame)
+        allowed, interval = meter.allow_capture()
+        if not allowed:
+            return {"status": "quota_throttled", "capture_interval_seconds": interval}
+        return {**memory.capture(frame), "capture_interval_seconds": interval}
     except ValidationError as exc:
         raise HTTPException(502, "Gemini returned an invalid caption; nothing saved") from exc
     except ValueError as exc:

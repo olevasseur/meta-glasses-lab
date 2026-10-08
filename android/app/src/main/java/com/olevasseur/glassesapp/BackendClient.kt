@@ -54,6 +54,12 @@ class BackendClient(
         return execute(Request.Builder().url(url).header("X-App-Secret", secret).get().build())
     }
 
+    suspend fun usage(): JSONObject = execute(Request.Builder()
+        .url(base.newBuilder().addPathSegment("usage").build())
+        .header("X-App-Secret", secret).get().build())
+
+    suspend fun reportUsage(report: JSONObject): JSONObject = post(listOf("usage", "live"), report)
+
     suspend fun geminiHealth(): JSONObject = execute(Request.Builder()
         .url(base.newBuilder().addPathSegments("health/gemini").build())
         .header("X-App-Secret", secret).get().build())

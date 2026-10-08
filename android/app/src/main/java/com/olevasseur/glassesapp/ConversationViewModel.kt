@@ -143,6 +143,8 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         offline.update(state.value.running && !state.value.stopping && audioReady && state.value.handsFree.shouldRun &&
             !state.value.meeting && state.value.translationLanguage == null, state.value.connected, unavailable)
     }
+    suspend fun usage() = backend.usage()
+
     suspend fun geminiHealth() = backend.geminiHealth()
     fun offlineCaptures() = offline.review()
 

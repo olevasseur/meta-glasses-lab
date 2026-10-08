@@ -69,7 +69,11 @@ PYTHONPATH=scripts uv run --project backend python -m voice_eval.latency --label
 This opens three sequential Live sessions (Auto/PTT/Over), reusing cached speech
 and simulating Docs. It stops on the first failed or audio-less response and does
 not retry automatically. `--samples` defaults to two and is capped at four; count
-all invocations against the shared key budget. `--cold-transport` reproduces the
+all invocations against the shared key budget. The probe reserves the entire run
+through the [usage meter](usage-meter.md) before any Live access and records each
+connection's usage alongside its timings. The default two-session daily eval
+allowance refuses even a three-mode single-sample run; deliberately configure an
+appropriate budget after checking AI Studio before running it. `--cold-transport` reproduces the
 old per-request Google connection setup. Do not run alongside another local probe.
 
 Measurements, methodology and limits are in

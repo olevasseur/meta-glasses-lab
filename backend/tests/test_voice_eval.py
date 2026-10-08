@@ -165,7 +165,8 @@ def test_live_receiver_waits_for_tool_result_and_audio(monkeypatch):
                 call={'id':'x','name':'look','args':{'question':'scene'}}
                 self.incoming.put_nowait({'toolCall':{'functionCalls':[call,call]},'serverContent':{'turnComplete':True}})
             if 'toolResponse' in msg:
-                self.incoming.put_nowait({'serverContent':{'inputTranscription':{'text':'What is here?'},
+                self.incoming.put_nowait({'usageMetadata':{'promptTokenCount':100,'responseTokenCount':20,'totalTokenCount':120},
+                    'serverContent':{'inputTranscription':{'text':'What is here?'},
                     'outputTranscription':{'text':'A mug.'},'modelTurn':{'parts':[{'inlineData':{
                         'mimeType':'audio/pcm;rate=24000','data':'AAAAAA=='}}]},'turnComplete':True}})
         async def recv(self): return json.dumps(await self.incoming.get())
@@ -178,6 +179,12 @@ def test_live_receiver_waits_for_tool_result_and_audio(monkeypatch):
     assert len(result['calls'])==1 and result['audio_bytes']==4
     assert result['input_transcript']=='What is here?' and result['output_transcript']=='A mug.'
     assert result['first_audio_latency_s'] is not None
+    assert all(result[key] >= 0 for key in ('token_s', 'websocket_s', 'setup_s'))
+    assert '_usage_started' not in result
+    from usage import meter
+    totals = meter.snapshot()['today']
+    assert totals['live_sessions'] == 1 and totals['live_minutes'] > 0
+    assert totals['total_tokens'] == 120
     assert list(socket.messages[-2]['realtimeInput'])==['video']
     assert 'parts' in socket.messages[-1]['toolResponse']['functionResponses'][0]
 
