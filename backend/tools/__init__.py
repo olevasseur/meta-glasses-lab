@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from job_tools import JOB_DECLARATIONS, REQUESTS
 from gesture_tools import AWAIT_GESTURE_CONFIRMATION
 from vision import CLIENT_TOOLS
+from translation import START_TRANSLATION, STOP_TRANSLATION, StartTranslationRequest, StopTranslationRequest
 
 
 class Arguments(BaseModel):
@@ -99,5 +100,10 @@ REGISTRY.update({
     tool.name: (REQUESTS[tool.name], "jobs", {"job_status": "status", "cancel_job": "cancel"}.get(tool.name, tool.name), tool)
     for tool in JOB_DECLARATIONS
 })
+REGISTRY.update({
+    "start_translation": (StartTranslationRequest, "translation", "start_translation", START_TRANSLATION),
+    "stop_translation": (StopTranslationRequest, "translation", "stop_translation", STOP_TRANSLATION),
+})
 CLIENT_TOOL_NAMES = [name for name, entry in REGISTRY.items() if entry[1] == "client"]
 DECLARATIONS = [entry[3] for entry in REGISTRY.values()]
+TRANSLATION_DECLARATIONS = [entry[3] for entry in REGISTRY.values() if entry[1] == "translation"]

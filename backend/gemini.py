@@ -6,7 +6,8 @@ from pathlib import Path
 from google import genai
 from google.genai import types
 
-from tools import CLIENT_TOOL_NAMES, DECLARATIONS
+from tools import CLIENT_TOOL_NAMES, DECLARATIONS, TRANSLATION_DECLARATIONS
+from translation import translator_instruction
 
 DEFAULT_MODEL = "gemini-3.8-live"
 PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
@@ -14,7 +15,10 @@ PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
 
 def token_config(
     model: str, mode: str, system_instruction: str | None = None, *, silence_ms: int = 2000,
+    persona: str = "assistant", language: str | None = None,
 ) -> types.CreateAuthTokenConfig:
+    if persona not in ("assistant", "translator") or (persona == "translator") != (language is not None):
+        raise ValueError("Translator persona requires a language; assistant does not")
     now = datetime.now(UTC)
     detection = (
         {"disabled": True}
@@ -38,7 +42,8 @@ def token_config(
         live_connect_constraints=types.LiveConnectConstraints(
             model=model,
             config=types.LiveConnectConfig(
-                system_instruction=system_instruction or PROMPT_PATH.read_text(encoding="utf-8"),
+                system_instruction=(translator_instruction(language) if persona == "translator"
+                                    else system_instruction or PROMPT_PATH.read_text(encoding="utf-8")),
                 response_modalities=["AUDIO"],
                 speech_config={
                     "voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}
@@ -47,7 +52,7 @@ def token_config(
                 output_audio_transcription={},
                 realtime_input_config={"automatic_activity_detection": detection},
                 context_window_compression={"sliding_window": {}},
-                tools=[types.Tool(function_declarations=DECLARATIONS)],
+                tools=[types.Tool(function_declarations=(TRANSLATION_DECLARATIONS if persona == "translator" else DECLARATIONS))],
             ),
         ),
     )
@@ -55,8 +60,9 @@ def token_config(
 
 def create_token(
     api_key: str, model: str, mode: str, system_instruction: str | None = None, *, silence_ms: int = 2000,
+    persona: str = "assistant", language: str | None = None,
 ) -> dict:
-    config = token_config(model, mode, system_instruction, silence_ms=silence_ms)
+    config = token_config(model, mode, system_instruction, silence_ms=silence_ms, persona=persona, language=language)
     with genai.Client(
         api_key=api_key,
         vertexai=False,
@@ -69,5 +75,5 @@ def create_token(
         "token": token.name,
         "model": model,
         "expires_at": token.expire_time or config.expire_time.isoformat(),
-        "client_tools": CLIENT_TOOL_NAMES,
+        "client_tools": CLIENT_TOOL_NAMES if persona == "assistant" else [],
     }

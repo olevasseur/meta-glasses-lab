@@ -36,6 +36,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 /** OS communication routing, independent of DAT's camera audio capability. */
 @Suppress("DEPRECATION")
 class ConversationAudio(private val context: Context, private val scope: CoroutineScope) {
+    val translationSpeaker = PhoneTranslationPlayer(context, scope)
     private val manager = context.getSystemService(AudioManager::class.java)
     private var recorder: AudioRecord? = null
     private var track: AudioTrack? = null
@@ -217,7 +218,8 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
     /** turnComplete means generation finished; wait for queued AND device-buffered speech. */
     val playbackIdle: Boolean get() = synchronized(playbackLock) {
         val output = track
-        output == null || (queueBytes == 0 && (output.playbackHeadPosition.toLong() and 0xffffffffL) >= writtenFrames)
+        !translationSpeaker.playing && (output == null ||
+            (queueBytes == 0 && (output.playbackHeadPosition.toLong() and 0xffffffffL) >= writtenFrames))
     }
 
     suspend fun awaitPlaybackIdle() {
@@ -225,6 +227,7 @@ class ConversationAudio(private val context: Context, private val scope: Corouti
     }
 
     suspend fun stop() {
+        translationSpeaker.stop()
         if (!engaged) return
         deviceCallback?.let { manager.unregisterAudioDeviceCallback(it) }
         deviceCallback = null

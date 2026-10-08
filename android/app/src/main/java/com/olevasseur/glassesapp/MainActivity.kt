@@ -170,6 +170,7 @@ private fun ConversationScreen(
             Text("Meta AI → Settings → App Info → tap version 5× → Developer Mode", style = MaterialTheme.typography.bodySmall)
             TextButton(onClick = requestCameraPermission, enabled = !state.handsFree.armed) { Text("Grant DAT camera permission") }
             ConversationSettingsControls(state.settings, !state.running && !state.stopping && state.settingsLoaded, model::setSettings)
+            TranslationControls(state, model)
             Text("Capture HOLD starts/stops a conversation. Double-tap mutes Auto or toggles speech in PTT.")
             if (state.handsFree.pauses.isNotEmpty() && state.handsFree.conversation) Text("Paused: ${state.handsFree.pauses.joinToString()}")
             Button(onClick = { if (state.handsFree.conversation && state.handsFree.pauses.isEmpty()) model.stop() else model.start() }, enabled = !state.stopping && state.permissions && state.settingsLoaded, modifier = Modifier.fillMaxWidth()) {
@@ -197,7 +198,7 @@ private fun ConversationScreen(
             val gestureState by model.gestures.state.collectAsStateWithLifecycle()
             GestureControls(gestureState, model::setGestures, model.gestures::setSensitivity)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = state.watchMode, onCheckedChange = model::setWatchMode, enabled = state.connected && state.handsFree.shouldRun)
+                Switch(checked = state.watchMode, onCheckedChange = model::setWatchMode, enabled = state.translationLanguage == null && state.connected && state.handsFree.shouldRun)
                 Text("Watch mode · 2 minute limit", modifier = Modifier.padding(start = 8.dp))
             }
             Text("${state.camera}. Ask: What am I looking at?", style = MaterialTheme.typography.bodySmall)

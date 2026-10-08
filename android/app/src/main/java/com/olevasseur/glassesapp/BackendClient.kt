@@ -24,9 +24,8 @@ class BackendClient(
 
     suspend fun token(ptt: Boolean): LiveToken = token(if (ptt) ConversationMode.PTT else ConversationMode.AUTO)
 
-    suspend fun token(mode: ConversationMode, silenceMs: Int = 2000): LiveToken {
-        val body = JSONObject().put("mode", mode.wireName)
-        if (mode == ConversationMode.AUTO) body.put("silence_ms", silenceMs.coerceIn(500, 5000))
+    suspend fun token(mode: ConversationMode, silenceMs: Int = 2000, translationLanguage: String? = null): LiveToken {
+        val body = Translation.tokenRequest(mode, silenceMs, translationLanguage)
         val json = post(listOf("token"), body)
         val local = json.optJSONArray("client_tools")
         return LiveToken(json.getString("token"), json.getString("model"), json.getString("expires_at"),

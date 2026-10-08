@@ -23,6 +23,7 @@ def test_auto_patience_is_clamped_at_request_and_sdk_boundaries(monkeypatch, tmp
     assert create.call_args.args[2:] == ("auto",)
     assert create.call_args.kwargs == {
         "silence_ms": expected, "system_instruction": gemini.PROMPT_PATH.read_text(),
+        "persona": "assistant", "language": None,
     }
     config = gemini.token_config(gemini.DEFAULT_MODEL, "auto", silence_ms=silence)
     assert config.live_connect_constraints.config.realtime_input_config.automatic_activity_detection.silence_duration_ms == expected

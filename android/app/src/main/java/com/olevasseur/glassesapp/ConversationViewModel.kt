@@ -52,6 +52,8 @@ data class ConversationState(
 ) {
     val ptt: Boolean get() = settings.mode == ConversationMode.PTT
     val idleMinutes: Int get() = settings.idleMinutes
+    val translationLanguage: String? get() = settings.translationLanguage
+    val translationPhoneSpeaker: Boolean get() = settings.translationPhoneSpeaker
 }
 
 class ConversationViewModel(application: Application) : AndroidViewModel(application) {
@@ -118,6 +120,12 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             mutableState.update { it.copy(talking = value) }
         },
         onFatal = { message -> error(message); stop() },
+        onTranslationChanged = { language ->
+            transcriptBoundary = true
+            if (state.value.translationLanguage != language) {
+                saveSettings(state.value.settings.copy(translationLanguage = language))
+            }
+        },
         localTool = { call ->
             if (!state.value.handsFree.shouldRun || !audioReady) ToolResult(toolError("Conversation is paused"))
             else gestures.localTool(call)?.let { ToolResult(it) } ?: vision.tool(call)
@@ -225,6 +233,25 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     fun toggleInput() { service?.toggleInput() }
     fun start() { service?.startConversation() }
     fun stop() { service?.stopAll() }
+    fun setTranslation(language: String?) {
+        if (!canChangeTranslation()) return
+        require(language == null || language in Translation.languages)
+        saveSettings(state.value.settings.copy(translationLanguage = language))
+        restartPersona()
+    }
+    fun setTranslationSpeaker(enabled: Boolean) {
+        if (!canChangeTranslation()) return
+        saveSettings(state.value.settings.copy(translationPhoneSpeaker = enabled))
+        restartPersona()
+    }
+    private fun canChangeTranslation() = state.value.settingsLoaded && !state.value.stopping &&
+        (!state.value.running || (state.value.connected && state.value.handsFree.shouldRun && audioReady))
+
+    private fun restartPersona() {
+        service?.activity()
+        transcriptBoundary = true
+        if (state.value.running) gemini.start(state.value.settings)
+    }
     fun setMock(enabled: Boolean) {
         if (state.value.handsFree.armed || state.value.running || state.value.stopping) return
         if (glasses.setMock(enabled)) mutableState.update { it.copy(mock = enabled) }
@@ -320,7 +347,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun setWatchMode(enabled: Boolean) {
-        if (!enabled || (state.value.connected && state.value.handsFree.shouldRun && audioReady)) vision.setWatchMode(enabled)
+        if (!enabled || (state.value.translationLanguage == null && state.value.connected && state.value.handsFree.shouldRun && audioReady)) vision.setWatchMode(enabled)
     }
     fun toggleGlassesTalking() {
         if (!state.value.connected || !state.value.ptt || !state.value.handsFree.shouldRun) return

@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.datastore.preferences.SharedPreferencesMigration
@@ -23,12 +24,15 @@ data class ConversationSettings(
     val keyword: String = "over",
     val overSilenceSeconds: Int = 10,
     val idleMinutes: Int = HandsFreeState.DEFAULT_IDLE_MINUTES,
+    val translationLanguage: String? = null,
+    val translationPhoneSpeaker: Boolean = false,
 ) {
     fun normalized() = copy(
         silenceMs = silenceMs.coerceIn(500, 5000),
         idleMinutes = HandsFreeState.idleMinutes(idleMinutes),
         keyword = keyword.takeIf { it in KEYWORDS } ?: "over",
         overSilenceSeconds = overSilenceSeconds.coerceIn(5, 30),
+        translationLanguage = translationLanguage?.takeIf { it in Translation.languages },
     )
 
     companion object { val KEYWORDS = listOf("over", "go ahead", "your turn") }
@@ -49,6 +53,8 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
     private val keywordKey = stringPreferencesKey("over_keyword")
     private val legacySafetyKey = intPreferencesKey("over_safety_seconds")
     private val overSilenceKey = intPreferencesKey("over_silence_seconds")
+    private val translationLanguageKey = stringPreferencesKey("translation_language")
+    private val translationSpeakerKey = booleanPreferencesKey("translation_phone_speaker")
 
     val settings = store.data.onStart {
         store.edit {
@@ -65,6 +71,8 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
             silenceMs = prefs[silenceKey] ?: 2000,
             keyword = prefs[keywordKey] ?: "over",
             overSilenceSeconds = prefs[overSilenceKey] ?: 10,
+            translationLanguage = prefs[translationLanguageKey],
+            translationPhoneSpeaker = prefs[translationSpeakerKey] ?: false,
         ).normalized()
     }
 
@@ -83,6 +91,9 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
             it[silenceKey] = value.silenceMs
             it[keywordKey] = value.keyword
             it[overSilenceKey] = value.overSilenceSeconds
+            value.translationLanguage?.let { language -> it[translationLanguageKey] = language }
+                ?: it.remove(translationLanguageKey)
+            it[translationSpeakerKey] = value.translationPhoneSpeaker
             it.remove(legacySafetyKey)
         }
     }

@@ -15,10 +15,11 @@ from fastapi.responses import JSONResponse
 from google.auth.exceptions import GoogleAuthError
 from google.genai.errors import APIError
 from googleapiclient.errors import HttpError
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 import gemini
 import memory_api
+import translation
 from memory import MemoryConflict
 from jobs import Jobs
 from notes import BACKEND_DIR, Notes
@@ -64,6 +65,16 @@ class TokenRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     mode: Literal["auto", "ptt", "over"] = "auto"
     silence_ms: int = Field(default=2000, strict=True)
+    persona: Literal["assistant", "translator"] = "assistant"
+    language: str | None = Field(default=None, max_length=40)
+
+    @model_validator(mode="after")
+    def validate_persona(self):
+        if (self.persona == "translator") != (self.language is not None):
+            raise ValueError("Translator requires language; assistant must omit language")
+        if self.language is not None:
+            self.language = translation.normalize_language(self.language)
+        return self
 
     @field_validator("silence_ms")
     @classmethod
@@ -80,8 +91,10 @@ def token(request: TokenRequest):
     try:
         return gemini.create_token(
             api_key, model, request.mode,
-            system_instruction=memory_api.memory.context(gemini.PROMPT_PATH.read_text(encoding="utf-8")),
+            system_instruction=(memory_api.memory.context(gemini.PROMPT_PATH.read_text(encoding="utf-8"))
+                                if request.persona == "assistant" else None),
             silence_ms=request.silence_ms,
+            persona=request.persona, language=request.language,
         )
     except (APIError, httpx.HTTPError, RuntimeError) as exc:
         # Upstream exception text can contain credentials or request contents.
@@ -99,6 +112,9 @@ async def dispatch_tool(name: str, args: dict | None = None):
         request = request_type.model_validate(args if args is not None else {})
     except ValidationError as exc:
         raise RequestValidationError(exc.errors()) from exc
+    if owner == "translation":
+        # Validated commands only: persona state belongs to each phone session.
+        return getattr(translation, method)(**request.model_dump())
     if owner == "jobs":
         # Jobs owns an event-loop-bound SQLite connection and schedules async work.
         try:

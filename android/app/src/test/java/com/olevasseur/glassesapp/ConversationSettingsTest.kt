@@ -29,6 +29,7 @@ class ConversationSettingsTest {
             store.edit {
                 it[stringPreferencesKey("mode")] = "unknown"
                 it[stringPreferencesKey("over_keyword")] = ""
+                it[stringPreferencesKey("translation_language")] = "unsupported"
                 it[intPreferencesKey("silence_ms")] = -1
                 it[intPreferencesKey("over_silence_seconds")] = 999
             }
@@ -103,7 +104,8 @@ class ConversationSettingsTest {
     @Test fun idleAndNotificationModeChangesPreserveOverPreferencesOnDisk() = runBlocking {
         val file = File(temporary.root, "hands-free.preferences_pb")
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        val expected = ConversationSettings(ConversationMode.OVER, 3250, "your turn", 25, idleMinutes = 42)
+        val expected = ConversationSettings(ConversationMode.OVER, 3250, "your turn", 25, idleMinutes = 42,
+            translationLanguage = "es", translationPhoneSpeaker = true)
         try {
             val store = PreferenceDataStoreFactory.create(scope = scope) { file }
             val settings = ConversationSettingsStore(store)
@@ -128,7 +130,8 @@ class ConversationSettingsTest {
     @Test fun jobCursorsSurviveSettingsChangesAndServiceRecreationPerBackend() = runBlocking {
         val file = File(temporary.root, "job-cursors.preferences_pb")
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        val expected = ConversationSettings(ConversationMode.OVER, 3250, "your turn", 25, idleMinutes = 42)
+        val expected = ConversationSettings(ConversationMode.OVER, 3250, "your turn", 25, idleMinutes = 42,
+            translationLanguage = "fr", translationPhoneSpeaker = true)
         try {
             val settings = ConversationSettingsStore(PreferenceDataStoreFactory.create(scope = scope) { file })
             assertEquals(0L, settings.jobCursor("backend-a"))
@@ -139,6 +142,10 @@ class ConversationSettingsTest {
             assertEquals(41L, settings.jobCursor("backend-a"))
             assertEquals(7L, settings.jobCursor("backend-b"))
             assertEquals(expected.copy(mode = ConversationMode.PTT), settings.settings.first())
+            settings.save(settings.settings.first().copy(translationLanguage = null))
+            assertEquals(expected.copy(mode = ConversationMode.PTT, translationLanguage = null), settings.settings.first())
+            assertEquals(41L, settings.jobCursor("backend-a"))
+            settings.save(expected.copy(mode = ConversationMode.PTT))
         } finally { scope.coroutineContext[Job]!!.cancelAndJoin() }
         val reopenedScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         try {
