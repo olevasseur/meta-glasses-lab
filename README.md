@@ -1,6 +1,31 @@
-# meta-glasses-lab
+# meta-glasses-lab — "the glasses app"
 
-Personal experiments with Meta's Wearables Device Access Toolkit (DAT) for Meta smart glasses:
-a custom voice assistant that doesn't cut you off, remembers things, and can append notes to Google Docs.
+A personal voice assistant for Meta smart glasses that **doesn't cut you off**, **remembers you**, and can **see, take notes, coach, translate and run Codex jobs**. Android app (Pixel) + a small Python backend on the Mac. Runtime AI: **Gemini Live**. Built by Codex agents orchestrated by Claude Code.
 
-Status: research / scaffolding. See `docs/` for findings and architecture.
+## Features
+| Feature | Say / do | Docs |
+|---|---|---|
+| Over mode | Talk as long as you want; turn ends when you say **"over"** or after 10 s of silence | [over.md](docs/features/over.md) |
+| Long-term memory | "Remember that…", "What did I say about…", "Forget that" | [long-term-memory.md](docs/features/long-term-memory.md) |
+| Vision | "What am I looking at?", watch mode | [m4-vision.md](docs/features/m4-vision.md) |
+| Hands-free | Capture-button hold, "Hey Meta, start …", screen off, QS tile | [hands-free.md](docs/features/hands-free.md) |
+| Head gestures | Nod = yes, shake = no | [head-gestures.md](docs/features/head-gestures.md) |
+| Notes → Google Docs | "Add this note to my grocery doc" | [google-docs-notes.md](docs/research/google-docs-notes.md) |
+| Codex from your glasses | "Tell Codex to fix … in valiant" (allowlisted repos, confirm first, never pushes) | [background-jobs.md](docs/features/background-jobs.md) |
+| Research on demand | "Research … and put it in a doc" | [background-jobs.md](docs/features/background-jobs.md) |
+| Live translator | "Translate Spanish" | [live-translator.md](docs/features/live-translator.md) |
+| Meeting mode | "Start meeting" → silent scribe → minutes in Google Docs | [meeting-mode.md](docs/features/meeting-mode.md) |
+| Journal & morning brief | Nightly diary in Google Docs, "morning brief" | [end-of-day-journal.md](docs/features/end-of-day-journal.md) |
+| Read-to-me | "Read this", "what's the wifi password on this card?" | [read-to-me.md](docs/features/read-to-me.md) |
+| Cooking / DIY coach | Steps, timers, "does this look done?", nod = next step | [cooking-diy-coach.md](docs/features/cooking-diy-coach.md) |
+| Workout coach | "Start squats, 3 sets of 12" — reps counted from head motion | [workout-coach.md](docs/features/workout-coach.md) |
+| Visual memory (opt-in) | "Where did I leave my keys?" — objects/places only, never faces | [visual-memory.md](docs/features/visual-memory.md) |
+| Dashboard | http://localhost:8787/dashboard | [dashboard.md](docs/features/dashboard.md) |
+
+## Status (2026-10-08)
+- Backend 368 tests, Android 181 tests passing. Real Gemini / Codex checks passed per feature (see each doc).
+- **Not yet verified on physical Pixel + glasses.** Google OAuth not configured yet.
+
+## Docs
+- [Architecture & contract](docs/architecture.md) · [Decisions](docs/decisions.md) · [Research index](docs/research/README.md) · [Agent workflow](docs/workflow.md) · [AGENTS.md](AGENTS.md)
+- Setup: [backend/README.md](backend/README.md), [android/README.md](android/README.md)
