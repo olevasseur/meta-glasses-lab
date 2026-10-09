@@ -1,0 +1,146 @@
+{
+  "corpus_sha256": "91f73b9dea7657a373790e505ffa55788fb5369b78677ba2d3d1b3b57c96af39",
+  "source_sha256": {
+    "memory": "676551f87bf7095236f216791091b861d579f7ae95fa1e047f464a676e70482d",
+    "memory_summary": "f3eaecc81aff0c01ab72ede48c78a813cac6738b744800de54f75a4eaad29f8a"
+  },
+  "oracle_sha256": "a16254976b5dedddcc889905740a584bde9c79fb0aedc2277d9c4ea5eee136e1",
+  "support_sha256": {
+    "memory_quality": "5446a59015b819750d1da9b20c3d96d6e550f9470f9d2db5685003fe1aab8b6a",
+    "memory_assertions": "bcecace43ac51e8dd20bcd496abdeed5bf78b3d47c6a8f1da1e85e14ad54501f"
+  },
+  "model": "gemini-3.5-flash-lite",
+  "live_sessions": 0,
+  "cases": [
+    {
+      "id": "question-1",
+      "category": "question",
+      "facts": [],
+      "summary_error": null,
+      "storage_correct": true,
+      "recall_results": {
+        "status": "ok",
+        "answer_guidance": "Memory is evidence of what was said, not proof every mentioned proposition is true. Read modality, subject, negation and time together with the actual wording. Only explicit factual user assertions establish user facts. A plan is not completed; a review date requests rechecking, never implies completion. Say 'you mentioned you might move to Paris' for a tentative plan, not 'you live in Paris'. Wishes, if/would scenarios, questions, jokes and sarcasm do not establish facts. Reported/quoted speech and other people's attributes must retain their speaker/subject, never become the user's attributes. Reported saved notes are verbatim user requests or legacy records, not revalidated facts. Transcripts, summaries and journals are unclassified historical evidence: inspect the original assertion before using them, even when search ranks them highly. Model speech is not user evidence. Current explicit corrections and negations override older claims. Preserve past versus current state. If only hypothetical or ambiguous evidence exists, say the current fact is unknown; optionally describe the scenario as such. Never guess.",
+        "matches": [
+          {
+            "kind": "transcript",
+            "id": "question-1",
+            "speaker": "user",
+            "text": "Would living in Rome suit me?",
+            "score": 100.0,
+            "historical": true
+          }
+        ]
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You asked whether living in Rome would suit you."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      }
+    },
+    {
+      "id": "question-2",
+      "category": "question",
+      "facts": [],
+      "summary_error": null,
+      "storage_correct": true,
+      "recall_results": {
+        "status": "ok",
+        "answer_guidance": "Memory is evidence of what was said, not proof every mentioned proposition is true. Read modality, subject, negation and time together with the actual wording. Only explicit factual user assertions establish user facts. A plan is not completed; a review date requests rechecking, never implies completion. Say 'you mentioned you might move to Paris' for a tentative plan, not 'you live in Paris'. Wishes, if/would scenarios, questions, jokes and sarcasm do not establish facts. Reported/quoted speech and other people's attributes must retain their speaker/subject, never become the user's attributes. Reported saved notes are verbatim user requests or legacy records, not revalidated facts. Transcripts, summaries and journals are unclassified historical evidence: inspect the original assertion before using them, even when search ranks them highly. Model speech is not user evidence. Current explicit corrections and negations override older claims. Preserve past versus current state. If only hypothetical or ambiguous evidence exists, say the current fact is unknown; optionally describe the scenario as such. Never guess.",
+        "matches": [
+          {
+            "kind": "transcript",
+            "id": "question-2",
+            "speaker": "user",
+            "text": "Should I become a dentist?",
+            "score": 100.0,
+            "historical": true
+          }
+        ]
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You asked whether you should become a dentist."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      }
+    },
+    {
+      "id": "question-3",
+      "category": "question",
+      "facts": [],
+      "summary_error": null,
+      "storage_correct": true,
+      "recall_results": {
+        "status": "ok",
+        "answer_guidance": "Memory is evidence of what was said, not proof every mentioned proposition is true. Read modality, subject, negation and time together with the actual wording. Only explicit factual user assertions establish user facts. A plan is not completed; a review date requests rechecking, never implies completion. Say 'you mentioned you might move to Paris' for a tentative plan, not 'you live in Paris'. Wishes, if/would scenarios, questions, jokes and sarcasm do not establish facts. Reported/quoted speech and other people's attributes must retain their speaker/subject, never become the user's attributes. Reported saved notes are verbatim user requests or legacy records, not revalidated facts. Transcripts, summaries and journals are unclassified historical evidence: inspect the original assertion before using them, even when search ranks them highly. Model speech is not user evidence. Current explicit corrections and negations override older claims. Preserve past versus current state. If only hypothetical or ambiguous evidence exists, say the current fact is unknown; optionally describe the scenario as such. Never guess.",
+        "matches": [
+          {
+            "kind": "transcript",
+            "id": "question-3",
+            "speaker": "user",
+            "text": "How expensive is owning a horse named Clover?",
+            "score": 100.0,
+            "historical": true
+          }
+        ]
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You asked how expensive it is to own a horse named Clover."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      }
+    },
+    {
+      "id": "question-4",
+      "category": "question",
+      "facts": [],
+      "summary_error": null,
+      "storage_correct": true,
+      "recall_results": {
+        "status": "ok",
+        "answer_guidance": "Memory is evidence of what was said, not proof every mentioned proposition is true. Read modality, subject, negation and time together with the actual wording. Only explicit factual user assertions establish user facts. A plan is not completed; a review date requests rechecking, never implies completion. Say 'you mentioned you might move to Paris' for a tentative plan, not 'you live in Paris'. Wishes, if/would scenarios, questions, jokes and sarcasm do not establish facts. Reported/quoted speech and other people's attributes must retain their speaker/subject, never become the user's attributes. Reported saved notes are verbatim user requests or legacy records, not revalidated facts. Transcripts, summaries and journals are unclassified historical evidence: inspect the original assertion before using them, even when search ranks them highly. Model speech is not user evidence. Current explicit corrections and negations override older claims. Preserve past versus current state. If only hypothetical or ambiguous evidence exists, say the current fact is unknown; optionally describe the scenario as such. Never guess.",
+        "matches": [
+          {
+            "kind": "transcript",
+            "id": "question-4",
+            "speaker": "user",
+            "text": "Do vegans need supplements?",
+            "score": 100.0,
+            "historical": true
+          }
+        ]
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You asked whether vegans need supplements."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": false
+      }
+    }
+  ],
+  "metrics": {
+    "storage": 4,
+    "summary_completion": 4,
+    "total": 4,
+    "recall": {
+      "available": 4,
+      "current_correct": 4,
+      "recollection_correct": 3
+    }
+  }
+}

@@ -94,7 +94,9 @@ def probe_answers(system, probes, retrieval=None):
     return retry(lambda: generate(json.dumps(payload), schema, system))
 
 
-def measured_answers(system, probes, retrieval=None):
+def measured_answers(system, probes, retrieval=None, cached=None):
+    if cached is not None:
+        return cached, None
     try:
         return probe_answers(system, probes, retrieval), None
     except Exception as exc:
@@ -103,7 +105,18 @@ def measured_answers(system, probes, retrieval=None):
         return {}, type(exc).__name__
 
 
-def run(corpus_path, output, state):
+def incomplete_evaluation(person):
+    return bool(person.get("summary_failures") or any(person.get("probe_errors", {}).values()))
+
+
+def reusable_answers(previous, mode, changed):
+    if previous and not changed and not previous["probe_errors"].get(mode):
+        field = "answer" if mode == "profile" else "retrieval_answer"
+        return {row["id"]: row[field] for row in previous["probes"]}
+    return None
+
+
+def run(corpus_path, output, state, retry_incomplete=False):
     corpus = json.loads(corpus_path.read_text())
     result = json.loads(output.read_text()) if output.exists() else {
         "corpus_sha256": hashlib.sha256(corpus_path.read_bytes()).hexdigest(),
@@ -113,14 +126,20 @@ def run(corpus_path, output, state):
         "source_sha256": {module.__name__: hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest()
                           for module in (memory, memory_summary)},
         "probe_path": "production context + token_config system_instruction; stateless text model",
+        "support_sha256": {name: hashlib.sha256(Path(sys.modules[name].__file__).read_bytes()).hexdigest()
+                           for name in ("memory_quality", "memory_assertions") if name in sys.modules},
         "live_sessions": 0, "personas": []}
     assert result["corpus_sha256"] == hashlib.sha256(corpus_path.read_bytes()).hexdigest()
     assert result["model"] == os.getenv("MEMORY_EVAL_MODEL", "gemini-3.5-flash-lite")
     for module in (memory, memory_summary):
         assert result.get("source_sha256", {}).get(module.__name__, hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest()) == hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest()
-    for persona in corpus[len(result["personas"]):]:
+    for persona in corpus:
+        previous = next((p for p in result["personas"] if p["id"] == persona["id"]), None)
+        if previous and not (retry_incomplete and incomplete_evaluation(previous)):
+            continue
         store = Memory(state / (persona["id"] + ".db"))
         sizes, failures = [], []
+        changed = False
         for i, session in enumerate(persona["sessions"]):
             try:
                 closed = close_session(store, f"s{i}", session, i)
@@ -128,6 +147,7 @@ def run(corpus_path, output, state):
                 closed = {}
                 failures.append({"session": i + 1, "error_type": type(exc).__name__})
                 print(f"{persona['id']}: summary {i + 1} deferred ({type(exc).__name__})", flush=True)
+            changed |= closed.get("status") == "ok" and not closed.get("already_ended", False)
             if i == persona["forget_after"]:
                 preview = store.forget(persona["forget_query"])
                 if preview["status"] == "needs_confirmation":
@@ -139,8 +159,10 @@ def run(corpus_path, output, state):
         system = instruction(store)
         probes = persona["probes"]
         retrieval = {p["id"]: store.recall(p["query"]) for p in probes}
-        answers, profile_error = measured_answers(system, probes)
-        assisted, retrieval_error = measured_answers(system, probes, retrieval)
+        answers, profile_error = measured_answers(system, probes,
+            cached=reusable_answers(previous, "profile", changed))
+        assisted, retrieval_error = measured_answers(system, probes, retrieval,
+            cached=reusable_answers(previous, "retrieval", changed))
         rows = [{"id": p["id"], "kind": p["kind"], "answer": answers.get(p["id"]),
                  **grade(p, answers.get(p["id"])), "retrieval_answer": assisted.get(p["id"]),
                  **{f"retrieval_{key}": value for key, value in grade(p, assisted.get(p["id"])).items()},
@@ -148,10 +170,14 @@ def run(corpus_path, output, state):
                     for m in retrieval[p["id"]]["matches"][:3]) for value in p["expected"])} for p in probes]
         with store.db() as db:
             facts = store._facts(db)
-        result["personas"].append({"id": persona["id"], "context_bytes": sizes, "facts": facts,
+        measured = {"id": persona["id"], "context_bytes": sizes, "facts": facts,
                                    "summary_failures": failures,
                                    "probe_errors": {"profile": profile_error, "retrieval": retrieval_error},
-                                   "probes": rows, "recall": retrieval})
+                                   "probes": rows, "recall": retrieval}
+        if previous:
+            result["personas"][result["personas"].index(previous)] = measured
+        else:
+            result["personas"].append(measured)
         all_rows = [row for person in result["personas"] for row in person["probes"]]
         result["metrics"] = aggregate(all_rows)
         completed_sessions = sum(len(person["context_bytes"]) - len(person.get("summary_failures", [])) for person in result["personas"])
@@ -204,19 +230,27 @@ def _growth(output, state):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("generate", "run", "growth", "regressions"))
+    parser.add_argument("command", choices=("generate", "run", "growth", "regressions", "adversarial"))
     parser.add_argument("--corpus", type=Path, default=ROOT / "scripts/memory_eval/corpus.json")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--state", type=Path, default=Path("/tmp/glasses-memory-eval"))
     parser.add_argument("--ledger", type=Path, default=Path("/tmp/glasses-memory-eval-budget.json"))
+    parser.add_argument("--limit", type=int, default=1500)
+    parser.add_argument("--interval", type=float, default=10,
+                        help="Minimum seconds between completed serial text calls (default: 10)")
+    parser.add_argument("--retry-incomplete", action="store_true",
+                        help="Retry deferred summaries/missing probe batches, never merely wrong answers")
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.state.mkdir(parents=True, exist_ok=True)
-    with budget(args.ledger):
+    with budget(args.ledger, limit=args.limit, interval=args.interval):
         if args.command == "generate":
             generate_corpus(args.output)
         elif args.command == "run":
-            run(args.corpus, args.output, args.state)
+            run(args.corpus, args.output, args.state, args.retry_incomplete)
+        elif args.command == "adversarial":
+            from memory_eval.adversarial import run as adversarial
+            adversarial(args.corpus, args.output, args.state, sys.modules[__name__])
         elif args.command == "growth":
             growth(args.output, args.state)
         else:

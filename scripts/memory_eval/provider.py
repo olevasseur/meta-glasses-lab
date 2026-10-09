@@ -13,6 +13,32 @@ from google.genai import models, types
 from usage import meter
 
 
+class DailyQuotaExceeded(RuntimeError):
+    """A known daily quota cannot be fixed by retrying this evaluation."""
+
+
+def quota_period(exc):
+    body = getattr(exc, "details", {})
+    if not isinstance(body, dict):
+        return "unknown"
+    error = body.get("error", body)
+    if not isinstance(error, dict):
+        return "unknown"
+    details = error.get("details")
+    if not isinstance(details, list):
+        return "unknown"
+    ids = []
+    for detail in details:
+        violations = detail.get("violations") if isinstance(detail, dict) else None
+        if isinstance(violations, list):
+            ids.extend(v.get("quotaId", "") for v in violations if isinstance(v, dict))
+    if any("PerDay" in value for value in ids if isinstance(value, str)):
+        return "daily"
+    if any("PerMinute" in value for value in ids if isinstance(value, str)):
+        return "minute"
+    return "unknown"
+
+
 @contextmanager
 def budget(path: Path, limit=1500, interval=1.0):
     counts = json.loads(path.read_text()) if path.exists() else {"text_attempts": 0, "failures": 0, "models": {}}
@@ -48,7 +74,11 @@ def budget(path: Path, limit=1500, interval=1.0):
         except Exception as exc:
             counts["failures"] += 1
             counts["last_error"] = {"type": type(exc).__name__, "code": getattr(exc, "code", None)}
+            if getattr(exc, "code", None) == 429:
+                counts["last_error"]["quota_period"] = quota_period(exc)
             path.write_text(json.dumps(counts, indent=2) + "\n")
+            if counts["last_error"].get("quota_period") == "daily":
+                raise DailyQuotaExceeded("Gemini daily text quota exhausted") from None
             if getattr(exc, "code", None) in (429, 503):
                 time.sleep(30)
             raise

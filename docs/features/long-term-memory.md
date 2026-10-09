@@ -137,3 +137,11 @@ Verified sources, **2026-10-07**:
 - [API pricing](https://ai.google.dev/gemini-api/docs/pricing): Flash-Lite free-tier availability.
 - [Structured outputs](https://ai.google.dev/gemini-api/docs/structured-output) and [Python SDK](https://googleapis.github.io/python-genai/): JSON schema and SDK configuration; actual provider acceptance verified by smoke.
 - [Ephemeral tokens](https://ai.google.dev/gemini-api/docs/ephemeral-tokens) and existing [M1](../research/m1-android-notes.md)/[M2](../research/m2-backend-notes.md) notes: preserved Live protocol. See [M3 research](../research/m3-memory-notes.md) for the schema compatibility finding.
+
+## Assertion hardening — 2026-10-08
+
+Extraction now distinguishes facts, plans, wishes, hypotheticals and reported
+speech, with subject and durability checks. Plans retain uncertainty and get a
+review date; they cannot replace a current fact. Profile/recall wording preserves
+negations, who said what, and past versus current state. See
+[memory assertion handling](memory-hypotheticals.md) for behavior and limitations.

@@ -86,3 +86,6 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   visual/log retention measurements; see the linked evaluation for outcomes.
 
 - [meeting-chunked.md](meeting-chunked.md) — **2026-10-08**: durable local meeting WAV chunks, non-Live Gemini transcription, overlap stitching, short on-device wake handoff; replaces continuous Live scribe capture.
+
+- [memory-hypotheticals.md](memory-hypotheticals.md) — **2026-10-08**: modality,
+  subject and plan review dates; assertion-aware recall and 40 adversarial cases.
