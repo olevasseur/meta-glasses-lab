@@ -91,3 +91,8 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   subject and plan review dates; assertion-aware recall and 40 adversarial cases.
 
 - [DAT session + HFP recovery](dat-session-hfp.md) — **2026-10-09**: first Pixel 10 Pro/RB Meta 01G8 failure, documented vs inferred HFP interaction, independent audio/control lifecycle, bounded DAT retries and SDK error diagnostics.
+
+- [Over latency correction](over-mode-notes.md#hardware-latency-correction--2026-10-09)
+  — **2026-10-09**: repeated DAT timeout removed from Over, persistent shared-PCM
+  recognition with startup buffering, precise manual-boundary logs, four Live
+  sessions/twelve turns; physical-device retest and 16.739 s root cause unresolved.

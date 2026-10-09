@@ -502,3 +502,23 @@ paused 43.047 → Gemini connected 43.57 with no audio; next HOLD took a photo.
   the glasses; do not loop global SDK reset/unregistration.
 
 Sources and limits: [DAT session/HFP research](research/dat-session-hfp.md).
+
+## Over latency retest — 2026-10-09
+
+- [ ] **OVER-LATENCY-1 — Pixel 10 Pro + Ray-Ban Meta, HFP 8→16 kHz.** Install the
+  fixed APK, confirm offline English STT, start Over and immediately say “Can you
+  hear me? Over.” Repeat on at least ten turns, including “Over” in the first
+  second after playback drains. No recurring ~8-second Preparing interval;
+  no repeated request needed. Also test “over and out”, the 10-second silence
+  fallback, a long model reply (no echo-triggered turn), phone call pause/resume,
+  reconnect, and an on-device service timeout/restart. On restart, audio spoken
+  before Ready must still produce its sign-off or an explicit buffer/service
+  error. Capture `over`, `live-turn`, and `latency` logs: detected sign-off →
+  activityEnd queued should occur in the same callback; one Start/End per turn;
+  no input bytes sent after End; first inputTranscription, first model content,
+  first audio and turnComplete must all be timestamped without transcript text.
+  Record median/p95 End→first audio and perceived speaker delay separately;
+  target typical End→audio <2 s. Note queue_bytes on any slow End, network state,
+  and whether input transcription was also delayed. The 1.2-second “and out”
+  grace precedes End and must not be counted as provider time. Simulated WAV
+  checks do not mark this hardware checkbox complete.

@@ -106,3 +106,42 @@ during its 2.5-second pause, then activityEnd → 74,882 PCM response bytes and
 turnComplete with the correct answer and ignored sign-off. The script validates
 the Gemini protocol, not the Android detector or actual 10-second microphone
 behavior. Hardware speech/noise accuracy remains unverified as listed above.
+
+## Hardware latency correction — 2026-10-09
+
+The Pixel 10 Pro/Ray-Ban Meta report showed 8.233 s and 8.230 s between Preparing
+and shared-PCM recognition start. Inspection verifies two potential 8-second DAT
+session waits and per-turn `stop()`/`start()` in the old controller. Which DAT
+wait expired is inferred; no DAT-state trace was included. PCM arriving before
+`writePipe` existed was discarded. Over now starts on-device recognition directly,
+keeps it alive with silent PCM during replies, and buffers startup/restart writes.
+The inherited DAT-first entry point remains available but is not used by Over.
+
+Rechecked the official [Android PCM-source/segmented recognition extras](https://developer.android.com/reference/android/speech/RecognizerIntent#EXTRA_AUDIO_SOURCE)
+and [Gemini Live wire reference](https://ai.google.dev/api/live) on 2026-10-09.
+Segmented recognition can use the source descriptor lifetime; implementation
+support varies. Manual activity markers require disabled automatic VAD, while
+`audioStreamEnd` is for automatic detection. Input transcription has no guaranteed
+ordering relative to model events, so it is only an opportunistic fallback while
+local recognition is unavailable/preparing. The bounded PCM queue is the startup
+coverage mechanism, not an assumption that Gemini will transcribe before End.
+
+The supplied 16.739-second metric begins after successful WebSocket enqueue of
+activityEnd. The old recognizer cleanup happens before that boundary, so its
+warm-up/cleanup cannot explain that measured interval. Code + JVM integration
+checks verify serialized Start/audio/End and gating of all post-End PCM. No extra
+marker, repeated request, or `audioStreamEnd` was added. Removing recognition
+teardown from sign-off also removes Binder cleanup from the critical callback.
+
+Four real constrained sessions / twelve turns reproduced provider/transport
+latency variation (0.840–6.427 s, median 1.095 s) with no tools and no post-End
+PCM. The slowest turn's input transcription itself arrived 5.377 s after End,
+then first model/audio 1.050 s later. This supports an upstream/transport delay
+hypothesis; it does not prove the cause of the hardware outlier. Full evidence:
+[Over latency evaluation](../evals/over-latency-2026-10-09.md).
+
+**Unverified:** exact cause of the reported 16.739 s gap; physical HFP latency;
+Pixel long-lived segmented recognition and echo suppression; recognition of
+buffered speech after service failure; delayed/duplicate callbacks across turns;
+rare late Gemini transcription associated with an earlier turn (no provider turn
+ID). Tests use fake recognition callbacks; WAV tests use oracle sign-off timing.
