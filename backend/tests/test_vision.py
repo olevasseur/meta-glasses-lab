@@ -31,6 +31,7 @@ def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
     assert "contextWindowCompression" in setup
     declarations = {d["name"]: d for d in setup["tools"][0]["functionDeclarations"]}
     assert set(declarations) == set(REGISTRY) == {
+        "create_doc", "set_doc_alias", "remove_doc_alias",
         "append_to_doc", "remember", "recall", "forget",
         "await_gesture_confirmation", "look", "set_watch_mode",
         "codex_task", "deep_research", "job_status", "cancel_job",
@@ -42,7 +43,7 @@ def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
         "check_progress", "set_timer", "list_timers", "cancel_timer", "set_nod_navigation",
         "set_visual_memory", "remember_this", "delete_visual_memory", "find_object", "when_did_i_see", "end_conversation",
     }
-    assert len(setup["tools"][0]["functionDeclarations"]) == 43
+    assert len(setup["tools"][0]["functionDeclarations"]) == 46
     for name, field, kind in [("look", "question", "STRING"), ("set_watch_mode", "on", "BOOLEAN")]:
         tool = declarations[name]
         assert "Client-executed" in tool["description"]

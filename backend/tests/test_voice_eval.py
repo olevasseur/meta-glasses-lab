@@ -23,7 +23,8 @@ CASES=json.loads((Path(__file__).resolve().parents[2]/'scripts/voice_eval/cases.
 
 def test_all_tools_and_features_have_cases():
     stop_cases=json.loads((Path(__file__).resolve().parents[2]/'scripts/voice_eval/voice-stop-cases.json').read_text())
-    covered={e['name'] for c in CASES + stop_cases for e in c['expected']}
+    nickname_cases=json.loads((Path(__file__).resolve().parents[2]/'scripts/voice_eval/doc-nickname-cases.json').read_text())
+    covered={e['name'] for c in CASES + stop_cases + nickname_cases for e in c['expected']}
     covered|={c['required_followup'] for c in CASES if c.get('required_followup')}
     assert covered==set(REGISTRY)
     assert len(CASES)==len({c['id'] for c in CASES})
@@ -194,6 +195,9 @@ def test_live_receiver_waits_for_tool_result_and_audio(monkeypatch):
 
 
 @pytest.mark.parametrize('route,args,expected', [
+    ('/tools/create_doc', {'title':'Travel Plans','alias':'trips'}, 'ok'),
+    ('/tools/set_doc_alias', {'alias':'office','doc_name':'Work Log'}, 'ok'),
+    ('/tools/remove_doc_alias', {'alias':'work'}, 'ok'),
     ('/tools/forget', {'query':'dog'}, 'ok'),
     ('/tools/deep_research', {'topic':'Canada'}, 'queued'),
     ('/tools/cancel_job', {'job_id':'a'*32}, 'cancelled'),

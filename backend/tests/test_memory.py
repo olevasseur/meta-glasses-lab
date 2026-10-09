@@ -214,6 +214,7 @@ def test_token_locks_memory_and_registry_but_not_resumption(client, store, monke
     if mode in {"auto", "meeting"}:
         assert detection.silence_duration_ms == 3250
     assert {t.name for t in live.tools[0].function_declarations} == {
+        "create_doc", "set_doc_alias", "remove_doc_alias",
         "append_to_doc", "remember", "recall", "forget", "await_gesture_confirmation", "look", "set_watch_mode",
         "codex_task", "deep_research", "job_status", "cancel_job",
         "start_translation", "stop_translation", "start_meeting", "stop_meeting",

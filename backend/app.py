@@ -199,6 +199,8 @@ async def dispatch_tool(name: str, http_request: Request, args: dict | None = No
     if http_request.headers.get("X-Offline-Id"):
         from offline_capture import execute
         return await execute(http_request.headers["X-Offline-Id"], name, request.model_dump())
+    if name in approval_actions.doc_nicknames.TOOLS:
+        return await approval_actions.doc_action(name, request.model_dump())
     if name == "append_to_doc":
         return await approval_actions.append_note(request.model_dump())
     if name in approvals.SENSITIVE:

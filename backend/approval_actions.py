@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from memory import MemoryConflict
 
 import approvals
+import doc_nicknames
 import app
 from notes import CREATE_INBOX
 import meeting_api
@@ -69,6 +70,8 @@ async def prepare(name, args):
 
 
 async def execute(name, args):
+    if name in doc_nicknames.TOOLS:
+        return await asyncio.to_thread(doc_nicknames.execute, app.notes, name, args)
     if name == "visual_delete":
         return await asyncio.to_thread(visual_api.memory.delete_window, **args)
     if name == "export_meeting":
@@ -96,3 +99,15 @@ async def append_note(args):
                                        prepared=(args, {**args, "destination": preview["document"]}))
     # A fixed existing ID cannot fall back to creating a document if an alias changes.
     return await execute("append_to_doc", args)
+
+
+async def doc_action(name, args):
+    try:
+        preview = await asyncio.to_thread(doc_nicknames.prepare, app.notes, name, args)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from None
+    except Exception:
+        raise HTTPException(503, "Cannot preview document action; check Google credentials and aliases") from None
+    if preview["status"] != "prepared":
+        return preview
+    return await approvals.propose(name, args, prepared=(preview["args"], preview["details"]))

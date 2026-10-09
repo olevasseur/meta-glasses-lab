@@ -1,0 +1,68 @@
+[
+  {
+    "id": "create-doc",
+    "feature": "notes",
+    "segments": [
+      "Create a Google Doc titled Travel Plans with the nickname trips."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "auto",
+    "expected": [
+      {
+        "name": "create_doc",
+        "args": {
+          "title": {
+            "contains": "Travel Plans"
+          },
+          "alias": {
+            "contains": "trips"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "set-doc-alias",
+    "feature": "notes",
+    "segments": [
+      "Set the nickname office for the Google Doc Work Log."
+    ],
+    "pauses": [],
+    "voice": "Puck",
+    "mode": "auto",
+    "expected": [
+      {
+        "name": "set_doc_alias",
+        "args": {
+          "alias": {
+            "contains": "office"
+          },
+          "doc_name": {
+            "contains": "Work Log"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "remove-doc-alias",
+    "feature": "notes",
+    "segments": [
+      "Remove the document nickname work. Keep the document."
+    ],
+    "pauses": [],
+    "voice": "Aoede",
+    "mode": "auto",
+    "expected": [
+      {
+        "name": "remove_doc_alias",
+        "args": {
+          "alias": {
+            "contains": "work"
+          }
+        }
+      }
+    ]
+  }
+]

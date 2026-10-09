@@ -306,7 +306,8 @@ def test_dashboard_default_preserves_merged_token_contract(client, monkeypatch, 
         assert ("kayaking" in live.system_instruction) == (persona == "assistant")
         names = {tool.name for tool in live.tools[0].function_declarations}
         assert names == ({
-            "append_to_doc", "remember", "recall", "forget", "await_gesture_confirmation",
+            "append_to_doc", "create_doc", "set_doc_alias", "remove_doc_alias",
+            "remember", "recall", "forget", "await_gesture_confirmation",
             "look", "set_watch_mode", "codex_task", "deep_research", "job_status", "cancel_job",
             "start_translation", "stop_translation", "start_meeting", "stop_meeting",
             "start_workout", "stop_workout", "workout_status", "workout_history",

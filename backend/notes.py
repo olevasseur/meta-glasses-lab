@@ -1,6 +1,5 @@
 """Google Docs notes for one personal Google account."""
 
-import json
 import os
 import re
 from datetime import UTC, datetime
@@ -13,6 +12,8 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from rapidfuzz import fuzz, process, utils
+
+from doc_nicknames import read_aliases, write_aliases
 
 BACKEND_DIR = Path(__file__).resolve().parent
 SCOPES = [
@@ -125,15 +126,7 @@ class Notes:
             if not re.fullmatch(r"[A-Za-z0-9_-]{1,200}", confirmed_doc_id):
                 raise ValueError("Invalid document ID")
             return {"status": "matched", "document": self._document(confirmed_doc_id)}
-        aliases = ({"inbox": None} if confirmed_doc_id == CREATE_INBOX else
-                   json.loads(self.aliases_path.read_text(encoding="utf-8")))
-        if not isinstance(aliases, dict) or any(
-            not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,200}", value)
-            for key, value in aliases.items()
-            if not (key.strip().casefold() == "inbox" and value is None)
-        ):
-            raise ValueError("Aliases must map names to document IDs; only inbox may be null")
-        aliases = {key.strip().casefold(): value for key, value in aliases.items()}
+        aliases = ({"inbox": None} if confirmed_doc_id == CREATE_INBOX else read_aliases(self))
         name = "inbox" if confirmed_doc_id == CREATE_INBOX else doc_name.strip().casefold()
         if name in aliases and aliases[name] is not None:
             return {"status": "matched", "document": self._document(aliases[name])}
@@ -153,6 +146,9 @@ class Notes:
                 return {"status": "matched", "document": {"id": CREATE_INBOX, "title": INBOX_TITLE, "create_if_absent": True}}
             created = self.docs.documents().create(body={"title": INBOX_TITLE}).execute()
             document = {"id": created["documentId"], "title": INBOX_TITLE}
+            aliases = read_aliases(self)
+            aliases["inbox"] = document["id"]
+            write_aliases(self, aliases)
             self.cached_documents.append(document)
             return {"status": "matched", "document": document}
         return match_document(doc_name, self._list_documents())

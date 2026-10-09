@@ -20,6 +20,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
 import memory_api
+import doc_nicknames
 from memory import normalized
 from notes import BACKEND_DIR
 
@@ -383,7 +384,11 @@ def settings_page(request):
     # Show malformed files verbatim so the editor can repair them.
     def contents(path, default):
         return path.read_text(encoding="utf-8") if path.exists() else default
-    return {"aliases": contents(notes.aliases_path, '{"inbox": null}'),
+    try:
+        rows = doc_nicknames.alias_rows(notes)
+    except (ValueError, TypeError):
+        rows = []
+    return {"alias_rows": rows, "aliases": contents(notes.aliases_path, '{"inbox": null}'),
             "repos": contents(REPOS_PATH, '{}'), "preferences": preferences(),
             "job_agents": request.app.state.jobs.agent_settings()}
 
@@ -406,26 +411,26 @@ def save_settings(request: Request, section: str):
                         raise ValueError("Invalid model name")
                     value[agent] = {"enabled": form.get(agent + "_enabled") == "on", "model": model}
                 atomic_json(request.app.state.jobs.data_dir / "job-settings.json", value)
+            elif section == "alias-add":
+                doc_nicknames.edit_alias(request.app.state.dashboard_notes(), form.get("alias", ""),
+                                         form.get("destination", ""))
+            elif section == "alias-remove":
+                doc_nicknames.edit_alias(request.app.state.dashboard_notes(), form.get("alias", ""))
             elif section in {"aliases", "repos"}:
                 value = json.loads(form.get("json", ""))
                 if not isinstance(value, dict) or any(not key.strip() for key in value):
                     raise ValueError("Use a JSON object with nonempty names")
                 if section == "aliases":
-                    if len({key.strip().casefold() for key in value}) != len(value):
-                        raise ValueError("Alias names must be unique ignoring case/whitespace")
-                    if any(not (isinstance(v, str) and re.fullmatch(r"[A-Za-z0-9_-]+", v))
-                           and not (k.strip().casefold() == "inbox" and v is None) for k, v in value.items()):
-                        raise ValueError("Aliases map names to document IDs; only inbox may be null")
-                    atomic_json(request.app.state.dashboard_notes().aliases_path, value)
+                    doc_nicknames.replace_aliases(request.app.state.dashboard_notes(), value)
                 else:
                     if any(not isinstance(v, str) or not Path(v).is_absolute() or "\x00" in v for v in value.values()):
                         raise ValueError("Repository names must map to absolute directory paths")
                     atomic_json(REPOS_PATH, value)
             else:
                 raise HTTPException(404, "Unknown settings section")
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as exc:
         return render(request, "settings.html", "Settings", status_code=422,
-                      error="Invalid settings. Use the format shown below; nothing was saved.",
+                      error="Invalid settings. " + (str(exc) if section.startswith("alias") else "Use the format shown below; nothing was saved."),
                       **{**settings_page(request), **({section: form.get("json", "")} if section in {"aliases", "repos"} else {})})
     return redirect("/dashboard/settings")
 
