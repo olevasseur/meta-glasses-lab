@@ -297,6 +297,14 @@ class ConversationService : Service(), ViewModelStoreOwner {
         Handler(Looper.getMainLooper()).postDelayed({ tone.release() }, 140)
     }
 
+    /** Short acknowledgement that the Over turn ended and the request was sent. */
+    fun turnEndCue() {
+        if (!controls.shouldRun || !hasFocus) return
+        val tone = runCatching { ToneGenerator(AudioManager.STREAM_VOICE_CALL, 30) }.getOrNull() ?: return
+        tone.startTone(ToneGenerator.TONE_PROP_BEEP2, 120)
+        Handler(Looper.getMainLooper()).postDelayed({ tone.release() }, 180)
+    }
+
     private fun chime(start: Boolean) {
         // Platform-generated short tones: no bundled media or runtime AI request.
         val tone = runCatching { ToneGenerator(AudioManager.STREAM_VOICE_CALL, 35) }.getOrNull() ?: return
