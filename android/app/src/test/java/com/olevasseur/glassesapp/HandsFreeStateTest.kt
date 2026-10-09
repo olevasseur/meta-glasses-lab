@@ -42,10 +42,24 @@ class HandsFreeStateTest {
         assertTrue(disconnected.start(1).shouldRun)
     }
 
-    @Test fun `glasses session pause resumes only after all blockers clear`() {
-        val paused = HandsFreeState().start(0).pause(PauseReason.GLASSES, true).pause(PauseReason.CALL, true)
-        assertFalse(paused.pause(PauseReason.GLASSES, false).shouldRun)
-        assertTrue(paused.pause(PauseReason.GLASSES, false).pause(PauseReason.CALL, false).shouldRun)
+    @Test fun `losing and recovering DAT inputs never pauses any conversation mode`() {
+        ConversationMode.entries.forEach { mode ->
+            val ready = HandsFreeState(mode = mode).start(0).inputsAvailable(true)
+            assertTrue(ready.inputsAvailable)
+            val lost = ready.inputsAvailable(false)
+            assertTrue(lost.shouldRun)
+            assertTrue(lost.conversation)
+            assertFalse(lost.inputsAvailable)
+            assertEquals(ready, lost.inputsAvailable(true))
+            // Recovery cannot override independent audio interruption guards.
+            PauseReason.entries.forEach { reason ->
+                val paused = ready.pause(reason, true).inputsAvailable(false)
+                assertFalse(paused.shouldRun)
+                assertFalse(paused.inputsAvailable(true).shouldRun)
+            }
+            assertFalse(lost.stop().inputsAvailable(true).inputsAvailable)
+            assertFalse(lost.stop().inputsAvailable(true).shouldRun)
+        }
     }
 
     @Test fun `stop cancels resume after a call or focus gain`() {

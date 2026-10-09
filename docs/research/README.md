@@ -89,3 +89,5 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 
 - [memory-hypotheticals.md](memory-hypotheticals.md) — **2026-10-08**: modality,
   subject and plan review dates; assertion-aware recall and 40 adversarial cases.
+
+- [DAT session + HFP recovery](dat-session-hfp.md) — **2026-10-09**: first Pixel 10 Pro/RB Meta 01G8 failure, documented vs inferred HFP interaction, independent audio/control lifecycle, bounded DAT retries and SDK error diagnostics.

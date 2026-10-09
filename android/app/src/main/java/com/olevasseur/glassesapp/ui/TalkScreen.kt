@@ -37,6 +37,10 @@ fun TalkScreen(state: ConversationState, model: ConversationViewModel, approval:
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("the glasses app", style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(top = 12.dp).semantics { heading() })
+        if (state.handsFree.armed && !state.handsFree.inputsAvailable)
+            Text("Glasses controls unavailable. Use screen or notification controls.",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
         if (approval != null) {
             // The full approval owns the review area until resolved, with Stop still reachable.
             LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
