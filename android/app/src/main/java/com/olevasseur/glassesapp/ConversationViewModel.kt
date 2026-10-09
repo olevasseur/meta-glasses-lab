@@ -129,6 +129,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             onEnd = { reason ->
                 overAwaitingReply = true
                 gemini.setTalking(false)
+                if (reason != OverTurnDetector.End.SIGN_OFF && audioReady) service?.turnEndCue()
                 mutableState.update { it.copy(overStatus = if (reason == OverTurnDetector.End.SILENCE_TIMEOUT)
                     "Silence timeout · waiting for reply" else "Waiting for reply") }
                 if (reason == OverTurnDetector.End.SIGN_OFF) stop()
