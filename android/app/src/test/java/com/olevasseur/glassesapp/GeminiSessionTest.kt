@@ -96,6 +96,52 @@ class GeminiSessionTest {
         """{"toolCall":{"functionCalls":[{"id":"$id","name":"$name","args":{}}]}}"""
     private val audioMessage = """{"serverContent":{"modelTurn":{"parts":[{"inlineData":{"mimeType":"audio/pcm;rate=24000","data":"AQI="}}]}}}"""
 
+    @Test fun overSignOffImmediatelySendsEndAndRejectsRemainderUntilNextStart() = runBlocking {
+        Fixture(this).use { f ->
+            val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            val cursor = DiagnosticLog.ring.after(0, 500).lastOrNull()?.sequence ?: 0
+            var now = 0L
+            lateinit var recognized: (String, Boolean) -> Unit
+            val controller = OverModeController(this, { text, _ ->
+                recognized = text
+                object : OverSpeechInput {
+                    override fun startOnDevice() = Unit
+                    override fun audio(pcm: ByteArray) = Unit
+                    override fun stop() { fail("Sign-off must not wait for recognizer shutdown") }
+                }
+            }, { f.session.setTalking(false) }, {}, { now })
+            repeat(2) {
+                f.session.setTalking(true)
+                controller.start(ConversationSettings(mode = ConversationMode.OVER))
+                f.session.sendAudio(byteArrayOf(1, 2))
+                val before = socket.sent.size
+                recognized("over", true)
+                now += 1200
+                controller.tick()
+                // No yield, recognizer cleanup, transcription or model event needed to send end.
+                assertEquals(before + 1, socket.sent.size)
+                assertTrue(socket.sent.last().contains("activityEnd"))
+                f.session.sendAudio(byteArrayOf(3, 4))
+                f.session.setTalking(false)
+                assertEquals(before + 1, socket.sent.size)
+                socket.receive("""{"serverContent":{"inputTranscription":{"text":"private phrase"}}}""")
+                socket.receive(audioMessage)
+                socket.receive("""{"serverContent":{"turnComplete":true}}""")
+                yield()
+            }
+            val input = socket.sent.map { JSONObject(it).optJSONObject("realtimeInput") }.filterNotNull()
+            assertEquals(listOf("activityStart", "audio", "activityEnd", "activityStart", "audio", "activityEnd"),
+                input.map { it.keys().next() })
+            val logs = DiagnosticLog.ring.after(cursor).filter { it.feature == "live-turn" }
+            for (event in listOf("activityStart_sent", "activityEnd_sent", "first_inputTranscription",
+                "first_model_content", "first_audio", "turnComplete")) {
+                assertEquals(event, 2, logs.count { it.event.contains("event=$event ") })
+            }
+            assertFalse(logs.any { it.event.contains("private phrase") })
+            assertTrue(logs.all { it.timestamp.isNotBlank() && it.event.contains("monotonic_ms=") })
+        }
+    }
+
     @Test fun meetingInteractionUsesNormalTokenAndRejectsTranslationSwitch() = runBlocking {
         Fixture(this).use { f ->
             f.session.start(ConversationSettings(), meetingInteraction = true)

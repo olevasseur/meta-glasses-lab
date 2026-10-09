@@ -1,6 +1,6 @@
 # Over mode and configurable patience
 
-Implemented and checked **2026-10-07**. Runtime conversation AI remains Gemini Live.
+Updated **2026-10-09** after the Pixel 10 Pro / Ray-Ban Meta latency report. Runtime conversation AI remains Gemini Live.
 
 ## Use
 
@@ -12,7 +12,7 @@ timeout persist locally in Preferences DataStore.
   this much silence using the existing low-sensitivity automatic detection.
 - **Push-to-talk:** screen hold/release and glasses touchpad double-tap toggle
   remain available, including the existing 60-second limit.
-- **Over:** wait for the status to say **Listening for sign-off**. Speak for as
+- **Over:** speak when connected; startup audio is buffered for keyword recognition. Speak for as
   long as you like; finish with the selected phrase: **over** (default), **go ahead**,
   or **your turn**. For example: “What is two plus two? Over.” Only the selected
   turn keyword is active. **Over and out** always stops the whole session.
@@ -25,33 +25,45 @@ continuously during the user's turn, including pauses. Only a recognized suffix 
 the configured continuous-silence timeout sends `activityEnd`. **There is no
 maximum turn length while the user keeps speaking.** Microphone capture stays
 open during the reply, but its audio is not sent to Gemini or the keyword
-recognizer. After `turnComplete` and playback drain, a fresh activity and
-recognizer begin. Over therefore does not support barge-in during replies.
+recognizer as speech. The recognizer receives synthetic silence during replies
+and stays alive. After `turnComplete` and playback drain, a fresh activity and
+turn detector begin, reusing the warm recognition session. Over therefore does not support barge-in during replies.
 Reconnect clears local hypotheses and starts a fresh user activity.
 
 With head gestures enabled, a valid nod/shake to Gemini's pending yes/no question
-also sends an answer: it closes the open activity, stops keyword recognition,
+also sends an answer: it closes the open activity, pauses keyword matching,
 and sends the complete gesture text turn. Recognition resumes after the reply
 and playback drain. Transcript uploads, memory tools and Google Docs notes use
 the same lifecycle and backend registry in all three conversation modes.
 
 ## Recognition and timing
 
-The first choice is DAT `mwdat-speech:1.0.0` on real connected glasses, with the
-DAT **microphone permission** granted using the existing button. It supplies
-partial/final replacement hypotheses; Gemini input transcription is not needed
-to decide when to send `activityEnd`.
-Speech attaches to the existing capture-button/Motion DAT session. Each turn
-removes only its Speech capability; ending a turn or disabling head gestures
-does not stop the other capabilities. Stop releases the shared session.
+Over starts Android on-device `SpeechRecognizer` immediately, with offline English
+(`en-US`), instead of first waiting for DAT Speech. The hardware report's repeated
+8.2-second delay matched the DAT session's 8-second timeout, repeated by the old
+per-turn teardown. Over no longer depends on DAT Speech permission/readiness.
 
-If DAT is missing, denied, fails, times out or stops, the fallback is Android
-on-device `SpeechRecognizer`, with offline preference and English (`en-US`).
-It receives the **same resampled 16 kHz mono PCM16** as Gemini through a pipe.
-No second Android recorder is deliberately opened. Phone and mock-glasses audio
-use this fallback directly. Android 13/API 33 or later is required for this PCM
-injection fallback, even though the on-device recognizer factory exists at API 31.
-Install the offline English recognition model on the phone first.
+Recognition receives the **same resampled 16 kHz mono PCM16** as Gemini. It uses
+API 33 audio-source segmented mode and stays open across turns; only the local
+hypotheses/silence counter reset. Model playback feeds zeros to this source, so
+model echo cannot supply a sign-off. Stop, reconnect and call/focus suspension
+release recognition. A service-driven end/timeout restarts immediately after a
+250 ms backoff, including during playback; this is not a per-turn restart.
+
+A 16-second (512 KB) PCM queue retains startup/restart audio and partial pipe
+writes. A background nonblocking writer retries pipe backpressure without
+blocking capture or Gemini upload. Overflow or a broken service produces an
+explicit “audio could not be evaluated” error; use the silence timeout or restart.
+Android 13/API 33+ and the installed offline English model are required. No
+second recorder is intentionally opened.
+
+While local recognition is preparing, restarting or unavailable, received Gemini
+`inputTranscription` chunks also feed an independent suffix detector. Late chunks
+while waiting for a reply are ignored, and a healthy local recognizer owns the
+turn. This is opportunistic: all 12 measured Live turns delivered transcription
+**after** `activityEnd`. It cannot replace the PCM buffer, and provider chunks have
+no turn identifier or guaranteed ordering. Cold-start/restart fallback still
+needs hardware validation; the silence timeout remains available.
 
 Recognition callbacks ending on silence only restart recognition; they do not
 end the Gemini turn. The independent PCM detector owns the silence timeout.
@@ -105,6 +117,20 @@ No new backend secrets or environment variables are required.
 
 ## Verification
 
+- **2026-10-09 latency correction:** JVM coverage checks warm reuse across three
+  turns, first-word sign-offs, startup buffer/backpressure, transcription fallback,
+  and immediate `activityEnd` with no trailing audio or duplicate end. New
+  `live-turn` diagnostics include UTC + monotonic timestamps, turn number, queued
+  bytes and input byte count; no transcript contents. “Sent” means accepted into
+  OkHttp's queue, not acknowledged by Gemini. Receive timing is logged on the
+  socket callback before Main/UI delivery.
+- Real Live: **4 sessions / 12 turns**, median activityEnd→audio **1.095 s**;
+  **10/12 < 2 s**, range **0.840–6.427 s**. Includes synthetic HFP 8→16 kHz and a
+  missed-first-over/repeated-question case. The existing 1.2-second sign-off grace
+  is additional. The 16.739-second hardware delay was not reproduced or proven
+  fixed. See [full evaluation](../evals/over-latency-2026-10-09.md) and
+  [hardware retest](../hardware-test-plan.md#over-latency-retest--2026-10-09).
+
 - Merged with memory and head gestures: backend **97 passed, 2 warnings**;
   Android **BUILD SUCCESSFUL**, **67 JVM tests, zero failures/errors/skips**.
   Added coverage for memory and all five tools in every token mode, plus Over
@@ -145,16 +171,17 @@ Android SDK, with writable Gradle/Android-user/uv caches under `/tmp`.
 
 ## Limitations and device follow-up
 
-- **Unverified on hardware:** DAT STT coexisting with HFP capture, permissions,
-  recognizer latency, Pixel PCM injection and playback/echo behavior. DAT's API
-  and published binary support transcripts; that does not prove concurrent HFP
-  behavior. Test on the Pixel and real glasses before relying on voice sign-off.
-- DAT Speech is a development/beta capability. Its StateFlow can coalesce equal
-  hypotheses; a new capability is attached for each user turn to avoid reusing a
-  previous sign-off. Startup can miss early speech: wait for **Listening**.
+- **Hardware retest pending:** Pixel PCM injection, persistent recognizer latency,
+  HFP playback/echo behavior, and detection of the first word after each reply.
+  The supplied hardware log establishes that on-device startup succeeded, not
+  that every word reached its recognizer.
+- Persistent segmented recognition, early-word replay, service restart behavior and
+  callback timing still need the hardware retest below. A service may ignore the
+  segmented extras or deliver delayed results; the buffer covers unsent PCM,
+  not audio already consumed and then lost inside a failing speech service.
 - Android recognizers may ignore PCM-source extras and open their own mic. A pipe
-  that stops accepting data disables recognition with an error; it cannot stall
-  Gemini upload. There is no fallback that intentionally races a second mic.
+  that remains blocked beyond the bounded buffer disables recognition with an
+  error; it cannot stall Gemini upload. There is no fallback that intentionally races a second mic.
   On unsupported phones, pause for the configured silence interval or switch
   to PTT/Auto after Stop.
 - Recognition mistakes or a stable partial ending in “over” can commit too soon;

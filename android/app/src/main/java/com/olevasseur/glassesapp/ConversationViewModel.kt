@@ -217,6 +217,9 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         },
         localTool = { featureTools.tool(it) },
         onEvent = { event ->
+            if (!state.value.meeting && state.value.settings.mode == ConversationMode.OVER) {
+                event.inputText?.let(over::inputTranscription)
+            }
             if (state.value.meeting && event.turnComplete && !event.interrupted && event.calls.isEmpty()) meetingAssistant.turnEnded()
             if (event.interrupted) offline.interrupted()
             else if (event.turnComplete) offline.turnComplete()
@@ -586,7 +589,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             return
         }
         gemini.setTalking(true)
-        if (state.value.talking) over.start(state.value.settings, state.value.mock || state.value.route.startsWith("Phone"))
+        if (state.value.talking) over.start(state.value.settings)
     }
 
     private fun sendGesture(text: String): Boolean {
@@ -595,7 +598,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         if (!state.value.meeting && state.value.settings.mode == ConversationMode.OVER && !state.value.talking) {
             overAwaitingReply = sent
             overResumeJob?.cancel()
-            over.stop()
+            over.pause()
             mutableState.update { it.copy(overStatus = "Waiting for reply") }
         }
         if (sent) appendTranscript("You", text)

@@ -149,6 +149,7 @@ class GeminiSession(
             }
             val generation = try { synchronized(sendLock) {
                 if (webSocket !== socket || !active) return
+                trace(event)
                 if (event.interrupted) {
                     audio.flush()
                     audioGeneration.incrementAndGet()
@@ -183,6 +184,29 @@ class GeminiSession(
                 recover(GeminiRecovery.classify(response?.code, reason + " " + t.message.orEmpty()))
             }
         }
+    }
+
+    private var diagnosticTurn = 0L
+    private var firstInputLogged = false
+    private var firstModelLogged = false
+    private var firstAudioLogged = false
+    private var activityEndedMs: Long? = null
+    private var inputBytes = 0L
+
+    /** Called on socket arrival, before Main scheduling or playback can add latency. */
+    private fun trace(event: ServerEvent) {
+        fun log(name: String) = DiagnosticLog.add("live-turn",
+            "turn=$diagnosticTurn event=$name monotonic_ms=${elapsedMs()} after_end_ms=${activityEndedMs?.let { elapsedMs() - it }}")
+        if (!event.inputText.isNullOrEmpty() && !firstInputLogged) {
+            firstInputLogged = true; log("first_inputTranscription")
+        }
+        if (event.modelContent && !firstModelLogged) {
+            firstModelLogged = true; log("first_model_content")
+        }
+        if (event.audio.isNotEmpty() && !firstAudioLogged) {
+            firstAudioLogged = true; log("first_audio")
+        }
+        if (event.turnComplete) log("turnComplete")
     }
 
     private val usageReporter = UsageReporter(scope, backend, elapsedMs)
@@ -401,7 +425,7 @@ class GeminiSession(
                 if (meetingGate.active) meetingAudio.add(pcm)
                 ready = false
                 scope.launch { if (active && socket === ws) reconnect("Audio uplink stalled") }
-            }
+            } else inputBytes += pcm.size
         }
     }
 
@@ -434,11 +458,23 @@ class GeminiSession(
     fun setTalking(value: Boolean) {
         val changed = synchronized(sendLock) {
             if (!active || !ready || !ptt || (value && (audioSuspended || audio.translationSpeaker.playing)) || talking == value) false
-            else if (socket?.send(LiveProtocol.activity(value)) == true) { talking = value; true }
+            else if (socket?.send(LiveProtocol.activity(value)) == true) {
+                talking = value
+                if (value) {
+                    diagnosticTurn++
+                    firstInputLogged = false; firstModelLogged = false; firstAudioLogged = false
+                    activityEndedMs = null; inputBytes = 0
+                } else {
+                    activityEndedMs = elapsedMs()
+                    replyPending = true
+                    DiagnosticMetrics.latency.activityEnd()
+                }
+                DiagnosticLog.add("live-turn", "turn=$diagnosticTurn event=${if (value) "activityStart" else "activityEnd"}_sent monotonic_ms=${elapsedMs()} queue_bytes=${socket?.queueSize()} input_bytes=$inputBytes")
+                true
+            }
             else false
         }
         if (!changed) return
-        if (!value) { replyPending = true; DiagnosticMetrics.latency.activityEnd() }
         onTalking(value)
         talkTimeout?.cancel()
         if (value) {

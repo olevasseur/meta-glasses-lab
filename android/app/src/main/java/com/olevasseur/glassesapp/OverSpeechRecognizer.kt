@@ -10,6 +10,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.system.Os
+import android.system.ErrnoException
 import android.system.OsConstants
 import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.session.DeviceSession
@@ -23,6 +24,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -38,13 +41,16 @@ class OverSpeechRecognizer(
     private val onText: (String, Boolean) -> Unit,
     private val onStatus: (String) -> Unit,
     private val onError: (String) -> Unit,
-) {
+) : OverSpeechInput {
     private var job: Job? = null
     private var platform: SpeechRecognizer? = null
     private var readPipe: ParcelFileDescriptor? = null
     private var writePipe: ParcelFileDescriptor? = null
     private val pipeLock = Any()
-    private var generation = 0
+    @Volatile private var generation = 0
+    private var pump: Job? = null
+    private val pendingAudio = SpeechPcmBuffer()
+    @Volatile private var acceptingAudio = false
 
     fun start(forcePhone: Boolean) {
         val previous = job
@@ -63,7 +69,42 @@ class OverSpeechRecognizer(
         }
     }
 
-    fun startOnDevice() { stop(); startPlatform(generation) }
+    override fun startOnDevice() { stop(); startPlatform(generation) }
+
+    private fun startPump(epoch: Int) {
+        if (pump?.isActive == true) return
+        acceptingAudio = true
+        pump = scope.launch(Dispatchers.IO) {
+            while (isActive) {
+                try {
+                    synchronized(pipeLock) {
+                        writePipe?.let { pipe ->
+                            pendingAudio.drain { bytes, offset, count ->
+                                try { Os.write(pipe.fileDescriptor, bytes, offset, count) }
+                                catch (e: ErrnoException) {
+                                    if (e.errno == OsConstants.EAGAIN) 0 else throw e
+                                }
+                            }
+                        }
+                    }
+                } catch (_: Exception) {
+                    scope.launch {
+                        if (epoch == generation) failAudio("Speech service stopped consuming shared audio")
+                    }
+                    return@launch
+                }
+                delay(10)
+            }
+        }
+    }
+
+    private fun failAudio(reason: String) {
+        acceptingAudio = false
+        pump?.cancel(); pump = null
+        pendingAudio.clear()
+        closePlatform()
+        onError("$reason. Keyword audio could not be evaluated; pause to finish your turn or restart.")
+    }
 
     private suspend fun listenOnGlasses() {
         check(Wearables.checkPermissionStatus(Permission.MICROPHONE).getOrDefault(PermissionStatus.Denied) == PermissionStatus.Granted)
@@ -97,11 +138,12 @@ class OverSpeechRecognizer(
     private fun startPlatform(epoch: Int) {
         if (epoch != generation) return
         if (Build.VERSION.SDK_INT < 33 || !SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
-            onError("Voice keywords need DAT speech or Android 13+ with on-device speech installed. Pause to finish your turn, or switch modes after Stop.")
+            onError("Voice keywords need Android 13+ with on-device speech installed. Pause to finish your turn, or switch modes after Stop.")
             return
         }
         try {
             closePlatform()
+            startPump(epoch)
             val pipes = ParcelFileDescriptor.createPipe()
             readPipe = pipes[0]
             synchronized(pipeLock) {
@@ -118,6 +160,7 @@ class OverSpeechRecognizer(
             fun restart() {
                 if (!current()) return
                 closePlatform()
+                onStatus("Preparing keyword recognition · audio buffered…")
                 job = scope.launch { delay(250); if (epoch == generation) startPlatform(epoch) }
             }
             recognizer.setRecognitionListener(object : RecognitionListener {
@@ -135,8 +178,7 @@ class OverSpeechRecognizer(
                     if (!current()) return
                     if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) restart()
                     else {
-                        closePlatform()
-                        onError("On-device speech unavailable ($error). Pause to finish your turn; check the offline English speech model before restarting.")
+                        failAudio("On-device speech unavailable ($error)")
                     }
                 }
             })
@@ -153,27 +195,18 @@ class OverSpeechRecognizer(
             })
             onStatus("Starting on-device speech · shared microphone audio")
         } catch (_: Exception) {
-            closePlatform()
-            onError("Could not start on-device speech. Pause to finish your turn, or switch modes after Stop.")
+            failAudio("Could not start on-device speech")
         }
     }
 
-    /** Called from the capture thread. A non-reading recognizer cannot block Gemini's audio. */
-    fun audio(pcm: ByteArray) {
-        synchronized(pipeLock) {
-            val pipe = writePipe ?: return
-            try {
-                check(Os.write(pipe.fileDescriptor, pcm, 0, pcm.size) == pcm.size)
-            } catch (_: Exception) {
-                writePipe = null
-                runCatching { pipe.close() }
-                scope.launch {
-                    // Ignore a failure from a pipe belonging to a previous turn.
-                    if (writePipe == null && readPipe != null) {
-                        closePlatform()
-                        onError("Speech service did not consume shared audio. Pause to finish your turn; this recognizer may not support PCM input.")
-                    }
-                }
+    /** Startup and EAGAIN retain PCM; neither can block the Gemini upload thread. */
+    override fun audio(pcm: ByteArray) {
+        if (!acceptingAudio) return
+        if (!pendingAudio.offer(pcm)) {
+            acceptingAudio = false
+            val epoch = generation
+            scope.launch {
+                if (epoch == generation) failAudio("Keyword audio buffer exceeded 16 seconds")
             }
         }
     }
@@ -186,5 +219,10 @@ class OverSpeechRecognizer(
         runCatching { readPipe?.close() }; readPipe = null
     }
 
-    fun stop() { generation++; job?.cancel(); closePlatform() }
+    override fun stop() {
+        generation++; job?.cancel()
+        acceptingAudio = false
+        pump?.cancel(); pump = null
+        closePlatform(); pendingAudio.clear()
+    }
 }
