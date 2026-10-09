@@ -1,9 +1,32 @@
 {% extends "dashboard/base.html" %}
 {% block content %}
-<form class="card" method="post" action="/dashboard/settings/aliases">
-<h2>Google Doc aliases</h2><p class="muted">JSON mapping names to document IDs. Use <code>{"inbox": null}</code> to find or create your Inbox.</p>
+<section class="card">
+<h2>Google Doc aliases</h2>
+<p class="muted">Nicknames are 1–60 characters, ignoring case and surrounding spaces. Adding an existing nickname replaces its destination. Inbox is reserved for the app.</p>
+{% for row in alias_rows %}
+<div>
+<strong>{{ row.alias }}</strong> — {% if row.id %}<a href="https://docs.google.com/document/d/{{ row.id }}/edit" target="_blank" rel="noopener noreferrer">{{ row.title }}</a>{% else %}{{ row.title }}{% endif %}
+{% if row.alias != "inbox" %}
+<form method="post" action="/dashboard/settings/alias-remove">
+<input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="alias" value="{{ row.alias }}">
+<button aria-label="Remove nickname {{ row.alias }}">Remove nickname</button>
+</form>
+{% endif %}
+</div>
+{% else %}<p>No valid nicknames. Add one below or repair the advanced JSON.</p>{% endfor %}
+<form method="post" action="/dashboard/settings/alias-add">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<label>Nickname<input name="alias" required maxlength="60"></label>
+<label>Google Doc URL or ID<input name="destination" required></label>
+<button>Add or replace nickname</button>
+</form>
+<details><summary>Advanced: aliases JSON</summary>
+<form method="post" action="/dashboard/settings/aliases">
+<p class="muted">Map names to document IDs. Only inbox may be null. Its document ID can only be assigned by the app; set it to null to reset Inbox lookup.</p>
 <input type="hidden" name="csrf" value="{{ csrf }}"><label>Aliases JSON<textarea class="mono" name="json" rows="7" required spellcheck="false">{{ aliases }}</textarea></label><button>Save aliases</button>
 </form>
+</details>
+</section>
 <form class="card" method="post" action="/dashboard/settings/repos">
 <h2>Coding repository allowlist</h2><p class="muted">Map names to absolute directory paths, for example <code>{"glasses": "/path/to/repo"}</code>. An empty object allows no repositories. Changes apply to new job requests and are checked again before queued jobs start.</p>
 <input type="hidden" name="csrf" value="{{ csrf }}"><label>Repository JSON<textarea class="mono" name="json" rows="7" required spellcheck="false">{{ repos }}</textarea></label><button>Save allowlist</button>

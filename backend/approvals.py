@@ -77,6 +77,7 @@ def response(approval_id):
         "codex_task": "Run " + str(details.get("agent", "codex")).title() + " in " + str(details.get("repo", "the displayed repository")),
         "deep_research": str(details.get("agent", "codex")).title() + " research and publish: " + str(details.get("topic", ""))[:120],
         "append_to_doc": "Create Glasses Inbox and append this note",
+        **{name: details.get("summary", "") for name in ("create_doc", "set_doc_alias", "remove_doc_alias")},
         "forget": "Delete saved facts matching: " + str(details.get("query", ""))[:120],
         "write_journal": "Generate and replace journal: " + str(details.get("date", "today")),
         "export_meeting": "Export meeting minutes to a new document",

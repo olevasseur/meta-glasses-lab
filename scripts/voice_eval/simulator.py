@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -79,6 +79,7 @@ def backend(prompt=None, tools_file=None):
     import approvals
     import diagnostic_logs
     from memory import Memory
+    from notes import Notes
     from fastapi.testclient import TestClient
     with TemporaryDirectory(prefix='voice-eval-') as directory, ExitStack() as stack:
         root = Path(directory)
@@ -98,10 +99,17 @@ def backend(prompt=None, tools_file=None):
         projects.run('next_step',{})
         stack.enter_context(patch.object(app,'projects',projects))
         stack.enter_context(patch.object(memory_api,'memory',memory))
-        stack.enter_context(patch.object(app,'notes',SimpleNamespace(
-            preview=lambda **kw:{'status':'matched','document':{'id':'synthetic-doc','title':kw.get('doc_name','Inbox')}},
-            append=lambda **kw:
-            {'status':'ok','doc_title':kw.get('doc_name','Inbox')})))
+        aliases_path = root / 'aliases.json'
+        aliases_path.write_text('{"inbox":null,"work":"synthetic-doc"}')
+        notes = Notes(token_path=root / 'unused-token.json', aliases_path=aliases_path)
+        notes._connect = lambda: None
+        notes._list_documents = lambda **kw: [{'id':'synthetic-doc','title':'Work Log'}]
+        notes._document = lambda doc_id: {'id':doc_id,'title':'Work Log'}
+        notes.docs = Mock()
+        notes.docs.documents().create().execute.return_value = {'documentId':'synthetic-new-doc'}
+        notes.preview = lambda **kw: {'status':'matched','document':{'id':'synthetic-doc','title':kw.get('doc_name','Inbox')}}
+        notes.append = lambda **kw: {'status':'ok','doc_title':kw.get('doc_name','Inbox')}
+        stack.enter_context(patch.object(app,'notes',notes))
         journal_result = {'status':'ok','doc_status':'synced','date':'2026-10-07',
                           'text':'Walked by the harbour. Task: buy apples.'}
         stack.enter_context(patch.object(app,'journal_service',return_value=SimpleNamespace(
