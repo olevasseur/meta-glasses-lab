@@ -36,7 +36,7 @@ fun GlassesApp(state: ConversationState, model: ConversationViewModel, permissio
     val backend = remember {
         BackendClient(OkHttpClient.Builder().callTimeout(10, TimeUnit.SECONDS)
             .retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).build(),
-            BuildConfig.BACKEND_URL, BuildConfig.APP_SHARED_SECRET)
+            BuildConfig.BACKEND_URL, BuildConfig.APP_SHARED_SECRET, model::backendUnavailable)
     }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     // UI-only reads stop when the Activity is not visible. Controllers keep their service lifetime.
@@ -50,11 +50,11 @@ fun GlassesApp(state: ConversationState, model: ConversationViewModel, permissio
                             overview = Overview.parse(backend.overview())
                             reviewStatus = "Recent snapshot · refreshes every 15 seconds"
                         } catch (e: CancellationException) { throw e }
-                        catch (_: Exception) { reviewStatus = "Recent items unavailable. Showing the last snapshot, if available." }
+                        catch (e: Exception) { reviewStatus = "${GeminiRecovery.backendFailure(e).message}. Showing the last snapshot, if available." }
                     } catch (e: CancellationException) { throw e }
-                    catch (_: Exception) {
-                        status = "Check connection"
-                        reviewStatus = "Refresh failed. Showing the last snapshot, if available."
+                    catch (e: Exception) {
+                        status = GeminiRecovery.backendFailure(e).message
+                        reviewStatus = "$status. Showing the last snapshot, if available."
                     }
                     delay(15_000)
                 }

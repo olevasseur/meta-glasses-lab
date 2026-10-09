@@ -310,6 +310,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
             controls.pauses.isNotEmpty() && controls.conversation -> "Paused: ${controls.pauses.joinToString()}. Open to resume."
             !controls.conversation -> if (controls.inputsAvailable) "Glasses controls ready · hold capture to start" else "Open app to start"
             state.meeting -> "Meeting capture · ${state.gemini} · say ${state.settings.meetingWakePhrase}"
+            !state.connected -> state.gemini
             controls.muted -> "Microphone muted · double-tap to unmute"
             controls.mode == ConversationMode.OVER -> "Over · ${state.overStatus}"
             controls.ptt -> if (state.talking) "Listening · double-tap to finish" else "Push-to-talk · double-tap to speak"

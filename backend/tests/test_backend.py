@@ -194,6 +194,7 @@ def test_real_sdk_http_serialization(client, monkeypatch, mode):
     assert setup["generationConfig"]["responseModalities"] == ["AUDIO"]
     speech = types.SpeechConfig.model_validate(setup["generationConfig"]["speechConfig"])
     assert speech.voice_config.prebuilt_voice_config.voice_name == "Kore"
+    assert speech.language_code is None  # Unsupported by native-audio Live.
     detection = types.RealtimeInputConfig.model_validate(setup["realtimeInputConfig"]).automatic_activity_detection
     assert detection.disabled is (mode != "auto")
     if mode == "auto":
@@ -203,6 +204,7 @@ def test_real_sdk_http_serialization(client, monkeypatch, mode):
     assert "sessionResumption" not in setup
     assert types.ContextWindowCompressionConfig.model_validate(setup["contextWindowCompression"]).sliding_window is not None
     assert "Never interrupt" in setup["systemInstruction"]["parts"][0]["text"]
+    assert "Reply in English by default" in setup["systemInstruction"]["parts"][0]["text"]
     assert setup["tools"][0]["functionDeclarations"][0]["name"] == "append_to_doc"
 
 

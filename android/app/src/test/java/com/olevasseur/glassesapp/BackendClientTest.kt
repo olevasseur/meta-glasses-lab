@@ -9,6 +9,39 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class BackendClientTest {
+    @Test fun allBackendRoutesReportConnectionFailuresWithoutLeakingHostnames() = runBlocking {
+        for (failure in listOf(java.net.UnknownHostException("private host"), java.net.ConnectException("private host"),
+            java.net.SocketTimeoutException("private host"), javax.net.ssl.SSLHandshakeException("private host"))) {
+            val notices = mutableListOf<String>()
+            val http = OkHttpClient.Builder().addInterceptor { throw failure }.build()
+            try {
+                val backend = BackendClient(http, "https://example.test/", "test", notices::add)
+                val requests: List<suspend () -> Any> = listOf(
+                    { backend.token(false) }, { backend.tool(FunctionCall("1", "append_to_doc", JSONObject())) }, { backend.overview() })
+                for (request in requests) {
+                    try { request(); fail("Expected connection failure") }
+                    catch (e: BackendConnectionException) {
+                        assertEquals("Can't reach your Mac", e.message)
+                        assertSame(failure, e.cause)
+                    }
+                }
+                assertEquals(List(3) { "Can't reach your Mac" }, notices)
+            } finally { http.dispatcher.executorService.shutdown(); http.connectionPool.evictAll() }
+        }
+    }
+
+    @Test fun httpProviderErrorsRemainDistinctFromConnectionFailures() = runBlocking {
+        MockWebServer().use { server ->
+            val notices = mutableListOf<String>()
+            val backend = BackendClient(OkHttpClient(), server.url("/").toString(), "test", notices::add)
+            server.enqueue(MockResponse().setResponseCode(503).setBody("""{"detail":"Gemini temporarily unavailable"}"""))
+            try { backend.token(false); fail("Expected HTTP failure") }
+            catch (e: BackendHttpException) {
+                assertEquals("Gemini is busy, retrying", GeminiRecovery.backendFailure(e).message)
+            }
+            assertTrue(notices.isEmpty())
+        }
+    }
     @Test fun deviceApprovalUsesDedicatedAuthenticatedRoutes() = runBlocking {
         MockWebServer().use { server ->
             server.start()

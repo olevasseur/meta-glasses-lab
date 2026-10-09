@@ -104,3 +104,7 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   — **2026-10-09**: speech-gated silence expiry, bounded reply/tool recovery,
   attenuated HFP energy audit, JVM fault injection, and two real silent-activity
   sessions (provider stall not reproduced); physical-device retest remains.
+
+- [Tool replies, language and backend reachability](tool-reply-language.md) —
+  **2026-10-09**: tool continuation gate and separate execution/reply deadlines,
+  native-audio language-code limitation, English assistant prompt and Mac outage copy.

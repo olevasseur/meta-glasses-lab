@@ -5,17 +5,53 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class OverReplyWatchdogTest {
-    @Test fun resultWithoutReplyAndRepeatedToolCallsCannotExtendOverallDeadline() {
+    @Test fun toolExecutionIsCappedAndDuplicatesCannotExtendIt() {
         val watchdog = OverReplyWatchdog()
         watchdog.begin(1_000)
         val call = FunctionCall("1", "look", JSONObject())
         watchdog.event(ServerEvent(calls = listOf(call)), 8_000)
-        watchdog.toolResult("1")
         assertNull(watchdog.event(ServerEvent(turnComplete = true), 10_000))
         assertTrue(watchdog.waiting)
-        watchdog.event(ServerEvent(calls = listOf(call.copy(id = "2"))), 40_000)
-        assertNull(watchdog.expired(45_999))
-        assertEquals("tool_reply_watchdog", watchdog.expired(46_000))
+        watchdog.event(ServerEvent(calls = listOf(call, call.copy(id = "2"))), 40_000)
+        assertNull(watchdog.expired(52_999))
+        assertEquals("tool_reply_watchdog", watchdog.expired(53_000))
+    }
+
+    @Test fun lastResultStartsFreshNoReplyClockAndDuplicateDoesNotExtendIt() {
+        val watchdog = OverReplyWatchdog()
+        watchdog.begin(0)
+        val calls = listOf("1", "2").map { FunctionCall(it, "remember", JSONObject()) }
+        watchdog.event(ServerEvent(calls = calls, turnComplete = true), 1_000)
+        watchdog.toolResult("1", 30_000)
+        assertNull(watchdog.expired(40_000))
+        watchdog.toolResult("2", 44_000)
+        watchdog.event(ServerEvent(calls = calls), 45_000)
+        watchdog.toolResult("2", 50_000)
+        assertNull(watchdog.expired(51_999))
+        assertEquals("tool_reply_watchdog", watchdog.expired(52_000))
+    }
+
+    @Test fun toolWithoutPriorActivityEndStillGatesCompletionUntilActualReply() {
+        val watchdog = OverReplyWatchdog()
+        watchdog.event(ServerEvent(calls = listOf(FunctionCall("1", "append_to_doc", JSONObject())), turnComplete = true), 4_116)
+        assertTrue(watchdog.waiting)
+        watchdog.toolResult("1", 7_588)
+        watchdog.event(ServerEvent(turnComplete = true), 7_600)
+        assertTrue(watchdog.waiting)
+        watchdog.event(ServerEvent(audio = listOf(byteArrayOf(1, 2)), turnComplete = true), 8_000)
+        assertFalse(watchdog.waiting)
+    }
+
+    @Test fun postResultContentHasNormalStreamingDeadlineWithoutEarlyGenerationCompletion() {
+        val watchdog = OverReplyWatchdog()
+        watchdog.begin(0)
+        watchdog.event(ServerEvent(calls = listOf(FunctionCall("1", "look", JSONObject()))), 1_000)
+        watchdog.toolResult("1", 44_000)
+        watchdog.event(ServerEvent(audio = listOf(byteArrayOf(1, 2))), 50_000)
+        assertNull(watchdog.expired(94_999))
+        assertEquals("tool_reply_watchdog", watchdog.expired(95_000))
+        watchdog.event(ServerEvent(turnComplete = true), 95_000)
+        assertFalse(watchdog.waiting)
     }
 
     @Test fun metadataIsNotProgressAndEmptyCompletionRecoversWithoutWaiting() {

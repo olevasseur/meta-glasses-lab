@@ -60,14 +60,14 @@ fun OnboardingScreen(state: ConversationState, model: ConversationViewModel, bac
             }
             3 -> SectionCard("Check your backend") {
                 Text(BuildConfig.BACKEND_URL)
-                Text("For USB development, keep the backend running and forward its port with adb reverse. The check verifies connectivity and app authentication.")
+                Text("Keep the backend running on your Mac and connect both devices to Tailscale. The check verifies connectivity and app authentication.")
                 Text(health)
                 Button(onClick = {
                     checking = true
                     scope.launch {
                         try { backend.diagnosticHealth(); health = "Connected · authentication accepted" }
                         catch (e: CancellationException) { throw e }
-                        catch (_: Exception) { health = "Could not connect. Check the backend address, shared secret and USB forwarding." }
+                        catch (e: Exception) { health = GeminiRecovery.backendFailure(e).message }
                         finally { checking = false }
                     }
                 }, enabled = !checking) { Text(if (checking) "Checking…" else "Check connection") }

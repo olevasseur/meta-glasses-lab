@@ -8,6 +8,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.yield
+import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
@@ -40,9 +41,13 @@ class GeminiSessionTest {
         val sent = mutableListOf<String>()
         var queued = 0L
         var cancelled = false
+        var rejectTools = false
         override fun request() = request
         override fun queueSize() = queued
-        override fun send(text: String): Boolean { sent += text; return true }
+        override fun send(text: String): Boolean {
+            if (rejectTools && text.contains("functionResponses")) return false
+            sent += text; return true
+        }
         override fun send(bytes: ByteString) = true
         override fun close(code: Int, reason: String?): Boolean { cancelled = true; return true }
         override fun cancel() { cancelled = true }
@@ -53,15 +58,18 @@ class GeminiSessionTest {
 
     private class Fixture(scope: CoroutineScope, local: suspend (FunctionCall) -> ToolResult = { ToolResult(JSONObject()) },
         action: (GeminiSession) -> Unit = {}, canAnnounce: () -> Boolean = { true },
-        event: (ServerEvent) -> Unit = {}, clock: () -> Long = { 0L }) : Closeable {
+        event: (ServerEvent) -> Unit = {}, clock: () -> Long = { 0L },
+        intercept: (Request) -> Unit = {}, end: (GeminiSession) -> Unit = {}) : Closeable {
         val reopens = mutableListOf<String>()
         var ended = 0
         val audio = Audio()
         val errors = mutableListOf<String>()
+        val states = mutableListOf<String>()
         val backendCalls = AtomicInteger()
         val tokenRequests = mutableListOf<JSONObject>()
         private val created = Channel<Socket>(Channel.UNLIMITED)
         private val http = OkHttpClient.Builder().addInterceptor { chain ->
+            intercept(chain.request())
             val token = chain.request().url.encodedPath == "/token"
             if (!token && chain.request().url.encodedPath != "/usage/live") backendCalls.incrementAndGet()
             if (token) { val buffer = okio.Buffer(); chain.request().body!!.writeTo(buffer); tokenRequests += JSONObject(buffer.readUtf8()) }
@@ -71,7 +79,7 @@ class GeminiSessionTest {
                 .body(body.toResponseBody("application/json".toMediaType())).build()
         }.build()
         val session: GeminiSession = GeminiSession(scope, BackendClient(http, "http://localhost/", "fixture"), audio,
-            { _, _ -> }, { _, _ -> }, { ended++ }, {}, {}, { errors += it; sessionRef().stop() }, localTool = local,
+            { label, _ -> states += label }, { _, _ -> }, { ended++; end(sessionRef()) }, {}, {}, { errors += it; sessionRef().stop() }, localTool = local,
             onClientTool = { _, _ -> action(sessionRef()) }, onEvent = event,
             canAnnounce = canAnnounce,
             onOverTurnReopen = { reopens += it; sessionRef().setTalking(true) },
@@ -99,6 +107,100 @@ class GeminiSessionTest {
     private fun tool(id: String = "1", name: String = "remember") =
         """{"toolCall":{"functionCalls":[{"id":"$id","name":"$name","args":{}}]}}"""
     private val audioMessage = """{"serverContent":{"modelTurn":{"parts":[{"inlineData":{"mimeType":"audio/pcm;rate=24000","data":"AQI="}}]}}}"""
+
+    @Test fun hardwareAppendSequenceKeepsOverClosedUntilConfirmationAndPlaybackDrain() = runBlocking {
+        // Includes turn=0 (no preceding activityEnd), combined events, and providers
+        // which emit only the final continuation's turnComplete.
+        for (armed in listOf(false, true)) for (completion in listOf("combined", "before_result", "after_result", "final_only")) {
+            var now = 4_116L // 22:58:04.116 UTC, relative to 22:58:00.
+            val release = java.util.concurrent.CountDownLatch(1)
+            val started = kotlinx.coroutines.CompletableDeferred<Unit>()
+            lateinit var fixture: Fixture
+            Fixture(this, clock = { now }, intercept = { request ->
+                if (request.url.encodedPath == "/tools/append_to_doc") {
+                    started.complete(Unit)
+                    check(release.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                }
+            }, end = { session ->
+                launch {
+                    while (!fixture.audio.playbackIdle) kotlinx.coroutines.delay(1)
+                    session.setTalking(true)
+                }
+            }).use { f ->
+                fixture = f
+                val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+                if (armed) { f.session.setTalking(true); f.session.setTalking(false) }
+                val starts = socket.sent.count { it.contains("activityStart") }
+                val call = JSONObject(tool(name = "append_to_doc"))
+                if (completion == "combined") call.put("serverContent", JSONObject().put("turnComplete", true))
+                socket.receive(call.toString()); yield()
+                if (completion == "before_result") {
+                    socket.receive("""{"serverContent":{"turnComplete":true}}"""); yield()
+                }
+                withTimeout(1_000) { started.await() }
+                now = 4_123
+                f.session.setTalking(true) // A stale UI/playback callback must also be gated.
+                f.session.sendAudio(ByteArray(640))
+                assertEquals(starts, socket.sent.count { it.contains("activityStart") })
+                assertEquals(0, f.ended)
+                now = 7_588
+                release.countDown()
+                withTimeout(1_000) { while (socket.sent.none { it.contains("functionResponses") }) kotlinx.coroutines.delay(1) }
+                if (completion == "after_result") {
+                    socket.receive("""{"serverContent":{"turnComplete":true}}"""); yield()
+                }
+                assertEquals(0, f.ended)
+                assertEquals(starts, socket.sent.count { it.contains("activityStart") })
+                // Confirmation arrives without another user activity or microphone frame.
+                now = 8_000
+                socket.receive(audioMessage); yield()
+                socket.receive("""{"serverContent":{"turnComplete":true}}"""); yield()
+                assertEquals(1, f.audio.chunks.size)
+                assertEquals(1, f.ended)
+                assertEquals(starts, socket.sent.count { it.contains("activityStart") })
+                f.audio.chunks.clear()
+                withTimeout(1_000) { while (socket.sent.count { it.contains("activityStart") } == starts) kotlinx.coroutines.delay(1) }
+                assertEquals(starts + 1, socket.sent.count { it.contains("activityStart") })
+                assertTrue(f.reopens.isEmpty())
+            }
+        }
+    }
+
+    @Test fun autoAndPttDeliverToolConfirmationWithoutAnotherUserTurn() = runBlocking {
+        for (mode in listOf(ConversationMode.AUTO, ConversationMode.PTT)) {
+            Fixture(this).use { f ->
+                val socket = f.connected(settings = ConversationSettings(mode = mode))
+                if (mode == ConversationMode.PTT) { f.session.setTalking(true); f.session.setTalking(false) }
+                val starts = socket.sent.count { it.contains("activityStart") }
+                val call = JSONObject(tool(name = "append_to_doc")).put("serverContent", JSONObject().put("turnComplete", true))
+                socket.receive(call.toString()); yield()
+                withTimeout(1_000) { while (socket.sent.none { it.contains("functionResponses") }) kotlinx.coroutines.delay(1) }
+                assertEquals(0, f.ended)
+                socket.receive(audioMessage); yield()
+                socket.receive("""{"serverContent":{"turnComplete":true}}"""); yield()
+                assertEquals(1, f.ended)
+                assertEquals(1, f.audio.chunks.size)
+                assertEquals(starts, socket.sent.count { it.contains("activityStart") })
+                assertTrue(f.reopens.isEmpty())
+            }
+        }
+    }
+
+    @Test fun tokenNetworkFailuresReportMacAndKeepRetrying() = runBlocking {
+        val attempts = AtomicInteger()
+        Fixture(this, intercept = { request ->
+            if (request.url.encodedPath == "/token" && attempts.incrementAndGet() <= 2) {
+                throw java.net.UnknownHostException("private host must not appear in UI")
+            }
+        }).use { f ->
+            f.connected()
+            assertEquals(3, attempts.get())
+            val retry = f.states.filter { it.contains("retry in") }
+            assertEquals(2, retry.size)
+            assertTrue(retry.all { GeminiRecovery.announcement(it) == "Can't reach your Mac" })
+            assertFalse(f.states.any { it.contains("busy") || it.contains("private host") })
+        }
+    }
 
     @Test fun overNoServerEventsReopensAfterEightSecondsAndResumesPcm() = runBlocking {
         var now = 0L
@@ -181,6 +283,30 @@ class GeminiSessionTest {
             assertFalse(socket.sent.any { it.contains("functionResponses") })
             socket.receive(tool(name = "look")); yield(); yield()
             assertFalse(socket.sent.any { it.contains("functionResponses") })
+        }
+    }
+
+    @Test fun rejectedToolSendDoesNotStartReplyClockAndSuccessfulSendGetsFullEightSeconds() = runBlocking {
+        var now = 0L
+        Fixture(this, clock = { now }).use { f ->
+            val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            f.session.setTalking(true); f.session.setTalking(false)
+            socket.rejectTools = true
+            socket.receive(tool(name = "look")); yield(); yield()
+            assertFalse(socket.sent.any { it.contains("functionResponses") })
+            now = 40_000
+            kotlinx.coroutines.delay(120)
+            assertTrue(f.reopens.isEmpty())
+            now = 44_000
+            socket.rejectTools = false
+            socket.receive(tool(name = "look")); yield(); yield()
+            assertTrue(socket.sent.any { it.contains("functionResponses") })
+            now = 51_999
+            kotlinx.coroutines.delay(120)
+            assertTrue(f.reopens.isEmpty())
+            now = 52_000
+            withTimeout(1_000) { while (f.reopens.isEmpty()) kotlinx.coroutines.delay(10) }
+            assertEquals(listOf("tool_reply_watchdog"), f.reopens)
         }
     }
 
