@@ -20,7 +20,8 @@ import com.meta.wearable.dat.mockdevice.api.MockDeviceKitConfig
 import com.meta.wearable.dat.mockdevice.api.MockGlasses
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,7 +29,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 
 class GlassesController(
     private val context: Context,
@@ -44,6 +44,7 @@ class GlassesController(
 ) {
     private var initialized = false
     private var monitorJob: Job? = null
+    private var sessionDiagnostics: Job? = null
     private val inputsJob = SerialSessionJob(scope)
     private val mutableSession = MutableStateFlow<DeviceSession?>(null)
     val activeSession = mutableSession.asStateFlow()
@@ -83,8 +84,30 @@ class GlassesController(
     fun acquireSession(selector: DeviceSelector): DeviceSession {
         deviceSession?.takeIf { it.state.value != DeviceSessionState.STOPPED && it.state.value != DeviceSessionState.STOPPING }?.let { return it }
         return Wearables.createSession(selector)
-            .fold(onSuccess = { it }, onFailure = { error, _ -> error(error.description) })
-            .also { deviceSession = it; it.start() }
+            .fold(onSuccess = { it }, onFailure = { error, _ ->
+                throw DatInputsFailure("createSession code=$error description=${error.description}")
+            })
+            .also { session ->
+                deviceSession = session
+                sessionDiagnostics?.cancel()
+                // start() is fire-and-forget: subscribe before it can emit failures.
+                sessionDiagnostics = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                    val errors = launch(start = CoroutineStart.UNDISPATCHED) {
+                        session.errors.collect {
+                            DiagnosticLog.add("dat", "Session error code=$it description=${it.description}", "ERROR")
+                        }
+                    }
+                    try {
+                        var previous: DeviceSessionState? = null
+                        session.state.first { state ->
+                            DiagnosticLog.add("dat", "Session state $previous -> $state")
+                            previous = state
+                            state == DeviceSessionState.STOPPED
+                        }
+                    } finally { errors.cancel() }
+                }
+                session.start()
+            }
     }
 
     fun releaseCameraSession(session: DeviceSession) {
@@ -93,62 +116,82 @@ class GlassesController(
         }
     }
 
+    private fun reportInputs(label: String) {
+        DiagnosticLog.add("dat", label)
+        onInputs(label)
+    }
+
     fun startInputs() {
         if (!initialized) return
         inputsJob.start { isCurrent ->
             AutoDeviceSelector().activeDeviceFlow().collectLatest { id ->
-                if (id == null) { onInputs("No glasses; use on-screen talk"); return@collectLatest }
-                val session = try { acquireSession(com.meta.wearable.dat.core.selectors.SpecificDeviceSelector(id)) }
-                    catch (_: Exception) { onInputs("Cannot start glasses session"); return@collectLatest }
-                try {
-                    coroutineScope {
-                        withTimeout(15_000) { session.state.first { it == DeviceSessionState.STARTED } }
-                        mutableSession.value = session
-                        // Motion can remain usable even if capture inputs are unavailable.
-                        val inputs = session.addInputs(InputsConfiguration(sources = setOf(InputSource.CAPTURE_BUTTON, InputSource.CAPTOUCH), consumeBack = false))
-                            .fold(onSuccess = { it }, onFailure = { error, _ -> onInputs(error.description); null })
-                        launch { session.errors.collect { onInputs(it.description); onInputLost() } }
-                        launch {
-                            session.state.collect { state ->
-                                if (state == DeviceSessionState.STOPPED || state == DeviceSessionState.STOPPING) {
-                                    if (mutableSession.value === session) mutableSession.value = null
-                                }
-                                if (state != DeviceSessionState.STARTED) {
-                                    onInputs("Glasses session: $state"); onInputLost()
+                onInputLost()
+                if (id == null) {
+                    reportInputs("Glasses controls unavailable; no glasses; use screen/notification")
+                    return@collectLatest
+                }
+                recoverDatInputs(::reportInputs) { ready ->
+                    val session = acquireSession(com.meta.wearable.dat.core.selectors.SpecificDeviceSelector(id))
+                    try {
+                        coroutineScope {
+                            val errors = launch(start = CoroutineStart.UNDISPATCHED) {
+                                session.errors.collect {
+                                    throw DatInputsFailure("session code=$it description=${it.description}")
                                 }
                             }
-                        }
-                        launch {
-                            if (inputs != null) combine(session.state, inputs.state) { sessionState, inputState -> sessionState to inputState }
-                                .collect { (sessionState, inputState) ->
-                                    onInputs("Glasses controls: $sessionState · $inputState")
-                                    if (sessionState == DeviceSessionState.STARTED && inputState == InputsState.ACTIVE) onInputReady()
-                                    else onInputLost()
+                            try {
+                                awaitDatInputsSession(session.state) {
+                                    mutableSession.value = session
+                                    val inputs = session.addInputs(InputsConfiguration(
+                                        sources = setOf(InputSource.CAPTURE_BUTTON, InputSource.CAPTOUCH), consumeBack = false,
+                                    )).fold(onSuccess = { it }, onFailure = { error, _ ->
+                                        throw DatInputsFailure("addInputs code=$error description=${error.description}")
+                                    })
+                                    coroutineScope {
+                                        launch {
+                                            combine(session.state, inputs.state) { s, i -> s to i }
+                                                .collectLatest { (sessionState, inputState) ->
+                                                    reportInputs("Glasses controls: $sessionState · $inputState")
+                                                    if (sessionState == DeviceSessionState.STARTED && inputState == InputsState.ACTIVE) {
+                                                        ready()
+                                                        onInputReady()
+                                                    } else {
+                                                        onInputLost()
+                                                        onInputs("Glasses controls unavailable ($sessionState · $inputState); use screen/notification")
+                                                        // PAUSED is resumable. Only replace inputs stuck on an active session.
+                                                        if (sessionState == DeviceSessionState.STARTED) {
+                                                            delay(15_000)
+                                                            throw DatInputsFailure("inputs activation timed out state=$inputState")
+                                                        }
+                                                    }
+                                                }
+                                        }
+                                        launch {
+                                            inputs.errors.collect { error -> error?.let {
+                                                throw DatInputsFailure("inputs code=$it description=${it.description}")
+                                            } }
+                                        }
+                                        launch {
+                                            inputs.events.collect { event ->
+                                                if (approvalCapture(event, onApprovalCapture)) return@collect
+                                                when (glassesTrigger(event)) {
+                                                    GlassesTrigger.CONVERSATION -> onHold()
+                                                    GlassesTrigger.TALK_OR_MUTE -> onDoubleTap()
+                                                    null -> Unit
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
+                            } finally { errors.cancel() }
                         }
-                        launch { inputs?.errors?.collect { error -> error?.let { onInputs(it.description); onInputLost() } } }
-                        launch {
-                            inputs?.events?.collect { event ->
-                                if (approvalCapture(event, onApprovalCapture)) return@collect
-                                when (glassesTrigger(event)) {
-                                    GlassesTrigger.CONVERSATION -> onHold()
-                                    GlassesTrigger.TALK_OR_MUTE -> onDoubleTap()
-                                    null -> Unit
-                                }
-                            }
-                        }
-                        awaitCancellation()
+                    } finally {
+                        if (mutableSession.value === session) mutableSession.value = null
+                        DiagnosticLog.add("dat", "Releasing inputs session state=${session.state.value}")
+                        session.stop()
+                        if (deviceSession === session) deviceSession = null
+                        if (isCurrent()) onInputLost()
                     }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    if (e is kotlinx.coroutines.TimeoutCancellationException) onInputs("Glasses session timed out; use on-screen talk")
-                    else throw e
-                } catch (_: Exception) {
-                    onInputs("Inputs unavailable; use on-screen talk")
-                } finally {
-                    if (mutableSession.value === session) mutableSession.value = null
-                    session.stop()
-                    if (deviceSession === session) deviceSession = null
-                    if (isCurrent()) onInputLost()
                 }
             }
         }
@@ -179,5 +222,5 @@ class GlassesController(
 
     fun mockHold() { mock?.services?.input?.capture(CapturePressType.HOLD) }
     fun mockDoubleTap() { mock?.services?.input?.select(InputSource.CAPTOUCH) }
-    fun close() { stopInputs(); monitorJob?.cancel(); if (mock != null) setMock(false) }
+    fun close() { stopInputs(); monitorJob?.cancel(); sessionDiagnostics?.cancel(); if (mock != null) setMock(false) }
 }

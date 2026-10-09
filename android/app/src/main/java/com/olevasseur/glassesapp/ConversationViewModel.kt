@@ -303,7 +303,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         onApprovalCapture = { approvals.capture() },
         onHold = { service?.captureHold() },
         onDoubleTap = { service?.toggleInput() },
-        onInputLost = { finishTalking(); service?.inputsAvailable(false) },
+        onInputLost = { service?.inputsAvailable(false) },
         onInputReady = { service?.inputsAvailable(true) },
         onError = ::error,
     )

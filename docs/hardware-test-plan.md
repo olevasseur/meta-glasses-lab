@@ -129,8 +129,8 @@ append until you inspect its destination.
 - [ ] **4.2 Physical controls.** Arm **Enable glasses controls**, lock screen; capture
   HOLD start/stop/start. Try capture short/double press and reserved touchpad single
   tap/tap-and-hold. **Expect:** only HOLD toggles conversation; touchpad reserved
-  controls pause/resume or stop DAT/audio per glasses behavior; HOLD-stop leaves
-  controls armed. After DAT stop, Stop/re-arm. **If failing:** Inputs ACTIVE and
+  controls pause/resume or stop DAT per glasses behavior; HFP audio continues.
+  HOLD-stop leaves controls armed; DAT stop automatically retries. **If failing:** Inputs ACTIVE and
   `dat`/`hands-free`; record actual model-specific reserved gesture mapping.
 - [ ] **4.3 Mute and mode controls.** Auto double-tap, say a unique test phrase,
   double-tap again. Cycle notification Auto → PTT → Over; rapidly switch during
@@ -146,8 +146,9 @@ append until you inspect its destination.
   reply: recognition pauses; reply drain precedes reopening the next user turn.
 - [ ] **4.5 Bluetooth and DAT loss.** During user speech and again during a reply,
   disconnect/power off glasses; reconnect and tap **Resume**. Disconnect DAT alone.
-  **Expect:** BLUETOOTH/GLASSES pause, flushed reply, no silent fallback to phone
-  capture; explicit resume reselects route. **If failing:** actual device IDs,
+  **Expect:** actual Bluetooth loss pauses/flushed reply, no silent fallback to phone
+  capture; explicit Resume reselects route. DAT-only loss keeps audio running and
+  retries controls automatically. **If failing:** actual device IDs,
   `dat`, `hands-free`, `audio`; separately distinguish OS Bluetooth from DAT link.
 - [ ] **4.6 Network and resumption.** Tell Gemini “The test code is blue lighthouse.”
   Briefly disable phone network then restore; later keep conversing through a
@@ -446,3 +447,58 @@ plus [Android setup](../android/README.md), [backend setup](../backend/README.md
 Older milestone test counts/tool counts and 1200 ms VAD descriptions in historical
 README sections are not the merged behavior: default Auto patience is 2000 ms,
 and token resumption remains client-owned with `lock_additional_fields=[]`.
+
+## DAT/HFP regression retest — 2026-10-09
+
+Target: **Pixel 10 Pro + RB Meta 01G8**, DAT 1.0.0, COMPATIBLE firmware.
+These checks are **not yet executed**. Record exact firmware, Meta AI version,
+Android build, mode, Speech permission and start method for each run. Original
+failure: HOLD 13:49:41.279 UTC → HFP ready 41.867 → device-ended DAT 42.982 → app
+paused 43.047 → Gemini connected 43.57 with no audio; next HOLD took a photo.
+
+- [ ] **D1 Reproduce the original sequence.** Start with camera/watch/visual memory
+  off. Arm controls; wait for STARTED / ACTIVE. In Over, HOLD capture once, speak
+  continuously through connection, then say “What is two plus two? Over.”
+  **Expect:** HFP input/output stay on glasses and Gemini replies even if DAT ends.
+  No input-loss-driven `paused=true`, “Audio paused”, SCO release or NORMAL mode.
+  The Talk screen and notification explicitly show unavailable controls.
+- [ ] **D2 Recovery with HFP still active.** Keep the conversation running for at
+  least two minutes. **Expect:** `dat` attempt/acquiring, SDK code + description,
+  session transitions, release and outcome/retry events; delays after each failed
+  attempt are 1/2/5/10/30 seconds (plus time spent acquiring), capped at 30 seconds.
+  After STARTED / ACTIVE, HOLD stops the conversation; another HOLD restarts it.
+  No Stop/re-arm or phone Start should be necessary to restore inputs. Record any
+  system photos before recovery, DAT restart tones, repeated refusal codes or
+  microphone silence after reattachment. A session recovering is not a pass if
+  HFP PCM becomes silent or speech stops reaching Gemini.
+- [ ] **D3 Working fallback controls.** While DAT is unavailable, test notification
+  Stop and screen Stop; restart on screen. In Auto test notification/screen
+  Mute/Unmute; in PTT leave a turn open across DAT loss, keep speaking, then Finish
+  from notification/screen. **Expect:** DAT loss does not end PTT, all these controls
+  work, no duplicate Gemini connection or audio recorder. Stop cancels all retries.
+- [ ] **D4 Separate the trigger.** Repeat Auto, PTT and Over with (a) already-armed
+  controls + HOLD, (b) already-armed controls + screen Start, (c) screen Start
+  without pre-arming. Compare HFP-ready, Speech state and session-error timestamps.
+  Repeat Over with DAT microphone permission denied to exercise shared-PCM keyword
+  fallback. Record whether HFP-first reacquisition works; do not infer capture HOLD
+  is the cause merely because it preceded HFP.
+- [ ] **D5 Pause, stop, timeout and cancellation.** Single temple tap pauses DAT;
+  audio continues, no repeated acquisition while PAUSED; tap again restores inputs.
+  Temple tap-and-hold stops DAT; it retries while armed. Force a startup timeout
+  with glasses unavailable, then restore availability: Inputs returns automatically.
+  Disarm during backoff, wait >30 seconds and verify no new acquisition. Rapid
+  Stop/re-arm must leave one owner; idle expiry also cancels retries.
+- [ ] **D6 Independent audio protections.** Remove the actual Bluetooth audio route,
+  receive a call and lose audio focus separately. **Expect:** existing audio pauses
+  remain; DAT recovery never resumes through those guards or switches to phone mic.
+  Reconnect and explicitly Resume after real Bluetooth loss.
+- [ ] **D7 Capture evidence.** Start unfiltered `adb logcat -v threadtime` before
+  arming (save locally, sanitize before sharing), then search the saved file for
+  `DAT:`. Do not rely on colon-containing logcat tag filters or `log.tag.*` to enable
+  SDK output. Keep app Diagnostics → Copy logs and backend `dat`, `audio`,
+  `hands-free`, `gemini` events with UTC timestamps. Capture 30 seconds before
+  failure through a successful recovery or two capped retries. If DAT never
+  recovers, keep fallback audio working, record exact errors, then Stop and restart
+  the glasses; do not loop global SDK reset/unregistration.
+
+Sources and limits: [DAT session/HFP research](research/dat-session-hfp.md).

@@ -55,7 +55,6 @@ class ConversationService : Service(), ViewModelStoreOwner {
     private val uiResumed = MutableStateFlow(false)
     private var hasFocus = false
     private var focusRequested = false
-    private var inputsWereAvailable = false
     private var phoneListening = false
     private var voiceStream: VoiceInvocationsStream? = null
     private var settingsInitialized = false
@@ -238,9 +237,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
     }
 
     fun inputsAvailable(available: Boolean) {
-        if (available && controls.armed) update(controls.pause(PauseReason.GLASSES, false))
-        else if (inputsWereAvailable && controls.conversation) update(controls.pause(PauseReason.GLASSES, true))
-        inputsWereAvailable = available
+        update(controls.inputsAvailable(available))
     }
 
     fun bluetoothLost() { update(controls.pause(PauseReason.BLUETOOTH, true)) }
@@ -309,18 +306,20 @@ class ConversationService : Service(), ViewModelStoreOwner {
 
     private fun notification(): Notification {
         val state = model.state.value
-        val label = when {
+        val status = when {
             controls.pauses.isNotEmpty() && controls.conversation -> "Paused: ${controls.pauses.joinToString()}. Open to resume."
-            !controls.conversation -> "Glasses controls ready · hold capture to start"
+            !controls.conversation -> if (controls.inputsAvailable) "Glasses controls ready · hold capture to start" else "Open app to start"
             state.meeting -> "Meeting capture · ${state.gemini} · say ${state.settings.meetingWakePhrase}"
             controls.muted -> "Microphone muted · double-tap to unmute"
             controls.mode == ConversationMode.OVER -> "Over · ${state.overStatus}"
             controls.ptt -> if (state.talking) "Listening · double-tap to finish" else "Push-to-talk · double-tap to speak"
             else -> "${state.gemini} · automatic microphone"
         }
+        val label = if (controls.armed && !controls.inputsAvailable)
+            "Glasses controls unavailable · use screen/notification · $status" else status
         return Notification.Builder(this, CHANNEL).setSmallIcon(R.drawable.ic_glasses)
             .setContentTitle(if (state.visualCapturing) "Visual memory is ON · the glasses app" else "the glasses app")
-            .setContentText(label).setOngoing(true).setOnlyAlertOnce(true)
+            .setContentText(label).setStyle(Notification.BigTextStyle().bigText(label)).setOngoing(true).setOnlyAlertOnce(true)
             .setCategory(Notification.CATEGORY_SERVICE).setVisibility(Notification.VISIBILITY_PUBLIC)
             .setContentIntent(PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             .addAction(Notification.Action.Builder(null, "Stop", action(STOP)).build())

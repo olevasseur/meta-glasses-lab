@@ -31,10 +31,13 @@ The screen is no longer forced to stay awake.
 | Launcher **Start conversation** shortcut | Long-press the app icon, then drag the shortcut to the home screen, or tap **Add Start shortcut to home screen** inside the app and accept the launcher's pin prompt. |
 | **Hey Meta, start the glasses app** | With approved/configured Voice Invocation, opens/foregrounds the app, starts the service/conversation, and acknowledges each delivered `LaunchApp`. |
 
-Single touchpad tap and tap-and-hold remain reserved by the glasses. A DAT session
-pause suspends conversation audio; resuming the DAT session restores it. A DAT
-session stop leaves audio paused; stop/re-enable controls to create a new device
-session. Input failure never substitutes a single-tap gesture.
+Single touchpad tap and tap-and-hold remain reserved by the glasses. DAT pause or
+loss marks glasses controls unavailable; **HFP conversation audio keeps running**.
+A paused DAT session waits for resume. A stopped/failed session is automatically
+replaced while controls are armed, even during a conversation. Use screen or
+notification controls until Inputs is ACTIVE again; capture HOLD may otherwise
+be handled by the glasses as a system photo. To stop retries and microphone use,
+use app/notification **Stop**. Input failure never substitutes a single-tap gesture.
 
 ## Configuration and setup
 
@@ -83,9 +86,19 @@ prevents later callbacks from restarting the conversation.
 Bluetooth audio-device removal stops capture and pauses the conversation instead
 of switching to the phone microphone. Reconnect the glasses and tap **Resume**
 to retry routing. If no Bluetooth device is available when explicitly starting,
-the existing phone-audio fallback still applies. A stopped/unavailable DAT input
-session also pauses an established glasses session. It does not block a
-phone-only conversation that never had active glasses inputs.
+the existing phone-audio fallback still applies. DAT inputs loss alone never
+pauses audio, ends a PTT turn, or changes the HFP route. The Talk screen and
+notification say **Glasses controls unavailable** while screen/notification
+Stop, PTT Talk/Finish, mode and Auto mute controls remain available.
+
+Recovery waits 1, 2, 5, 10, then 30 seconds between failed/ended attempts, including
+creation failures, device errors and a 15-second startup/Inputs activation timeout.
+The delay stays capped across short sessions and resets on a new arm/device.
+PAUSED retains the session and waits for STARTED or STOPPED, including during startup. Stop,
+idle expiry and device selection changes cancel pending retries. Each attempt,
+outcome, session transition and SDK error code/description enters diagnostics.
+Permanent device refusal can still require a glasses restart; audio does not wait
+for recovery. See [DAT/HFP findings](../research/dat-session-hfp.md) (2026-10-09).
 
 ## Limits
 
@@ -143,7 +156,7 @@ cd android
 ```
 
 `HandsFreeStateTest` covers arming, HOLD start/stop, overlapping call/focus
-blockers, explicit Bluetooth recovery, reserved-session pauses, stop preventing
+blockers, explicit Bluetooth recovery, DAT input loss without audio pause, stop preventing
 resume, mode/mute behavior, idle boundaries/reset, bounded settings, and repeated
 starts. `GlassesTriggersTest` uses the actual SDK types to reject non-HOLD
 capture events, other Select sources, and Back. Existing protocol/backend-client
@@ -173,9 +186,9 @@ Nearby devices permissions. Repeat phone-only steps with Nearby devices denied.
    conversation starts. SHORT_PRESS and DOUBLE_PRESS must not toggle conversation.
 4. In Auto, double-tap: notification says muted; speak a unique phrase and verify
    it is absent from Gemini input transcripts. Double-tap again: microphone
-   resumes. Single tap must pause the DAT session/audio, a second single tap must
-   resume; tap-and-hold must stop the DAT session and leave audio paused. Stop and
-   re-enable controls before the next test. Verify mapping on the actual model.
+   resumes. Single tap pauses DAT controls while conversation audio continues;
+   a second tap resumes controls. Tap-and-hold stops DAT; automatic recovery must
+   restore controls without interrupting HFP. Verify mapping on the actual model.
 5. Switch to PTT with the notification. Confirm one fresh token/session, no input
    until a double-tap or screen press, and activity end on the next double-tap/
    release. Exercise screen hold and glasses toggle together; **Finish speaking**
@@ -191,8 +204,9 @@ Nearby devices permissions. Repeat phone-only steps with Nearby devices denied.
 7. Disconnect/power off Bluetooth during speech and during a Gemini reply.
    Confirm captured speech is not redirected to the phone, playback is cleared,
    and UI shows BLUETOOTH pause. Reconnect, tap **Resume**, and verify route and
-   retained Gemini context. Disconnect the DAT session separately and check the
-   GLASSES pause. No automatic switch to phone capture during either loss.
+   retained Gemini context. End the DAT session separately: audio and an open PTT
+   turn continue, unavailable controls are visible, and a new DAT session attaches
+   Inputs automatically. No automatic switch to phone capture during either loss.
 8. Set idle timeout to one minute. Check silent Auto, PTT waiting, muted, armed
    controls without Gemini, and paused audio. At approximately 60–61 seconds
    without transcript/control activity, verify complete stop. Speak or press a
@@ -241,3 +255,15 @@ official Android references; device/runtime behavior remains unverified:
 - [Meta Inputs guide](https://wearables.developer.meta.com/docs/develop/dat/inputs/) and [Voice Invocations guide](https://wearables.developer.meta.com/docs/develop/dat/voice-invocations/) (gesture details also checked against the 2026-10-06 M1 docs snapshot; public pages required login on 2026-10-07).
 - [Android foreground service types](https://developer.android.com/develop/background-work/services/fgs/service-types), [background-start restrictions](https://developer.android.com/develop/background-work/services/fgs/restrictions-bg-start), [audio focus](https://developer.android.com/media/optimize/audio-focus), [tiles](https://developer.android.com/develop/ui/views/quicksettings-tiles), and [shortcuts](https://developer.android.com/develop/ui/views/launch/shortcuts/creating-shortcuts).
 - [Protocol/token evidence](../research/m1-android-notes.md), [token verification](../research/m2-backend-notes.md), and [hands-free research](../research/hands-free-background.md). The current architecture's `lock_additional_fields=[]` and client-owned `sessionResumption` remain unchanged.
+
+## DAT/HFP regression validation (2026-10-09)
+
+JVM tests cover STARTED→STOPPED replacement with collector cleanup before reacquisition,
+early STOPPED, STOPPING, device errors, startup timeout, exact capped backoff,
+PAUSED/resume without reattachment, and disarm during retry. State tests check
+input loss/recovery in every mode and preserve call/focus/Bluetooth pause guards.
+The ViewModel no longer calls `finishTalking()` on DAT loss. Existing serial-owner
+tests continue to cover rapid Stop/re-arm and stale callback suppression.
+
+Run the [Pixel/RB Meta 01G8 retest](../hardware-test-plan.md#dat-hfp-regression-retest--2026-10-09)
+before treating concurrent DAT/HFP recovery as hardware-verified.
