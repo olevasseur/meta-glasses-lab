@@ -1,0 +1,8 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "Stop listening.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "pcm_sha256": "737ec1472423770d038faa64fc65e6375f88dc1778bde09ef47d62c1ba386c0d"
+}

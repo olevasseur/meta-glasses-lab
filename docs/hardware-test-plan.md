@@ -522,3 +522,16 @@ Sources and limits: [DAT session/HFP research](research/dat-session-hfp.md).
   and whether input transcription was also delayed. The 1.2-second “and out”
   grace precedes End and must not be counted as provider time. Simulated WAV
   checks do not mark this hardware checkbox complete.
+
+## Voice stop after DAT/HFP loss — 2026-10-09
+
+- [ ] On Pixel 10 Pro + Ray-Ban Meta, arm controls, start Auto, and confirm the
+  known DAT loss after HFP opens. With the phone locked, say “goodbye” / “stop
+  listening” / “end conversation” / “that's all, thanks”. Hear a short goodbye;
+  verify mic/SCO release within four seconds of tool acceptance, conversation
+  closure and memory summary upload, while controls remain ARMED. Wait for DAT
+  recovery and start a new conversation with capture HOLD. Repeat in PTT with
+  an open/finished Talk turn and in Over with “goodbye, over”. Check “stop” as
+  interruption, “don't stop listening”, and “I said goodbye to my mom” do not
+  close it. During a meeting, a goodbye must leave capture running; explicitly
+  “stop the meeting” must still use the existing meeting stop/minutes path.

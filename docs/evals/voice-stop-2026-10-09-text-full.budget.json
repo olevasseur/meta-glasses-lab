@@ -1,0 +1,19 @@
+{
+  "text_attempts": 21,
+  "failures": 1,
+  "models": {
+    "gemini-3.5-flash-lite": 21
+  },
+  "last_response": {
+    "model": "gemini-3.5-flash-lite",
+    "text_length": 8,
+    "finish_reasons": [
+      "FinishReason.STOP"
+    ]
+  },
+  "last_error": {
+    "type": "ClientError",
+    "code": 429,
+    "quota_period": "minute"
+  }
+}

@@ -22,7 +22,8 @@ CASES=json.loads((Path(__file__).resolve().parents[2]/'scripts/voice_eval/cases.
 
 
 def test_all_tools_and_features_have_cases():
-    covered={e['name'] for c in CASES for e in c['expected']}
+    stop_cases=json.loads((Path(__file__).resolve().parents[2]/'scripts/voice_eval/voice-stop-cases.json').read_text())
+    covered={e['name'] for c in CASES + stop_cases for e in c['expected']}
     covered|={c['required_followup'] for c in CASES if c.get('required_followup')}
     assert covered==set(REGISTRY)
     assert len(CASES)==len({c['id'] for c in CASES})
@@ -291,3 +292,8 @@ def test_latency_waterfall_separates_manual_boundary_from_estimated_vad():
     assert over['end_wait_s'] == pytest.approx(1.2)
     assert over['after_end_to_audio_s'] == pytest.approx(1.7)
     assert waterfall({**result, 'first_audio_latency_s': None})['after_end_to_audio_s'] is None
+
+
+def test_voice_stop_simulator_uses_local_success_and_rejects_meeting_exit():
+    assert AndroidTools({}).call("end_conversation", {})[0]["status"] == "ok"
+    assert AndroidTools({"meeting": True}).call("end_conversation", {})[0]["status"] == "error"

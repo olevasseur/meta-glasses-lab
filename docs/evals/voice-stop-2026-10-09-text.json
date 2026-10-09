@@ -1,0 +1,98 @@
+{
+  "model": "gemini-3.5-flash-lite",
+  "kind": "text tool selection, not audio/hardware",
+  "system_sha256": "f52df0aee9cd79d990bc496ba06c874989b94ba882ef1a4ddbbbe2ae417d1ae5",
+  "tools_sha256": "f9f170603725dd04040f10c493888f019089bae00e1a8591c10c9c0671b95192",
+  "results": [
+    {
+      "id": "voice-stop-goodbye",
+      "repeat": 1,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-listening",
+      "repeat": 1,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-over",
+      "repeat": 1,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-end",
+      "repeat": 1,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-thanks",
+      "repeat": 1,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-interrupt",
+      "repeat": 1,
+      "expected": [],
+      "calls": [],
+      "passed": true,
+      "text": "I'm listening. Go ahead."
+    },
+    {
+      "id": "voice-stop-negation",
+      "repeat": 1,
+      "expected": [],
+      "error": "ValueError",
+      "passed": false
+    }
+  ]
+}

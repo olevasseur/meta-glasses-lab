@@ -1,0 +1,8 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "I said goodbye to my mom.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "pcm_sha256": "e85a46a7353ec55ce09d6e9acee23789120b4986cd3fc528ca8589df83cba30c"
+}

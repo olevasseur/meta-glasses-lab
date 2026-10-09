@@ -1,0 +1,619 @@
+{
+  "date": "2026-10-09",
+  "runs": [
+    {
+      "label": "voice-stop-live",
+      "live_model": "gemini-3.8-live",
+      "tts_model": "gemini-3.8-flash-tts",
+      "prompt_metrics": {
+        "system_bytes": 7951,
+        "system_sha256": "f52df0aee9cd79d990bc496ba06c874989b94ba882ef1a4ddbbbe2ae417d1ae5",
+        "tools_sha256": "0fe502fe86ce9a9875f6b058e1d3162fbab32f40472820f1245f46a8eed9b1bc",
+        "tool_count": 43,
+        "counter_model": "gemini-3.5-flash-lite",
+        "system_tokens": 1771,
+        "system_and_serialized_tools_tokens": 6327
+      },
+      "cases": [
+        {
+          "id": "voice-stop-goodbye",
+          "feature": "voice-stop",
+          "segments": [
+            "Goodbye."
+          ],
+          "pauses": [],
+          "voice": "Kore",
+          "mode": "auto",
+          "expected": [
+            {
+              "name": "end_conversation",
+              "args": {}
+            }
+          ]
+        },
+        {
+          "id": "voice-stop-listening",
+          "feature": "voice-stop",
+          "segments": [
+            "Stop listening."
+          ],
+          "pauses": [],
+          "voice": "Kore",
+          "mode": "ptt",
+          "expected": [
+            {
+              "name": "end_conversation",
+              "args": {}
+            }
+          ]
+        },
+        {
+          "id": "voice-stop-over",
+          "feature": "voice-stop",
+          "segments": [
+            "Goodbye. Over."
+          ],
+          "pauses": [],
+          "voice": "Kore",
+          "mode": "over",
+          "expected": [
+            {
+              "name": "end_conversation",
+              "args": {}
+            }
+          ],
+          "insert_pause": 3
+        },
+        {
+          "id": "voice-stop-negation",
+          "feature": "voice-stop",
+          "segments": [
+            "Don't stop listening."
+          ],
+          "pauses": [],
+          "voice": "Kore",
+          "mode": "auto",
+          "expected": [],
+          "forbidden": [
+            "end_conversation"
+          ]
+        },
+        {
+          "id": "voice-stop-reported",
+          "feature": "voice-stop",
+          "segments": [
+            "I said goodbye to my mom."
+          ],
+          "pauses": [],
+          "voice": "Kore",
+          "mode": "auto",
+          "expected": [],
+          "forbidden": [
+            "end_conversation"
+          ]
+        }
+      ],
+      "results": [
+        {
+          "id": "voice-stop-goodbye",
+          "feature": "voice-stop",
+          "mode": "auto",
+          "model": "gemini-3.8-live",
+          "calls": [
+            {
+              "name": "end_conversation",
+              "args": {},
+              "time_s": 3.26944625005126,
+              "response": {
+                "status": "ok",
+                "message": "Say only Bye! now. The phone closes after playback, within four seconds."
+              },
+              "valid": true,
+              "response_sent_s": 3.2697362090693787
+            }
+          ],
+          "input_transcript": "Goodbye.",
+          "output_transcript": "Bye!",
+          "audio_bytes": 32642,
+          "response_times": [
+            3.269234042032622,
+            3.904562500072643,
+            3.9596373750828207,
+            3.983561084023677,
+            4.043116084067151,
+            4.193708625040017
+          ],
+          "first_audio_s": 3.904562500072643,
+          "speech_end_s": 1.0513220840366557,
+          "activity_end_s": null,
+          "complete": true,
+          "error": null,
+          "cancelled_calls": [],
+          "resumption_updates": 1,
+          "usage": [
+            {
+              "promptTokenCount": 6917,
+              "responseTokenCount": 6,
+              "totalTokenCount": 6923,
+              "promptTokensDetails": [
+                {
+                  "modality": "TEXT",
+                  "tokenCount": 5343
+                },
+                {
+                  "modality": "AUDIO",
+                  "tokenCount": 190
+                }
+              ],
+              "thoughtsTokenCount": 48
+            },
+            {
+              "promptTokenCount": 6960,
+              "responseTokenCount": 23,
+              "totalTokenCount": 6983,
+              "promptTokensDetails": [
+                {
+                  "modality": "TEXT",
+                  "tokenCount": 5368
+                },
+                {
+                  "modality": "AUDIO",
+                  "tokenCount": 190
+                }
+              ],
+              "responseTokensDetails": [
+                {
+                  "modality": "AUDIO",
+                  "tokenCount": 23
+                }
+              ],
+              "thoughtsTokenCount": 72
+            }
+          ],
+          "max_send_lag_s": 0.0022265409352257848,
+          "input_transcription_events": [
+            {
+              "time_s": 3.2691186669981107,
+              "text": "Goodbye.",
+              "final": false
+            }
+          ],
+          "token_s": 0.343788416008465,
+          "websocket_s": 0.1154452080372721,
+          "setup_s": 0.4006111250491813,
+          "end_reason": "turnComplete_settled",
+          "premature": false,
+          "first_audio_latency_s": 2.8532404160359874,
+          "audio_sha256": "a8cae939bdf79e6cc1c2c1ae2da8a73af1118824b707d9c660351bfe947569ec",
+          "audio_files": [
+            "62869a05a6e89d54a8841a35f46f1f60e4ac667a95718a965fd909fa6ff50182.wav"
+          ],
+          "tool_selection_ok": true,
+          "arguments_ok": true,
+          "false_trigger": false,
+          "negative": false,
+          "completed": true,
+          "observed_tools": [
+            "end_conversation"
+          ]
+        },
+        {
+          "id": "voice-stop-listening",
+          "feature": "voice-stop",
+          "mode": "ptt",
+          "model": "gemini-3.8-live",
+          "calls": [
+            {
+              "name": "end_conversation",
+              "args": {},
+              "time_s": 2.2813385410699993,
+              "response": {
+                "status": "ok",
+                "message": "Say only Bye! now. The phone closes after playback, within four seconds."
+              },
+              "valid": true,
+              "response_sent_s": 2.2818757080240175
+            }
+          ],
+          "input_transcript": "Stop listening.",
+          "output_transcript": "Bye!",
+          "audio_bytes": 39840,
+          "response_times": [
+            2.2811565829906613,
+            2.902432208065875,
+            2.952465791022405,
+            3.01497479097452,
+            3.0701836249791086,
+            3.07033170806244
+          ],
+          "first_audio_s": 2.902432208065875,
+          "speech_end_s": 1.5226359160151333,
+          "activity_end_s": 1.522639416041784,
+          "complete": true,
+          "error": null,
+          "cancelled_calls": [],
+          "resumption_updates": 1,
+          "usage": [
+            {
+              "promptTokenCount": 6932,
+              "responseTokenCount": 6,
+              "totalTokenCount": 6938,
+              "promptTokensDetails": [
+                {
+                  "modality": "TEXT",
+                  "tokenCount": 5344
+                },
+                {
+                  "modality": "AUDIO",
+                  "tokenCount": 204
+                }
+              ],
+              "thoughtsTokenCount": 70
+            },
+            {
+              "promptTokenCount": 6975,
+              "responseTokenCount": 27,
+              "totalTokenCount": 7002,
+              "promptTokensDetails": [
+                {
+                  "modality": "TEXT",
+                  "tokenCount": 5369
+                },
+                {
+                  "modality": "AUDIO",
+                  "tokenCount": 204
+                }
+              ],
+              "responseTokensDetails": [
+                {
+                  "modality": "AUDIO",
+                  "tokenCount": 27
+                }
+              ],
+              "thoughtsTokenCount": 54
+            }
+          ],
+          "max_send_lag_s": 0.002445541089400649,
+          "input_transcription_events": [
+            {
+              "time_s": 1.753378540975973,
+              "text": "Stop listening.",
+              "final": false
+            }
+          ],
+          "token_s": 0.17892941599711776,
+          "websocket_s": 0.11513545899651945,
+          "setup_s": 0.22029758302960545,
+          "end_reason": "turnComplete_settled",
+          "premature": false,
+          "first_audio_latency_s": 1.3797962920507416,
+          "audio_sha256": "9127efdd6512478432064cb2ca62b68699d3ca3acc836729e89f1aaf6d6d3fa7",
+          "audio_files": [
+            "b9e2ae4b4f42b92447fb116f546918d1e4ce83ebafb3572dedc8f607ddb47ded.wav"
+          ],
+          "tool_selection_ok": true,
+          "arguments_ok": true,
+          "false_trigger": false,
+          "negative": false,
+          "completed": true,
+          "observed_tools": [
+            "end_conversation"
+          ]
+        },
+        {
+          "id": "voice-stop-over",
+          "feature": "voice-stop",
+          "mode": "over",
+          "model": "gemini-3.8-live",
+          "calls": [
+            {
+              "name": "end_conversation",
+              "args": {},
+              "time_s": 6.285649583907798,
+              "response": {
+                "status": "ok",
+                "message": "Say only Bye! now. The phone closes after playback, within four seconds."
+              },
+              "valid": true,
+              "response_sent_s": 6.285852791974321
+            }
+          ],
+          "input_transcript": "Goodbye. Over.",
+          "output_transcript": "Bye!",
+          "audio_bytes": 41762,
+          "response_times": [
+            6.2855378749081865,
+            6.839367124950513,
+            6.85767562489491,
+            6.918449624907225,
+            6.950537999975495,
+            7.000383708975278,
+            7.065494291950017
+          ],
+          "first_audio_s": 6.839367124950513,
+          "speech_end_s": 4.401079374947585,
+          "activity_end_s": 5.6032450419152156,
+          "complete": true,
+          "error": null,
+          "cancelled_calls": [],
+          "resumption_updates": 1,
+          "usage": [
+            {
+              "promptTokenCount": 7035,
+              "responseTokenCount": 6,
+              "totalTokenCount": 7041,
+              "promptTokensDetails": [
+                {
+                  "modality": "TEXT",
+                  "tokenCount": 5345
+                },
+                {
+                  "modality": "AUDIO",
+                  "tokenCount": 306
+                }
+              ],
+              "thoughtsTokenCount": 39
+            },
+            {
+              "promptTokenCount": 7078,
+              "responseTokenCount": 28,
+              "totalTokenCount": 7106,
+              "promptTokensDetails": [
+                {
+                  "modality": "TEXT",
+                  "tokenCount": 5370
+                },
+                {
+                  "modality": "AUDIO",
+                  "tokenCount": 306
+                }
+              ],
+              "responseTokensDetails": [
+                {
+                  "modality": "AUDIO",
+                  "tokenCount": 28
+                }
+              ],
+              "thoughtsTokenCount": 62
+            }
+          ],
+          "max_send_lag_s": 0.004792541032657027,
+          "input_transcription_events": [
+            {
+              "time_s": 5.843939208891243,
+              "text": "Goodbye. Over.",
+              "final": false
+            }
+          ],
+          "token_s": 0.17594391701277345,
+          "websocket_s": 0.1317087080096826,
+          "setup_s": 0.38506799994502217,
+          "end_reason": "turnComplete_settled",
+          "premature": false,
+          "first_audio_latency_s": 2.438287750002928,
+          "audio_sha256": "d5a193e05c4b72660ba03d5a03af553ddb5769a5666b25cbb7fa497c9c9a088b",
+          "audio_files": [
+            "c46e366ed5c6a16067abbb568dc609016a88f623407d019895aad455aaba0505.wav"
+          ],
+          "tool_selection_ok": true,
+          "arguments_ok": true,
+          "false_trigger": false,
+          "negative": false,
+          "completed": true,
+          "observed_tools": [
+            "end_conversation"
+          ]
+        },
+        {
+          "id": "voice-stop-negation",
+          "feature": "voice-stop",
+          "mode": "auto",
+          "model": "gemini-3.8-live",
+          "calls": [],
+          "input_transcript": "Don't stop listening.",
+          "output_transcript": "I'm still here and listening whenever you're ready.",
+          "audio_bytes": 121442,
+          "response_times": [
+            3.8405994169879705,
+            3.864270708989352,
+            3.865394084015861,
+            3.87097166699823,
+            3.8747597499750555,
+            3.889801500015892,
+            3.8906760839745402,
+            3.8969520839164034,
+            3.9028921669814736,
+            3.909302124986425,
+            3.914202500018291,
+            3.919528624974191,
+            3.9195924589876086
+          ],
+          "first_audio_s": 3.8405994169879705,
+          "speech_end_s": 1.4821954999351874,
+          "activity_end_s": null,
+          "complete": true,
+          "error": null,
+          "cancelled_calls": [],
+          "resumption_updates": 1,
+          "usage": [
+            {
+              "promptTokenCount": 6934,
+              "responseTokenCount": 69,
+              "totalTokenCount": 7003,
+              "promptTokensDetails": [
+                {
+                  "modality": "TEXT",
+                  "tokenCount": 5347
+                },
+                {
+                  "modality": "AUDIO",
+                  "tokenCount": 203
+                }
+              ],
+              "responseTokensDetails": [
+                {
+                  "modality": "AUDIO",
+                  "tokenCount": 69
+                }
+              ],
+              "thoughtsTokenCount": 52
+            }
+          ],
+          "max_send_lag_s": 0.002523207920603454,
+          "input_transcription_events": [
+            {
+              "time_s": 3.8404744589934126,
+              "text": "Don't stop listening.",
+              "final": false
+            }
+          ],
+          "token_s": 0.17732787504792213,
+          "websocket_s": 0.1405039590317756,
+          "setup_s": 0.3787405830807984,
+          "end_reason": "turnComplete_settled",
+          "premature": false,
+          "first_audio_latency_s": 2.358403917052783,
+          "audio_sha256": "034f7d4b54941b309db88f6cdfcfbd242b758b6af5a31b55768283f5aad8cde8",
+          "audio_files": [
+            "36cf01ffa996d4d1aab49f2982831a56c732615ac4e4329eafe412f37f8027dc.wav"
+          ],
+          "tool_selection_ok": true,
+          "arguments_ok": true,
+          "false_trigger": false,
+          "negative": true,
+          "completed": true,
+          "observed_tools": []
+        },
+        {
+          "id": "voice-stop-reported",
+          "feature": "voice-stop",
+          "mode": "auto",
+          "model": "gemini-3.8-live",
+          "calls": [],
+          "input_transcript": "I said goodbye to my mom.",
+          "output_transcript": "That's always a bittersweet moment. I hope you have a safe journey wherever you're heading.",
+          "audio_bytes": 233280,
+          "response_times": [
+            4.149616084061563,
+            4.177224834100343,
+            4.185809749993496,
+            4.1928946250118315,
+            4.196651083999313,
+            4.196712375036441,
+            4.210004125023261,
+            4.231221084017307,
+            4.240896167000756,
+            4.248217959073372,
+            4.25538370909635,
+            4.274085625074804,
+            4.278605500003323,
+            4.351210709079169,
+            4.351345041999593,
+            4.351984834065661
+          ],
+          "first_audio_s": 4.149616084061563,
+          "speech_end_s": 1.6422005420317873,
+          "activity_end_s": null,
+          "complete": true,
+          "error": null,
+          "cancelled_calls": [],
+          "resumption_updates": 1,
+          "usage": [
+            {
+              "promptTokenCount": 6939,
+              "responseTokenCount": 127,
+              "totalTokenCount": 7066,
+              "promptTokensDetails": [
+                {
+                  "modality": "TEXT",
+                  "tokenCount": 5348
+                },
+                {
+                  "modality": "AUDIO",
+                  "tokenCount": 207
+                }
+              ],
+              "responseTokensDetails": [
+                {
+                  "modality": "AUDIO",
+                  "tokenCount": 127
+                }
+              ],
+              "thoughtsTokenCount": 67
+            }
+          ],
+          "max_send_lag_s": 0.005426584044471383,
+          "input_transcription_events": [
+            {
+              "time_s": 4.146197042078711,
+              "text": "I said goodbye to my mom.",
+              "final": false
+            }
+          ],
+          "token_s": 0.16939066699706018,
+          "websocket_s": 0.13119375007227063,
+          "setup_s": 0.2349945839960128,
+          "end_reason": "turnComplete_settled",
+          "premature": false,
+          "first_audio_latency_s": 2.5074155420297757,
+          "audio_sha256": "c8222729eb49df4bd257769cb1d53d6a6a0f8f97162748b32bfd978cc6bd5bb7",
+          "audio_files": [
+            "1cbcc9a28393cda496848c0363689d0f49a8e165bde6634c9d28e704d4aba6ab.wav"
+          ],
+          "tool_selection_ok": true,
+          "arguments_ok": true,
+          "false_trigger": false,
+          "negative": true,
+          "completed": true,
+          "observed_tools": []
+        }
+      ],
+      "metrics": {
+        "cases": 5,
+        "completed": 5,
+        "tool_selection_accuracy": {
+          "numerator": 5,
+          "denominator": 5,
+          "rate": 1.0
+        },
+        "argument_correctness": {
+          "numerator": 5,
+          "denominator": 5,
+          "rate": 1.0
+        },
+        "false_trigger_rate": {
+          "numerator": 0,
+          "denominator": 2,
+          "rate": 0.0
+        },
+        "unexpected_tool_rate": {
+          "numerator": 0,
+          "denominator": 5,
+          "rate": 0.0
+        },
+        "premature_response_rate": {
+          "over": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0
+          },
+          "auto": {
+            "numerator": 0,
+            "denominator": 3,
+            "rate": 0.0
+          },
+          "ptt": {
+            "numerator": 0,
+            "denominator": 1,
+            "rate": 0.0
+          }
+        },
+        "first_audio_latency_s": {
+          "n": 5,
+          "median": 2.438287750002928,
+          "p95": 2.8532404160359874
+        }
+      }
+    }
+  ]
+}

@@ -96,3 +96,6 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   — **2026-10-09**: repeated DAT timeout removed from Over, persistent shared-PCM
   recognition with startup buffering, precise manual-boundary logs, four Live
   sessions/twelve turns; physical-device retest and 16.739 s root cause unresolved.
+
+- [Voice stop](voice-stop.md) — **2026-10-09**: phone-owned conversation exit,
+  final-turn fallback, bounded farewell playback and Gemini selection evaluation.

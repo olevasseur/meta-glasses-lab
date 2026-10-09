@@ -120,6 +120,16 @@ STOP_MEETING = types.FunctionDeclaration(
     parameters=types.Schema(type="OBJECT", properties={}),
 )
 
+END_CONVERSATION = types.FunctionDeclaration(
+    name="end_conversation",
+    description=("End this assistant conversation only on the user's clear request to leave "
+                 "(goodbye, stop listening, end conversation, that's all thanks). Tier 0: no approval. "
+                 "Never for interrupting an answer, quoted speech, negation, or mid-task. "
+                 "Never end meeting capture: use stop_meeting only when explicitly asked. "
+                 "After status ok, say only Bye!; the phone closes after playback."),
+    parameters=types.Schema(type="OBJECT", properties={}),
+)
+
 # Name -> (validated args, owner, method, Gemini declaration).
 # Client-owned tools are advertised here but validated/executed on the phone.
 REGISTRY = {
@@ -166,6 +176,7 @@ REGISTRY.update({
 REGISTRY.update({tool.name: (None, "client", None, tool) for tool in COACH_CLIENT_TOOLS})
 REGISTRY.update({tool.name: (None, "client", None, tool) for tool in VISUAL_CLIENT_TOOLS})
 REGISTRY.update({tool.name: (RecallRequest, "visual", "find", tool) for tool in SEARCH_TOOLS})
+REGISTRY["end_conversation"] = (None, "client", None, END_CONVERSATION)
 CLIENT_TOOL_NAMES = [name for name, entry in REGISTRY.items() if entry[1] == "client"]
 
 for name in ("codex_task", "deep_research", "forget", "write_journal", "cancel_job"):

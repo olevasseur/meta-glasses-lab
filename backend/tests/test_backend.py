@@ -101,7 +101,7 @@ def test_token_config_and_response(client, gemini_client, mode):
                                                "start_workout", "stop_workout", "workout_status",
                                                "read_text", "submit_reading", "reading_control",
                                                "check_progress", "set_timer", "list_timers", "cancel_timer", "set_nod_navigation",
-                                               "set_visual_memory", "remember_this", "delete_visual_memory"]
+                                               "set_visual_memory", "remember_this", "delete_visual_memory", "end_conversation"]
     assert response.json()["token"] == "auth_tokens/test"
     assert response.json()["model"] == "gemini-3.8-live"
     client_mock, factory = gemini_client
@@ -380,3 +380,21 @@ def test_unknown_tool_404_without_google_access(client, google_clients):
     assert client.post("/tools/unknown", json={}).status_code == 404
     assert client.post("/tools/unknown").status_code == 404
     google_clients.loader.assert_not_called()
+
+
+def test_end_conversation_is_phone_owned(client):
+    response = client.post("/tools/end_conversation", json={})
+    assert response.status_code == 400
+    assert response.json() == {"detail": "This tool must be executed on the glasses app"}
+
+
+@pytest.mark.parametrize("mode", ["auto", "ptt", "over"])
+def test_end_conversation_in_locked_setup(mode):
+    config = gemini.token_config("gemini-3.8-live", mode)
+    live = config.live_connect_constraints.config
+    declaration = next(d for d in live.tools[0].function_declarations if d.name == "end_conversation")
+    assert not declaration.parameters.properties
+    assert "Tier 0" in declaration.description
+    assert "end_conversation" in live.system_instruction
+    assert "stop_meeting" in live.system_instruction
+    assert config.lock_additional_fields == []

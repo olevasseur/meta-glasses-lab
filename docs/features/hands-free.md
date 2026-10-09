@@ -267,3 +267,35 @@ tests continue to cover rapid Stop/re-arm and stale callback suppression.
 
 Run the [Pixel/RB Meta 01G8 retest](../hardware-test-plan.md#dat-hfp-regression-retest--2026-10-09)
 before treating concurrent DAT/HFP recovery as hardware-verified.
+
+## Voice stop (2026-10-09)
+
+Say **“goodbye”**, **“stop listening”**, **“end conversation”**, or
+**“that's all, thanks”** during a conversation. In Over, finish the turn normally
+(e.g. **“goodbye, over”**); in PTT speak during an open Talk turn and finish it
+normally. Auto uses its normal speech detection. There is no new setting.
+
+Gemini calls the Tier 0 `end_conversation` tool, executed on the phone without
+approval or a backend tool round-trip, then says **“Bye!”**. The phone waits for
+speech generation and queued/device-buffered playback to finish, up to **four
+seconds from acceptance**. It closes the conversation, queues the normal memory
+summary, and releases HFP/SCO. **Glasses controls remain ARMED** so DAT recovery
+can reacquire capture HOLD. Notification Stop continues to disarm everything.
+
+An exact, normalized final user turn also stops locally if Gemini omits the tool.
+This fallback accumulates transcript fragments until `turnComplete`; it never
+matches only part of a sentence. It accepts the phrases above plus “good bye”,
+“end the conversation”, “that is all thanks”, and a trailing “over”. Bare “stop”,
+“don't stop listening”, and “I said goodbye to my mom” do not match. The model is
+instructed not to exit for interruptions, quotations, or unfinished tasks.
+
+Meeting capture rejects this tool and ignores the fallback. **“Stop the meeting”**
+continues through `stop_meeting`; ordinary participant goodbyes never stop capture.
+Translation and paused audio also reject the action. No additional always-on or
+offline recognizer is installed: this depends on a submitted Gemini input turn.
+A slow/missing goodbye or stuck speaker cannot extend the four-second deadline.
+
+See [evaluation results](../evals/voice-stop-2026-10-09.md) and
+[protocol/source notes](../research/voice-stop.md), checked 2026-10-09 against the
+[official Live reference](https://ai.google.dev/api/live). Physical HFP playback
+and DAT recovery after voice stop remain hardware acceptance checks.

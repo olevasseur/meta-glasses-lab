@@ -1,0 +1,257 @@
+{
+  "model": "gemini-3.5-flash-lite",
+  "kind": "text tool selection, not audio/hardware",
+  "system_sha256": "f52df0aee9cd79d990bc496ba06c874989b94ba882ef1a4ddbbbe2ae417d1ae5",
+  "tools_sha256": "0fe502fe86ce9a9875f6b058e1d3162fbab32f40472820f1245f46a8eed9b1bc",
+  "results": [
+    {
+      "id": "voice-stop-goodbye",
+      "repeat": 1,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-listening",
+      "repeat": 1,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-over",
+      "repeat": 1,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-end",
+      "repeat": 1,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-thanks",
+      "repeat": 1,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-interrupt",
+      "repeat": 1,
+      "expected": [],
+      "calls": [],
+      "passed": true,
+      "text": "I'm listening. Go ahead."
+    },
+    {
+      "id": "voice-stop-negation",
+      "repeat": 1,
+      "expected": [],
+      "calls": [],
+      "passed": true,
+      "text": "Understood. I'm listening."
+    },
+    {
+      "id": "voice-stop-reported",
+      "repeat": 1,
+      "expected": [],
+      "calls": [],
+      "passed": true,
+      "text": "Goodbye to your mom! Let me know if you need anything else."
+    },
+    {
+      "id": "voice-stop-question",
+      "repeat": 1,
+      "expected": [],
+      "calls": [],
+      "passed": true,
+      "text": "When you say goodbye, I end our conversation. After that, the phone closes shortly after playback."
+    },
+    {
+      "id": "voice-stop-task",
+      "repeat": 1,
+      "expected": [],
+      "calls": [],
+      "passed": true,
+      "text": "To say goodbye politely in French, you can use **\"Au revoir\"** (goodbye), which works in almost any situation. \n\nFor a more formal setting or when speaking to someone you don't know well, you can add **\"monsieur\"** or **\"madame\"**. \n\nIf you know you'll see them soon, **\"\u00c0 bient\u00f4t\"** (see you soon) is very common and polite."
+    },
+    {
+      "id": "voice-stop-meeting-goodbye",
+      "repeat": 1,
+      "expected": [],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": false,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-meeting-stop",
+      "repeat": 1,
+      "expected": [
+        "stop_meeting"
+      ],
+      "calls": [
+        {
+          "name": "stop_meeting",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-goodbye",
+      "repeat": 2,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-listening",
+      "repeat": 2,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-over",
+      "repeat": 2,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-end",
+      "repeat": 2,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-thanks",
+      "repeat": 2,
+      "expected": [
+        "end_conversation"
+      ],
+      "calls": [
+        {
+          "name": "end_conversation",
+          "args": {}
+        }
+      ],
+      "passed": true,
+      "text": ""
+    },
+    {
+      "id": "voice-stop-interrupt",
+      "repeat": 2,
+      "expected": [],
+      "calls": [],
+      "passed": true,
+      "text": "I'm listening. Go ahead."
+    },
+    {
+      "id": "voice-stop-negation",
+      "repeat": 2,
+      "expected": [],
+      "calls": [],
+      "passed": true,
+      "text": "I'm here."
+    },
+    {
+      "id": "voice-stop-reported",
+      "repeat": 2,
+      "expected": [],
+      "calls": [],
+      "passed": true,
+      "text": "Goodbye!"
+    },
+    {
+      "id": "voice-stop-question",
+      "repeat": 2,
+      "expected": [],
+      "error": "ClientError",
+      "passed": false
+    }
+  ]
+}

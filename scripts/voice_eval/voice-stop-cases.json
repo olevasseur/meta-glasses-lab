@@ -1,0 +1,187 @@
+[
+  {
+    "id": "voice-stop-goodbye",
+    "feature": "voice-stop",
+    "segments": [
+      "Goodbye."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "auto",
+    "expected": [
+      {
+        "name": "end_conversation",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "id": "voice-stop-listening",
+    "feature": "voice-stop",
+    "segments": [
+      "Stop listening."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "ptt",
+    "expected": [
+      {
+        "name": "end_conversation",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "id": "voice-stop-over",
+    "feature": "voice-stop",
+    "segments": [
+      "Goodbye. Over."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "over",
+    "expected": [
+      {
+        "name": "end_conversation",
+        "args": {}
+      }
+    ],
+    "insert_pause": 3
+  },
+  {
+    "id": "voice-stop-end",
+    "feature": "voice-stop",
+    "segments": [
+      "End conversation."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "auto",
+    "expected": [
+      {
+        "name": "end_conversation",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "id": "voice-stop-thanks",
+    "feature": "voice-stop",
+    "segments": [
+      "That's all, thanks."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "auto",
+    "expected": [
+      {
+        "name": "end_conversation",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "id": "voice-stop-interrupt",
+    "feature": "voice-stop",
+    "segments": [
+      "Stop. Let me finish explaining."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "auto",
+    "expected": [],
+    "forbidden": [
+      "end_conversation"
+    ]
+  },
+  {
+    "id": "voice-stop-negation",
+    "feature": "voice-stop",
+    "segments": [
+      "Don't stop listening."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "auto",
+    "expected": [],
+    "forbidden": [
+      "end_conversation"
+    ]
+  },
+  {
+    "id": "voice-stop-reported",
+    "feature": "voice-stop",
+    "segments": [
+      "I said goodbye to my mom."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "auto",
+    "expected": [],
+    "forbidden": [
+      "end_conversation"
+    ]
+  },
+  {
+    "id": "voice-stop-question",
+    "feature": "voice-stop",
+    "segments": [
+      "What happens when I say goodbye?"
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "auto",
+    "expected": [],
+    "forbidden": [
+      "end_conversation"
+    ]
+  },
+  {
+    "id": "voice-stop-task",
+    "feature": "voice-stop",
+    "segments": [
+      "Explain how to say goodbye politely in French."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "auto",
+    "expected": [],
+    "forbidden": [
+      "end_conversation"
+    ]
+  },
+  {
+    "id": "voice-stop-meeting-goodbye",
+    "feature": "voice-stop",
+    "segments": [
+      "Goodbye."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "auto",
+    "expected": [],
+    "meeting": true,
+    "context": "The app is currently capturing a meeting. I have asked the meeting assistant to listen to this request. Meeting capture must continue unless I explicitly ask to stop the meeting.",
+    "forbidden": [
+      "end_conversation"
+    ]
+  },
+  {
+    "id": "voice-stop-meeting-stop",
+    "feature": "voice-stop",
+    "segments": [
+      "Stop the meeting."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "auto",
+    "expected": [
+      {
+        "name": "stop_meeting",
+        "args": {}
+      }
+    ],
+    "meeting": true,
+    "context": "The app is currently capturing a meeting. I have asked the meeting assistant to listen to this request. Meeting capture must continue unless I explicitly ask to stop the meeting."
+  }
+]

@@ -60,7 +60,7 @@ def test_assistant_keeps_notes_and_can_switch():
         "write_journal", "read_journal", "morning_brief",
         "start_project", "next_step", "previous_step", "repeat_step", "current_step", "how_much", "scale_project",
         "check_progress", "set_timer", "list_timers", "cancel_timer", "set_nod_navigation",
-        "set_visual_memory", "remember_this", "delete_visual_memory", "find_object", "when_did_i_see",
+        "set_visual_memory", "remember_this", "delete_visual_memory", "find_object", "when_did_i_see", "end_conversation",
     ]
     start = next(d for d in declarations if d.name == "start_translation")
     assert set(start.parameters.properties["other_language"].enum) == set(LANGUAGES)
@@ -136,7 +136,7 @@ def test_persona_switch_keeps_assistant_memory_out_of_interpreter(client, monkey
         assert client.post("/token", json=body).status_code == 200
         live = configs[-1].live_connect_constraints.config
         assert ("kayaking" in live.system_instruction) == (persona == "assistant")
-        assert len(live.tools[0].function_declarations) == (42 if persona == "assistant" else 2)
+        assert len(live.tools[0].function_declarations) == (43 if persona == "assistant" else 2)
         assert ("submit_reading" in live.system_instruction) == (persona == "assistant")
         assert live.realtime_input_config.automatic_activity_detection.disabled == (mode != "auto")
         assert configs[-1].lock_additional_fields == []

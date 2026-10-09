@@ -23,7 +23,7 @@ def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
                                                "start_workout", "stop_workout", "workout_status",
                                                "read_text", "submit_reading", "reading_control",
                                                "check_progress", "set_timer", "list_timers", "cancel_timer", "set_nod_navigation",
-                                               "set_visual_memory", "remember_this", "delete_visual_memory"]
+                                               "set_visual_memory", "remember_this", "delete_visual_memory", "end_conversation"]
     body, = captured
     assert "tools" in body["fieldMask"]
     assert "sessionResumption" not in body["fieldMask"]
@@ -40,9 +40,9 @@ def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
         "write_journal", "read_journal", "morning_brief",
         "start_project", "next_step", "previous_step", "repeat_step", "current_step", "how_much", "scale_project",
         "check_progress", "set_timer", "list_timers", "cancel_timer", "set_nod_navigation",
-        "set_visual_memory", "remember_this", "delete_visual_memory", "find_object", "when_did_i_see",
+        "set_visual_memory", "remember_this", "delete_visual_memory", "find_object", "when_did_i_see", "end_conversation",
     }
-    assert len(setup["tools"][0]["functionDeclarations"]) == 42
+    assert len(setup["tools"][0]["functionDeclarations"]) == 43
     for name, field, kind in [("look", "question", "STRING"), ("set_watch_mode", "on", "BOOLEAN")]:
         tool = declarations[name]
         assert "Client-executed" in tool["description"]

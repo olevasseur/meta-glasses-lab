@@ -179,6 +179,14 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     @Volatile private var lastVoicedNs = 0L
     private var lastThinkingCueNs = 0L
 
+    private val voiceStop by lazy {
+        VoiceStop(viewModelScope,
+            allowed = { state.value.running && !state.value.stopping && !state.value.meeting &&
+                state.value.translationLanguage == null && state.value.handsFree.shouldRun },
+            playbackIdle = { audio.playbackIdle },
+            endConversation = { service?.endConversation() })
+    }
+
     private val gemini: GeminiSession = GeminiSession(
         scope = viewModelScope, backend = backend, audio = audio,
         onState = { label, connected ->
@@ -215,11 +223,12 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                 saveSettings(state.value.settings.copy(translationLanguage = language))
             }
         },
-        localTool = { featureTools.tool(it) },
+        localTool = { if (it.name == VoiceStop.TOOL) voiceStop.tool(it) else featureTools.tool(it) },
         onEvent = { event ->
             if (!state.value.meeting && state.value.settings.mode == ConversationMode.OVER) {
                 event.inputText?.let(over::inputTranscription)
             }
+            voiceStop.event(event)
             if (state.value.meeting && event.turnComplete && !event.interrupted && event.calls.isEmpty()) meetingAssistant.turnEnded()
             if (event.interrupted) offline.interrupted()
             else if (event.turnComplete) offline.turnComplete()
@@ -576,7 +585,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
     private fun beginOverTurn() {
         if (state.value.meeting || !state.value.running || state.value.stopping || !state.value.connected ||
-            !state.value.handsFree.shouldRun || !audioReady || overAwaitingReply ||
+            !state.value.handsFree.shouldRun || !audioReady || overAwaitingReply || voiceStop.pending ||
             state.value.settings.mode != ConversationMode.OVER) return
         if (offline.speaking) {
             overResumeJob?.cancel()
@@ -622,6 +631,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
 
     internal fun stopSession() {
         if (state.value.stopping || !state.value.running) return
+        voiceStop.reset()
         approvals.state.value?.let { approvals.reject(it.id) }
         mutableState.update { it.copy(stopping = true, connected = false, talking = false) }
         offline.stop()
@@ -728,6 +738,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
 
     override fun onCleared() {
+        voiceStop.reset()
         offline.close()
         meetingWake.stop(); meetingAssistant.stop(resumeListening = false)
         approvals.close()

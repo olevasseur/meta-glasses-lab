@@ -52,7 +52,8 @@ class GeminiSessionTest {
     }
 
     private class Fixture(scope: CoroutineScope, local: suspend (FunctionCall) -> ToolResult = { ToolResult(JSONObject()) },
-        action: (GeminiSession) -> Unit = {}, canAnnounce: () -> Boolean = { true }) : Closeable {
+        action: (GeminiSession) -> Unit = {}, canAnnounce: () -> Boolean = { true },
+        event: (ServerEvent) -> Unit = {}) : Closeable {
         val audio = Audio()
         val errors = mutableListOf<String>()
         val backendCalls = AtomicInteger()
@@ -69,7 +70,7 @@ class GeminiSessionTest {
         }.build()
         val session: GeminiSession = GeminiSession(scope, BackendClient(http, "http://localhost/", "fixture"), audio,
             { _, _ -> }, { _, _ -> }, {}, {}, {}, { errors += it; sessionRef().stop() }, localTool = local,
-            onClientTool = { _, _ -> action(sessionRef()) },
+            onClientTool = { _, _ -> action(sessionRef()) }, onEvent = event,
             canAnnounce = canAnnounce,
             elapsedMs = { 0L }, retryDelay = { 1L },
             sockets = WebSocket.Factory { request, listener -> Socket(request, listener).also { created.trySend(it) } })
@@ -139,6 +140,91 @@ class GeminiSessionTest {
             }
             assertFalse(logs.any { it.event.contains("private phrase") })
             assertTrue(logs.all { it.timestamp.isNotBlank() && it.event.contains("monotonic_ms=") })
+        }
+    }
+
+    @Test fun overTranscriptionFallbackAndVoiceStopShareTheFinalTurn() = runBlocking {
+        lateinit var fixture: Fixture
+        lateinit var over: OverModeController
+        var now = 0L
+        var recognizerStops = 0
+        var controls = HandsFreeState(mode = ConversationMode.OVER).start(0).inputsAvailable(false)
+        val stop = VoiceStop(this, { controls.shouldRun }, { fixture.audio.playbackIdle }, {
+            controls = controls.captureHold(1)
+            fixture.session.stop()
+        })
+        Fixture(this, local = stop::tool, event = { event ->
+            event.inputText?.let(over::inputTranscription)
+            stop.event(event)
+        }).use { f ->
+            fixture = f
+            over = OverModeController(this, { _, _ ->
+                object : OverSpeechInput {
+                    override fun startOnDevice() = Unit // Still preparing: Gemini fallback owns sign-off.
+                    override fun audio(pcm: ByteArray) = Unit
+                    override fun stop() { recognizerStops++ }
+                }
+            }, { f.session.setTalking(false) }, {}, { now })
+            try {
+                val settings = ConversationSettings(mode = ConversationMode.OVER)
+                val socket = f.connected(settings = settings)
+                f.session.setTalking(true)
+                over.start(settings)
+                f.session.sendAudio(byteArrayOf(1, 2))
+                socket.receive("""{"serverContent":{"inputTranscription":{"text":"Good"}}}""")
+                socket.receive("""{"serverContent":{"inputTranscription":{"text":"bye, over."}}}""")
+                yield()
+                assertFalse(stop.pending)
+                now = 1_200
+                over.tick()
+                assertEquals(1, socket.sent.count { it.contains("activityEnd") })
+                assertEquals(0, recognizerStops)
+                val afterEnd = socket.sent.size
+                f.session.sendAudio(byteArrayOf(3, 4))
+                assertEquals(afterEnd, socket.sent.size)
+                socket.receive(audioMessage)
+                socket.receive("""{"serverContent":{"turnComplete":true}}""")
+                yield()
+                assertTrue(stop.pending)
+                kotlinx.coroutines.delay(30)
+                assertFalse(socket.cancelled)
+                f.audio.chunks.clear()
+                withTimeout(1_000) { while (!socket.cancelled) kotlinx.coroutines.delay(10) }
+                assertTrue(controls.armed)
+                assertFalse(controls.conversation)
+                assertEquals(0, f.backendCalls.get())
+            } finally {
+                stop.reset()
+                over.stop()
+            }
+        }
+    }
+
+    @Test fun voiceStopRepliesLocallyThenClosesSocketAfterSpeakerDrains() = runBlocking {
+        for (mode in ConversationMode.entries) {
+            lateinit var fixture: Fixture
+            var controls = HandsFreeState(mode = mode).start(0)
+            val stop = VoiceStop(this, { controls.shouldRun }, { fixture.audio.playbackIdle }, {
+                controls = controls.captureHold(1)
+                fixture.session.stop()
+            })
+            Fixture(this, local = stop::tool, event = stop::event).use { f ->
+                fixture = f
+                val socket = f.connected(settings = ConversationSettings(mode = mode))
+                socket.receive(tool(name = VoiceStop.TOOL)); yield(); yield()
+                assertEquals(0, f.backendCalls.get())
+                assertTrue(socket.sent.any { it.contains("functionResponses") && it.contains("Bye!") })
+                socket.receive(audioMessage)
+                socket.receive("""{"serverContent":{"turnComplete":true}}""")
+                yield()
+                kotlinx.coroutines.delay(30)
+                assertFalse(socket.cancelled)
+                f.audio.chunks.clear()
+                withTimeout(1_000) { while (!socket.cancelled) kotlinx.coroutines.delay(10) }
+                assertTrue(controls.armed)
+                assertFalse(controls.conversation)
+                stop.reset()
+            }
         }
     }
 
