@@ -112,7 +112,11 @@ async def protect(request, call_next):
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         # SameSite is defense in depth; every POST, including login, needs a token.
         origin = request.headers.get("origin")
-        if (origin and origin != str(request.base_url).rstrip("/")) or request.headers.get("sec-fetch-site") == "cross-site":
+        fetch_site = request.headers.get("sec-fetch-site")
+        # Privacy contexts send Origin "null"; then require Fetch Metadata to prove same-origin.
+        if origin == "null":
+            origin = None if fetch_site == "same-origin" else origin
+        if (origin and origin != str(request.base_url).rstrip("/")) or fetch_site in {"cross-site", "same-site"}:
             return HTMLResponse("Cross-site request rejected", status_code=403)
         if request.headers.get("content-type", "").split(";")[0] != "application/x-www-form-urlencoded":
             return HTMLResponse("Expected a form", status_code=415)
@@ -161,7 +165,7 @@ def install(app, notes_service, token_test):
         if dashboard_request:
             response.headers.update({
                 "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
-                "Referrer-Policy": "no-referrer", "X-Frame-Options": "DENY",
+                "Referrer-Policy": "same-origin", "X-Frame-Options": "DENY",
                 "Content-Security-Policy": "default-src 'self'; script-src https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
             })
         return response

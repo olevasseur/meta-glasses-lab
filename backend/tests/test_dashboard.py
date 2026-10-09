@@ -454,3 +454,12 @@ def test_meetings_pagination_and_pending_minutes(client):
     assert "Minutes are not ready yet" in detail.text
     assert "No transcript captured" in detail.text
     assert "Open Google Doc" not in detail.text
+
+
+def test_login_accepts_null_origin_only_with_same_origin_fetch_metadata(client):
+    token = csrf(client.get("/dashboard/login"))
+    assert client.post("/dashboard/login", data={"csrf": token, "secret": SECRET}, headers={"Origin": "null"}).status_code == 403
+    assert client.post("/dashboard/login", data={"csrf": token, "secret": SECRET}, headers={"Origin": "null", "Sec-Fetch-Site": "same-site"}).status_code == 403
+    response = client.post("/dashboard/login", data={"csrf": token, "secret": SECRET}, headers={"Origin": "null", "Sec-Fetch-Site": "same-origin"}, follow_redirects=False)
+    assert response.status_code in (302, 303)
+    assert client.get("/dashboard/login").headers["referrer-policy"] == "same-origin"
