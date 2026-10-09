@@ -1,0 +1,686 @@
+{
+  "date": "2026-10-09",
+  "live_sessions": 2,
+  "max_sessions": 2,
+  "results": [
+    {
+      "warm": true,
+      "wait_seconds": 20,
+      "model": "gemini-3.8-live",
+      "usage": [
+        {
+          "promptTokenCount": 7007,
+          "responseTokenCount": 104,
+          "totalTokenCount": 7111,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 5350
+            },
+            {
+              "modality": "AUDIO",
+              "tokenCount": 273
+            }
+          ],
+          "responseTokensDetails": [
+            {
+              "modality": "AUDIO",
+              "tokenCount": 104
+            }
+          ],
+          "thoughtsTokenCount": 111
+        },
+        {
+          "promptTokenCount": 7395,
+          "responseTokenCount": 109,
+          "totalTokenCount": 7504,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 5366
+            },
+            {
+              "modality": "AUDIO",
+              "tokenCount": 625
+            }
+          ],
+          "responseTokensDetails": [
+            {
+              "modality": "AUDIO",
+              "tokenCount": 109
+            }
+          ],
+          "thoughtsTokenCount": 60
+        },
+        {
+          "promptTokenCount": 7656,
+          "responseTokenCount": 127,
+          "totalTokenCount": 7783,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 5393
+            },
+            {
+              "modality": "AUDIO",
+              "tokenCount": 839
+            }
+          ],
+          "responseTokensDetails": [
+            {
+              "modality": "AUDIO",
+              "tokenCount": 127
+            }
+          ],
+          "thoughtsTokenCount": 246
+        }
+      ],
+      "turns": [
+        {
+          "scenario": "healthy_control",
+          "input_bytes": 136320,
+          "events": [
+            {
+              "seconds": 4.498,
+              "kinds": [
+                "inputTranscription"
+              ]
+            },
+            {
+              "seconds": 5.235,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 5.373,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.378,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.486,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 5.534,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.583,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.81,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 5.823,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.963,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 6.019,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 6.072,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 9.132,
+              "kinds": [
+                "turnComplete"
+              ]
+            }
+          ],
+          "audio_bytes": 188160,
+          "complete": true,
+          "activity_end_s": 4.261
+        },
+        {
+          "scenario": "ten_seconds_digital_silence",
+          "input_bytes": 320000,
+          "events": [
+            {
+              "seconds": 10.917,
+              "kinds": [
+                "inputTranscription"
+              ]
+            },
+            {
+              "seconds": 18.162,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 18.201,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 18.276,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 18.298,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 18.32,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 18.527,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 18.555,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 19.046,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 19.05,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 19.071,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 19.12,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 21.788,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 22.342,
+              "kinds": [
+                "turnComplete"
+              ]
+            }
+          ],
+          "audio_bytes": 197762,
+          "complete": true,
+          "activity_end_s": 10.001
+        },
+        {
+          "scenario": "reopened_speech_same_socket",
+          "input_bytes": 136320,
+          "events": [
+            {
+              "seconds": 4.594,
+              "kinds": [
+                "inputTranscription"
+              ]
+            },
+            {
+              "seconds": 8.449,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 8.497,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 8.517,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 8.676,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 8.677,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 8.825,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 8.896,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 8.92,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 8.957,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 9.196,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 9.233,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 9.361,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 9.412,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 9.632,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 9.632,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 13.272,
+              "kinds": [
+                "turnComplete"
+              ]
+            }
+          ],
+          "audio_bytes": 232800,
+          "complete": true,
+          "activity_end_s": 4.261
+        }
+      ]
+    },
+    {
+      "warm": false,
+      "wait_seconds": 8,
+      "model": "gemini-3.8-live",
+      "usage": [
+        {
+          "promptTokenCount": 7145,
+          "responseTokenCount": 100,
+          "totalTokenCount": 7245,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 5345
+            },
+            {
+              "modality": "AUDIO",
+              "tokenCount": 416
+            }
+          ],
+          "responseTokensDetails": [
+            {
+              "modality": "AUDIO",
+              "tokenCount": 100
+            }
+          ],
+          "thoughtsTokenCount": 34
+        },
+        {
+          "promptTokenCount": 7395,
+          "responseTokenCount": 103,
+          "totalTokenCount": 7498,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 5370
+            },
+            {
+              "modality": "AUDIO",
+              "tokenCount": 621
+            }
+          ],
+          "responseTokensDetails": [
+            {
+              "modality": "AUDIO",
+              "tokenCount": 103
+            }
+          ],
+          "thoughtsTokenCount": 49
+        }
+      ],
+      "turns": [
+        {
+          "scenario": "ten_seconds_digital_silence",
+          "input_bytes": 320000,
+          "events": [
+            {
+              "seconds": 10.436,
+              "kinds": [
+                "inputTranscription"
+              ]
+            },
+            {
+              "seconds": 10.962,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 10.978,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 11.041,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 11.062,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 11.116,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 11.165,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 11.182,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 11.239,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 11.343,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 11.343,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 11.343,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 11.554,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 11.649,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 11.649,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 11.735,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 11.783,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 11.792,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 14.746,
+              "kinds": [
+                "turnComplete"
+              ]
+            }
+          ],
+          "audio_bytes": 180960,
+          "complete": true,
+          "activity_end_s": 10.0
+        },
+        {
+          "scenario": "reopened_speech_same_socket",
+          "input_bytes": 136320,
+          "events": [
+            {
+              "seconds": 4.688,
+              "kinds": [
+                "inputTranscription"
+              ]
+            },
+            {
+              "seconds": 5.146,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 5.193,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.258,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.31,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.332,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.382,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 5.467,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.53,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.542,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.561,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.672,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 5.77,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.825,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 5.927,
+              "kinds": [
+                "modelTurn",
+                "outputTranscription"
+              ]
+            },
+            {
+              "seconds": 5.994,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 6.08,
+              "kinds": [
+                "modelTurn"
+              ]
+            },
+            {
+              "seconds": 9.094,
+              "kinds": [
+                "turnComplete"
+              ]
+            }
+          ],
+          "audio_bytes": 186242,
+          "complete": true,
+          "activity_end_s": 4.261
+        }
+      ]
+    }
+  ]
+}

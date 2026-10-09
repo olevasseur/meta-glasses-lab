@@ -99,3 +99,8 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 
 - [Voice stop](voice-stop.md) — **2026-10-09**: phone-owned conversation exit,
   final-turn fallback, bounded farewell playback and Gemini selection evaluation.
+
+- [Over stalled-turn correction](over-mode-notes.md#hardware-stalled-turn-correction--2026-10-09)
+  — **2026-10-09**: speech-gated silence expiry, bounded reply/tool recovery,
+  attenuated HFP energy audit, JVM fault injection, and two real silent-activity
+  sessions (provider stall not reproduced); physical-device retest remains.

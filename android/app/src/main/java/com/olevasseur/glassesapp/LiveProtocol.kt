@@ -68,7 +68,7 @@ object LiveProtocol {
             usage = root.optJSONObject("usageMetadata"),
             setupComplete = root.has("setupComplete"),
             audio = audio,
-            modelContent = content?.has("modelTurn") == true,
+            modelContent = (parts?.length() ?: 0) > 0,
             interrupted = content?.optBoolean("interrupted") == true,
             turnComplete = content?.optBoolean("turnComplete") == true,
             inputText = content?.optJSONObject("inputTranscription")?.optString("text"),

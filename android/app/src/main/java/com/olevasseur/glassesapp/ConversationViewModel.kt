@@ -134,6 +134,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                 if (reason == OverTurnDetector.End.SIGN_OFF) stop()
             },
             onStatus = { label -> mutableState.update { it.copy(overStatus = label) } },
+            onSpeech = { service?.activity() },
             onError = { message ->
                 mutableState.update { it.copy(overStatus = "Keyword recognition unavailable · pause to finish your turn") }
                 error(message)
@@ -209,6 +210,16 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             }
         },
         onTool = { result -> mutableState.update { it.copy(lastTool = result) } },
+        onOverTurnReopen = { reason ->
+            transcriptBoundary = true
+            overAwaitingReply = false
+            overResumeJob?.cancel()
+            if (reason == "tool_reply_watchdog" && audioReady && state.value.handsFree.shouldRun) {
+                thinkingUntilNs = System.nanoTime() + 200_000_000L
+                service?.thinkingCue()
+            }
+            beginOverTurn()
+        },
         onTalking = { value ->
             if (!value) { screenTalking = false; glassesTalking = false }
             mutableState.update { it.copy(talking = value) }

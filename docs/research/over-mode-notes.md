@@ -145,3 +145,39 @@ Pixel long-lived segmented recognition and echo suppression; recognition of
 buffered speech after service failure; delayed/duplicate callbacks across turns;
 rare late Gemini transcription associated with an earlier turn (no provider turn
 ID). Tests use fake recognition callbacks; WAV tests use oracle sign-off timing.
+
+## Hardware stalled-turn correction — 2026-10-09
+
+Supersedes the earlier initial-silence rule and Over's 700/450 energy gate.
+The supplied 19:42:21.858 → 19:42:31.858 UTC trace shows exactly ten seconds from
+listening to silence expiry, followed by no provider events for over two minutes.
+Code inspection reproduces a turn ending with no detected speech and an unbounded
+post-End uplink gate. A turn now requires speech evidence before silence expiry;
+on-device hypothesis changes reset silence, with a more sensitive 350/225 energy
+fallback. Logs retain first/last speech timestamps, not recognized text.
+
+Rechecked official [Gemini wire reference](https://ai.google.dev/api/live) and
+[Android RecognitionListener](https://developer.android.com/reference/android/speech/RecognitionListener)
+on 2026-10-09. Manual activity requires disabled automatic detection; input
+transcription is independent of model messages, without guaranteed ordering.
+Android partial results supply recognition hypotheses; they are not guaranteed
+for every utterance. The 8-second no-event and 45-second tool deadlines are
+application recovery policy, not provider latency guarantees. Tool-generation
+completion may precede the result's continuation, as previously observed by the
+voice-eval harness, so it cannot alone reopen a pending tool turn.
+
+Two real constrained sessions both produced audio after ten seconds of digital
+silence and accepted subsequent speech. The warm silent turn's first audio took
+8.161 seconds, with transcription at 0.916 seconds. No provider no-event stall
+was reproduced. JVM socket tests inject that absence and verify automatic Start
+and resumed PCM, as well as empty completion and delayed tools. Six existing HFP
+case/mode fixtures at −20 dB yielded detected speech in 0/6 with 700/450 versus
+6/6 with 350/225 (five distinct utterances); Python frame counts matched compiled
+Kotlin across 36 cases. See [full evaluation](../evals/over-stall-2026-10-09.md)
+for commands, raw timing/energy files and test results.
+
+**Unverified:** physical HFP speech/noise sensitivity, Pixel partial-result
+availability/timing, actual on-device no-event recovery, late provider events
+around a recovered turn, and the hardware session's provider-side silence cause.
+Cancelling local tool work cannot undo a backend write; timed-out work is never
+automatically retried. No physical device or real external write was tested.

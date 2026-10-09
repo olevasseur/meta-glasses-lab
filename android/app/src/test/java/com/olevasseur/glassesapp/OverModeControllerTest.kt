@@ -8,6 +8,38 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class OverModeControllerTest {
+    @Test fun partialSpeechArmsSilenceAndLogsTimesWithoutTranscriptContent() {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        var now = 0L
+        var activity = 0
+        lateinit var result: (String, Boolean) -> Unit
+        val ends = mutableListOf<OverTurnDetector.End>()
+        val cursor = DiagnosticLog.ring.after(0, 500).lastOrNull()?.sequence ?: 0
+        val controller = OverModeController(scope, { callback, _ ->
+            result = callback
+            object : OverSpeechInput {
+                override fun startOnDevice() = Unit
+                override fun audio(pcm: ByteArray) = Unit
+                override fun stop() = Unit
+            }
+        }, ends::add, {}, { now }, { activity++ })
+        try {
+            controller.start(ConversationSettings(mode = ConversationMode.OVER))
+            repeat(1500) { now += 20; controller.audio(ByteArray(640)) }
+            assertTrue(ends.isEmpty())
+            assertEquals(0, activity)
+            result("private quiet sentence", false)
+            assertEquals(1, activity)
+            repeat(499) { now += 20; controller.audio(ByteArray(640)) }
+            assertTrue(ends.isEmpty())
+            now += 20; controller.audio(ByteArray(640))
+            assertEquals(listOf(OverTurnDetector.End.SILENCE_TIMEOUT), ends)
+            val logs = DiagnosticLog.ring.after(cursor).filter { it.feature == "over" }
+            assertTrue(logs.any { it.event.contains("first_ms=30000 last_ms=30000") })
+            assertFalse(logs.any { it.event.contains("private quiet sentence") })
+        } finally { controller.stop(); scope.cancel() }
+    }
+
     @Test fun staysWarmAndCatchesImmediateSignOffOnSuccessiveTurns() {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         var now = 0L

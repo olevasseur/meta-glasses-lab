@@ -535,3 +535,39 @@ Sources and limits: [DAT session/HFP research](research/dat-session-hfp.md).
   interruption, “don't stop listening”, and “I said goodbye to my mom” do not
   close it. During a meeting, a goodbye must leave capture running; explicitly
   “stop the meeting” must still use the existing meeting stop/minutes path.
+
+
+## Over stalled-turn recovery — 2026-10-09
+
+Pixel 10 Pro + Ray-Ban Meta, confirm Bluetooth HFP / 8 kHz input in Diagnostics.
+Use Over with the default 10-second silence setting; retain UTC structured logs.
+
+- [ ] Start and remain silent for 30 seconds (also after a healthy reply). No
+  `activityEnd`; `speech_detected` remains absent/null; then ask a question and
+  say “over”. Confirm a reply without Stop/Start.
+- [ ] Begin speaking after more than ten seconds. Check first/last speech times,
+  no premature End, then ten seconds after the last speech ends exactly once.
+- [ ] Speak quietly, including phone-in-pocket and normal HFP levels. Verify
+  partial hypotheses and the lower energy fallback both keep the turn alive.
+  Try >60 seconds of speech with <10-second pauses; no maximum speaking cutoff.
+- [ ] In quiet, café and wind, verify breathing/noise does not continually reset
+  last-speech time; check silent-start false detections and normal conversation
+  idle shutdown. The new gate is more sensitive; record false speech as a failure.
+- [ ] With a debug server/proxy withholding all relevant events after End,
+  verify `no_reply_watchdog` at ~8 seconds, another `activityStart`, resumed PCM,
+  and a successful new spoken question. No manual Stop is required.
+- [ ] Deliver empty `turnComplete`; confirm immediate `empty_turn_complete`
+  recovery, no duplicate Start, and warm recognition.
+- [ ] Delay a tool result >8 seconds but <45 seconds; input remains gated until
+  result + reply complete and playback drains. Also test early tool-generation
+  completion and multiple calls in one turn.
+- [ ] Withhold tool result or its reply through 45 seconds from End; confirm one
+  earcon, `tool_reply_watchdog`, reopened uplink and no automatic tool replay.
+  Check the destination before retrying a write whose outcome is unknown.
+- [ ] Stop/reconnect and call/focus suspend during each wait. No old watchdog
+  reopens a stopped session or records during the call; recovery works on resume.
+- [ ] Inject delayed old audio/transcription/completion after recovery. Verify
+  the next spoken turn stays usable and record any misassociation (Live provides
+  no user-turn IDs). Check playback echo cannot supply a sign-off.
+
+Local automation and Live probe results: [Over stall evaluation](evals/over-stall-2026-10-09.md).

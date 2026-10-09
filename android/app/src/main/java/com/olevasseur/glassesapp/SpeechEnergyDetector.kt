@@ -3,7 +3,7 @@ package com.olevasseur.glassesapp
 import kotlin.math.sqrt
 
 /** Local gate for the shared 16 kHz PCM16 stream (normally 20 ms per callback). */
-internal class SpeechEnergyDetector {
+internal class SpeechEnergyDetector(private val startRms: Double = 700.0, private val holdRms: Double = 450.0) {
     private var onsetSamples = 0
     private var weakSamples = 0
     private var speaking = false
@@ -27,8 +27,8 @@ internal class SpeechEnergyDetector {
         }
         // Reject DC/rumble and broadband hiss/breath; voiced speech has fewer crossings.
         val speechLike = crossings.toDouble() / count in 0.008..0.20
-        val strong = speechLike && rms >= 700.0
-        val weak = speechLike && rms >= 450.0
+        val strong = speechLike && rms >= startRms
+        val weak = speechLike && rms >= holdRms
         if (strong) {
             onsetSamples = (onsetSamples + count).coerceAtMost(1600)
             weakSamples = 0

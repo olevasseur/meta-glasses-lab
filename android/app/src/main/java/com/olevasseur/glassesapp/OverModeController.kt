@@ -22,13 +22,15 @@ class OverModeController(
     private val onEnd: (OverTurnDetector.End) -> Unit,
     private val onStatus: (String) -> Unit,
     private val clock: () -> Long = { System.nanoTime() / 1_000_000 },
+    private val onSpeech: () -> Unit = {},
 ) {
     constructor(context: Context, scope: CoroutineScope, sessions: StateFlow<DeviceSession?>,
         onEnd: (OverTurnDetector.End) -> Unit, onStatus: (String) -> Unit, onError: (String) -> Unit,
+        onSpeech: () -> Unit = {},
     ) : this(scope, { text, status -> OverSpeechRecognizer(context, scope, sessions, text, status, {
         status("Keyword recognition unavailable · pause to finish your turn")
         onError(it)
-    }) }, onEnd, onStatus, android.os.SystemClock::elapsedRealtime)
+    }) }, onEnd, onStatus, android.os.SystemClock::elapsedRealtime, onSpeech)
 
     private var detector: OverTurnDetector? = null
     private var transcriptionDetector: OverTurnDetector? = null
@@ -39,8 +41,13 @@ class OverModeController(
     @Volatile private var listening = false
     @Volatile private var started = false
     private var recognitionStatus = "Preparing keyword recognition · audio buffered…"
+    private var turn = 0L
+    private var speechLogged = false
+    private var lastActivityMs: Long? = null
     private val speech = createSpeech({ text, final ->
-        detector?.transcript(text, final, clock())?.let(::finish)
+        val end = detector?.transcript(text, final, clock())
+        logFirstSpeech()
+        if (end != null) finish(end)
     }, { label ->
         if (recognitionStatus != label) {
             inputText = ""
@@ -53,6 +60,7 @@ class OverModeController(
     fun start(settings: ConversationSettings) {
         if (listening) return
         turnSettings = settings
+        turn++; speechLogged = false; lastActivityMs = null
         detector = OverTurnDetector(settings.keyword, settings.overSilenceSeconds)
         transcriptionDetector = OverTurnDetector(settings.keyword, settings.overSilenceSeconds)
         inputText = ""
@@ -78,6 +86,7 @@ class OverModeController(
     fun inputTranscription(delta: String) {
         if (!listening || recognitionStatus.startsWith("Listening")) return
         inputText = (inputText + delta).takeLast(512)
+        if (delta.isNotBlank()) { detector?.speechDetected(clock()); logFirstSpeech() }
         transcriptionDetector?.transcript(inputText, false, clock())?.let(::finish)
     }
 
@@ -88,7 +97,11 @@ class OverModeController(
         if (!listening) return
         val epoch = generation
         scope.launch {
-            if (epoch == generation) detector?.audio(pcm)?.let(::finish)
+            if (epoch == generation) {
+                val end = detector?.audio(pcm, clock())
+                logFirstSpeech()
+                if (end != null) finish(end)
+            }
         }
     }
 
@@ -99,9 +112,26 @@ class OverModeController(
     }
 
     fun pause() {
+        detector?.let {
+            DiagnosticLog.add("over", "turn=$turn speech_detected first_ms=${it.firstSpeechMs} last_ms=${it.lastSpeechMs}")
+        }
         listening = false; generation++
         detector = null; transcriptionDetector = null; inputText = ""; turnSettings = null
         tickJob?.cancel(); tickJob = null
+    }
+
+    private fun logFirstSpeech() {
+        val detected = detector ?: return
+        detected.lastSpeechMs?.let { now ->
+            if (lastActivityMs == null || now - lastActivityMs!! >= 1_000) {
+                lastActivityMs = now
+                onSpeech()
+            }
+        }
+        if (!speechLogged && detected.firstSpeechMs != null) {
+            speechLogged = true
+            DiagnosticLog.add("over", "turn=$turn speech_detected first_ms=${detected.firstSpeechMs}")
+        }
     }
 
     fun stop() {

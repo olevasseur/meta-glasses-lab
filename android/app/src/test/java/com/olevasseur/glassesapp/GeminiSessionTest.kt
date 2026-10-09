@@ -53,7 +53,9 @@ class GeminiSessionTest {
 
     private class Fixture(scope: CoroutineScope, local: suspend (FunctionCall) -> ToolResult = { ToolResult(JSONObject()) },
         action: (GeminiSession) -> Unit = {}, canAnnounce: () -> Boolean = { true },
-        event: (ServerEvent) -> Unit = {}) : Closeable {
+        event: (ServerEvent) -> Unit = {}, clock: () -> Long = { 0L }) : Closeable {
+        val reopens = mutableListOf<String>()
+        var ended = 0
         val audio = Audio()
         val errors = mutableListOf<String>()
         val backendCalls = AtomicInteger()
@@ -69,10 +71,11 @@ class GeminiSessionTest {
                 .body(body.toResponseBody("application/json".toMediaType())).build()
         }.build()
         val session: GeminiSession = GeminiSession(scope, BackendClient(http, "http://localhost/", "fixture"), audio,
-            { _, _ -> }, { _, _ -> }, {}, {}, {}, { errors += it; sessionRef().stop() }, localTool = local,
+            { _, _ -> }, { _, _ -> }, { ended++ }, {}, {}, { errors += it; sessionRef().stop() }, localTool = local,
             onClientTool = { _, _ -> action(sessionRef()) }, onEvent = event,
             canAnnounce = canAnnounce,
-            elapsedMs = { 0L }, retryDelay = { 1L },
+            onOverTurnReopen = { reopens += it; sessionRef().setTalking(true) },
+            elapsedMs = clock, retryDelay = { 1L },
             sockets = WebSocket.Factory { request, listener -> Socket(request, listener).also { created.trySend(it) } })
         private fun sessionRef() = session
         suspend fun connected(meeting: Boolean = false, settings: ConversationSettings = ConversationSettings()): Socket {
@@ -96,6 +99,123 @@ class GeminiSessionTest {
     private fun tool(id: String = "1", name: String = "remember") =
         """{"toolCall":{"functionCalls":[{"id":"$id","name":"$name","args":{}}]}}"""
     private val audioMessage = """{"serverContent":{"modelTurn":{"parts":[{"inlineData":{"mimeType":"audio/pcm;rate=24000","data":"AQI="}}]}}}"""
+
+    @Test fun overNoServerEventsReopensAfterEightSecondsAndResumesPcm() = runBlocking {
+        var now = 0L
+        Fixture(this, clock = { now }).use { f ->
+            val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            f.session.setTalking(true)
+            f.session.sendAudio(ByteArray(640))
+            f.session.setTalking(false)
+            val afterEnd = socket.sent.size
+            f.session.sendAudio(ByteArray(640))
+            assertEquals(afterEnd, socket.sent.size)
+            now = 7_999
+            kotlinx.coroutines.delay(120)
+            assertTrue(f.reopens.isEmpty())
+            now = 8_000
+            withTimeout(1_000) { while (f.reopens.isEmpty()) kotlinx.coroutines.delay(10) }
+            assertEquals(listOf("no_reply_watchdog"), f.reopens)
+            assertTrue(socket.sent.last().contains("activityStart"))
+            f.session.sendAudio(ByteArray(640))
+            assertTrue(socket.sent.last().contains("audio"))
+            now = 100_000
+            kotlinx.coroutines.delay(120)
+            assertEquals(1, f.reopens.size)
+        }
+    }
+
+    @Test fun emptyCompleteReopensImmediatelyButInputTranscriptIsNotAReply() = runBlocking {
+        Fixture(this).use { f ->
+            val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            f.session.setTalking(true); f.session.setTalking(false)
+            socket.receive("""{"serverContent":{"inputTranscription":{"text":"heard"},"turnComplete":true}}""")
+            yield()
+            assertEquals(listOf("empty_turn_complete"), f.reopens)
+            assertTrue(socket.sent.last().contains("activityStart"))
+            assertEquals(0, f.ended)
+        }
+    }
+
+    @Test fun toolWaitsForResultAndSpokenContinuationEvenAfterEarlyComplete() = runBlocking {
+        var now = 0L
+        val result = kotlinx.coroutines.CompletableDeferred<Unit>()
+        Fixture(this, clock = { now }, local = { result.await(); ToolResult(JSONObject()) }).use { f ->
+            val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            f.session.setTalking(true); f.session.setTalking(false)
+            socket.receive(tool(name = "look")); yield(); yield()
+            socket.receive("""{"serverContent":{"turnComplete":true}}"""); yield()
+            now = 8_000
+            kotlinx.coroutines.delay(120)
+            assertTrue(f.reopens.isEmpty())
+            assertEquals(0, f.ended)
+            now = 30_000
+            result.complete(Unit); yield(); yield()
+            assertTrue(socket.sent.any { it.contains("functionResponses") })
+            socket.receive("""{"serverContent":{"turnComplete":true}}"""); yield()
+            assertEquals(0, f.ended)
+            socket.receive(audioMessage); yield()
+            socket.receive("""{"serverContent":{"turnComplete":true}}"""); yield()
+            assertEquals(1, f.ended)
+            now = 45_000
+            kotlinx.coroutines.delay(120)
+            assertTrue(f.reopens.isEmpty())
+        }
+    }
+
+    @Test fun toolDeadlineIsBoundedAndLateResultCannotLeakIntoReopenedTurn() = runBlocking {
+        var now = 0L
+        val result = kotlinx.coroutines.CompletableDeferred<Unit>()
+        Fixture(this, clock = { now }, local = { result.await(); ToolResult(JSONObject()) }).use { f ->
+            val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            f.session.setTalking(true); f.session.setTalking(false)
+            socket.receive(tool(name = "look")); yield(); yield()
+            now = 44_999
+            kotlinx.coroutines.delay(120)
+            assertTrue(f.reopens.isEmpty())
+            now = 45_000
+            withTimeout(1_000) { while (f.reopens.isEmpty()) kotlinx.coroutines.delay(10) }
+            assertEquals(listOf("tool_reply_watchdog"), f.reopens)
+            assertTrue(socket.sent.last().contains("activityStart"))
+            result.complete(Unit); yield(); yield()
+            assertFalse(socket.sent.any { it.contains("functionResponses") })
+            socket.receive(tool(name = "look")); yield(); yield()
+            assertFalse(socket.sent.any { it.contains("functionResponses") })
+        }
+    }
+
+    @Test fun inputOnlyReplyIsBoundedAndSuspensionDefersRecoveryUntilResume() = runBlocking {
+        var now = 0L
+        Fixture(this, clock = { now }).use { f ->
+            val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            f.session.setTalking(true); f.session.setTalking(false)
+            socket.receive("""{"serverContent":{"inputTranscription":{"text":"heard"}}}"""); yield()
+            now = 8_000
+            kotlinx.coroutines.delay(120)
+            assertTrue(f.reopens.isEmpty())
+            f.session.suspendAudio(true)
+            now = 45_000
+            kotlinx.coroutines.delay(120)
+            assertTrue(f.reopens.isEmpty())
+            f.session.suspendAudio(false)
+            withTimeout(1_000) { while (f.reopens.isEmpty()) kotlinx.coroutines.delay(10) }
+            assertEquals(listOf("no_reply_watchdog"), f.reopens)
+        }
+    }
+
+    @Test fun stoppingCancelsOverWatchdogAndPttDoesNotUseIt() = runBlocking {
+        for (mode in listOf(ConversationMode.OVER, ConversationMode.PTT)) {
+            var now = 0L
+            Fixture(this, clock = { now }).use { f ->
+                f.connected(settings = ConversationSettings(mode = mode))
+                f.session.setTalking(true); f.session.setTalking(false)
+                if (mode == ConversationMode.OVER) f.session.stop()
+                now = 100_000
+                kotlinx.coroutines.delay(120)
+                assertTrue(f.reopens.isEmpty())
+            }
+        }
+    }
 
     @Test fun overSignOffImmediatelySendsEndAndRejectsRemainderUntilNextStart() = runBlocking {
         Fixture(this).use { f ->
@@ -411,7 +531,7 @@ class GeminiSessionTest {
             assertEquals(before, socket.sent.size)
             f.session.setTalking(false)
             assertFalse(f.session.sendRecap("offline recap"))
-            socket.receive("""{"serverContent":{"turnComplete":true}}"""); yield()
+            socket.receive("""{"serverContent":{"outputTranscription":{"text":"Done."},"turnComplete":true}}"""); yield()
             assertTrue(f.session.sendRecap("offline recap"))
             assertTrue(socket.sent.last().contains("offline recap"))
         }

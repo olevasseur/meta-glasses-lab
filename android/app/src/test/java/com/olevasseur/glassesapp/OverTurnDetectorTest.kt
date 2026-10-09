@@ -85,12 +85,15 @@ class OverTurnDetectorTest {
         assertNull(detector.transcript("over and out", true, 11_000))
     }
 
-    @Test fun silenceAtStartAlsoEndsButMissingAudioDoesNotCountAsSilence() {
+    @Test fun silentTurnNeverEndsAndMissingAudioDoesNotCountAsSilence() {
         val detector = OverTurnDetector("over")
         assertNull(detector.tick(100_000))
         assertNull(detector.audio(byteArrayOf()))
-        keepOpen(detector, silence, 9980)
+        keepOpen(detector, silence, 180_000)
         assertNull(detector.tick(1_000_000))
+        assertNull(detector.firstSpeechMs)
+        keepOpen(detector, voice, 1000)
+        keepOpen(detector, silence, 9980)
         assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(silence))
     }
 
@@ -109,9 +112,9 @@ class OverTurnDetectorTest {
         repeat(20) {
             keepOpen(detector, voice, 1000)
             keepOpen(detector, silence, 9000)
-            detector.transcript("still thinking", true, it * 10_000L)
+            detector.transcript("still thinking $it", true, it * 10_000L)
         }
-        keepOpen(detector, silence, 980)
+        keepOpen(detector, silence, 9980)
         assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(silence))
     }
 
@@ -127,7 +130,7 @@ class OverTurnDetectorTest {
         val random = Random(7)
         val hiss = pcm { random.nextInt(-4000, 4001) }
         val hfpHiss = PcmResampler(8000).process(ShortArray(160) { random.nextInt(-4000, 4001).toShort() })
-        for (background in listOf(tone(500), pcm { 3000 }, hiss, hfpHiss)) {
+        for (background in listOf(tone(250), pcm { 3000 }, hiss, hfpHiss)) {
             val detector = OverTurnDetector("over")
             keepOpen(detector, voice, 1000)
             keepOpen(detector, background, 9980)
@@ -137,6 +140,7 @@ class OverTurnDetectorTest {
 
     @Test fun repeatedClicksAndBriefEnergyBurstsDoNotResetSilence() {
         val detector = OverTurnDetector("over")
+        keepOpen(detector, voice, 1000)
         repeat(9) {
             keepOpen(detector, silence, 960)
             keepOpen(detector, voice, 40)
@@ -148,7 +152,7 @@ class OverTurnDetectorTest {
     }
 
     @Test fun weakEnergyHysteresisBridgesSyllablesButCannotLatchBackgroundForever() {
-        val weak = tone(800) // RMS between the 450 hold and 700 onset thresholds.
+        val weak = tone(400) // RMS between the Over 225 hold and 350 onset thresholds.
         val detector = OverTurnDetector("over")
         repeat(100) {
             keepOpen(detector, voice, 200)
@@ -162,6 +166,7 @@ class OverTurnDetectorTest {
     @Test fun timeoutSettingClampsAndCountsPcmDurationNotCallbackCount() {
         for ((setting, seconds) in listOf(-1 to 5, 5 to 5, 30 to 30, 99 to 30)) {
             val detector = OverTurnDetector("over", silenceSeconds = setting)
+            keepOpen(detector, voice, 1000)
             // Half-size callbacks represent 10 ms, not 20 ms.
             repeat(seconds * 100 - 1) { assertNull(detector.audio(ByteArray(320))) }
             assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(ByteArray(320)))
@@ -175,6 +180,35 @@ class OverTurnDetectorTest {
         assertNotNull(first.tick(10_200))
         val next = OverTurnDetector("over")
         keepOpen(next, silence, 9980)
-        assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, next.audio(silence))
+        assertNull(next.audio(silence))
+        assertNull(next.firstSpeechMs)
     }
+    @Test fun quietHfpSpeechUsesChangingPartialsAndDuplicatesCannotLatchSpeech() {
+        val detector = OverTurnDetector("over")
+        keepOpen(detector, silence, 30_000)
+        detector.transcript("a quiet", false, 30_000)
+        assertEquals(30_000L, detector.firstSpeechMs)
+        keepOpen(detector, silence, 9000)
+        detector.transcript("a quiet sentence", false, 39_000)
+        assertEquals(39_000L, detector.lastSpeechMs)
+        keepOpen(detector, silence, 9980)
+        detector.transcript("a quiet sentence", false, 48_980)
+        assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(silence))
+    }
+
+    @Test fun hfpEightToSixteenKSpeechTriggersEnergyFallback() {
+        val resampler = PcmResampler(8000)
+        val detector = OverTurnDetector("over")
+        repeat(50) { frame ->
+            val pcm = resampler.process(ShortArray(160) { i ->
+                (800 * sin(2 * PI * 300 * (frame * 160 + i) / 8000)).toInt().toShort()
+            })
+            assertNull(detector.audio(pcm, frame * 20L))
+        }
+        assertNotNull(detector.firstSpeechMs)
+        assertEquals(980L, detector.lastSpeechMs)
+        keepOpen(detector, silence, 9980)
+        assertEquals(OverTurnDetector.End.SILENCE_TIMEOUT, detector.audio(silence))
+    }
+
 }
