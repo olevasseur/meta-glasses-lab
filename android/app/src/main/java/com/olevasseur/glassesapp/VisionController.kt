@@ -132,7 +132,7 @@ suspend fun routeTool(
     local: suspend (FunctionCall) -> ToolResult,
     backend: suspend (FunctionCall) -> JSONObject,
 ): ToolResult = when {
-    call.name == GestureConfirmation.TOOL || call.name in VisionController.TOOL_NAMES ||
+    call.name == VoiceStop.TOOL || call.name == GestureConfirmation.TOOL || call.name in VisionController.TOOL_NAMES ||
         call.name in WorkoutCoach.TOOL_NAMES || call.name in ReadToMeController.TOOL_NAMES ||
         call.name in COACH_TOOL_NAMES || call.name in VisualMemoryController.TOOL_NAMES -> local(call)
     call.name in clientTools -> ToolResult(toolError("Client tool is not supported by this app version"))

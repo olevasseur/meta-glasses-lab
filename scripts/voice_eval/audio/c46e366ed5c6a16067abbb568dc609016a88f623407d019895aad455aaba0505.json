@@ -1,0 +1,8 @@
+{
+  "model": "gemini-3.8-flash-tts",
+  "voice": "Kore",
+  "text": "Goodbye. Over.",
+  "style": "Natural conversational speech, as if talking to a glasses assistant.",
+  "format": 1,
+  "pcm_sha256": "c111ad29cb4a8eb11a591d97b49f387fcf4b679dcd1bb2d6cc73eff3287c0a01"
+}

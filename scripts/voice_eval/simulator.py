@@ -166,6 +166,10 @@ class AndroidTools:
     def call(self, name, args):
         from tools import REGISTRY
         validate_schema(args,REGISTRY[name][3].parameters)
+        if name == 'end_conversation':
+            if self.case.get('meeting'):
+                return {'status':'error','message':'Use stop_meeting to end capture'},None
+            return {'status':'ok','message':'Say only Bye! now. The phone closes after playback, within four seconds.'},None
         if name in ('look','read_text','check_progress'):
             result = {'status':'frame_sent'}
             if name == 'read_text':

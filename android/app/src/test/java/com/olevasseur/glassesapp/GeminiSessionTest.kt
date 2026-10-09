@@ -52,7 +52,8 @@ class GeminiSessionTest {
     }
 
     private class Fixture(scope: CoroutineScope, local: suspend (FunctionCall) -> ToolResult = { ToolResult(JSONObject()) },
-        action: (GeminiSession) -> Unit = {}, canAnnounce: () -> Boolean = { true }) : Closeable {
+        action: (GeminiSession) -> Unit = {}, canAnnounce: () -> Boolean = { true },
+        event: (ServerEvent) -> Unit = {}) : Closeable {
         val audio = Audio()
         val errors = mutableListOf<String>()
         val backendCalls = AtomicInteger()
@@ -69,7 +70,7 @@ class GeminiSessionTest {
         }.build()
         val session: GeminiSession = GeminiSession(scope, BackendClient(http, "http://localhost/", "fixture"), audio,
             { _, _ -> }, { _, _ -> }, {}, {}, {}, { errors += it; sessionRef().stop() }, localTool = local,
-            onClientTool = { _, _ -> action(sessionRef()) },
+            onClientTool = { _, _ -> action(sessionRef()) }, onEvent = event,
             canAnnounce = canAnnounce,
             elapsedMs = { 0L }, retryDelay = { 1L },
             sockets = WebSocket.Factory { request, listener -> Socket(request, listener).also { created.trySend(it) } })
@@ -95,6 +96,34 @@ class GeminiSessionTest {
     private fun tool(id: String = "1", name: String = "remember") =
         """{"toolCall":{"functionCalls":[{"id":"$id","name":"$name","args":{}}]}}"""
     private val audioMessage = """{"serverContent":{"modelTurn":{"parts":[{"inlineData":{"mimeType":"audio/pcm;rate=24000","data":"AQI="}}]}}}"""
+
+    @Test fun voiceStopRepliesLocallyThenClosesSocketAfterSpeakerDrains() = runBlocking {
+        for (mode in ConversationMode.entries) {
+            lateinit var fixture: Fixture
+            var controls = HandsFreeState(mode = mode).start(0)
+            val stop = VoiceStop(this, { controls.shouldRun }, { fixture.audio.playbackIdle }, {
+                controls = controls.captureHold(1)
+                fixture.session.stop()
+            })
+            Fixture(this, local = stop::tool, event = stop::event).use { f ->
+                fixture = f
+                val socket = f.connected(settings = ConversationSettings(mode = mode))
+                socket.receive(tool(name = VoiceStop.TOOL)); yield(); yield()
+                assertEquals(0, f.backendCalls.get())
+                assertTrue(socket.sent.any { it.contains("functionResponses") && it.contains("Bye!") })
+                socket.receive(audioMessage)
+                socket.receive("""{"serverContent":{"turnComplete":true}}""")
+                yield()
+                kotlinx.coroutines.delay(30)
+                assertFalse(socket.cancelled)
+                f.audio.chunks.clear()
+                withTimeout(1_000) { while (!socket.cancelled) kotlinx.coroutines.delay(10) }
+                assertTrue(controls.armed)
+                assertFalse(controls.conversation)
+                stop.reset()
+            }
+        }
+    }
 
     @Test fun meetingInteractionUsesNormalTokenAndRejectsTranslationSwitch() = runBlocking {
         Fixture(this).use { f ->

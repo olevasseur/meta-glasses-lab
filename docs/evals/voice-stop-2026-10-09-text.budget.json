@@ -1,0 +1,14 @@
+{
+  "text_attempts": 6,
+  "failures": 0,
+  "models": {
+    "gemini-3.5-flash-lite": 6
+  },
+  "last_response": {
+    "model": "gemini-3.5-flash-lite",
+    "text_length": 24,
+    "finish_reasons": [
+      "FinishReason.STOP"
+    ]
+  }
+}
