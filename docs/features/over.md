@@ -110,8 +110,11 @@ An empty non-tool `turnComplete` immediately reopens the user turn. Recovery log
 gate and sends a new `activityStart`; microphone uplink and the warm recognizer
 resume. These recoveries are silent.
 
-A tool call switches to a **45-second overall deadline from End**, including all
-tool work and its reply. A tool-generation `turnComplete` is not enough to reopen
+A tool call starts a **45-second execution deadline** for its pending batch.
+After the last toolResponse is sent, a fresh **8-second no-reply deadline** starts;
+tool execution time does not consume it. Input-only progress allows 45 seconds
+from that send, and active model output refreshes the 45-second stall deadline.
+A tool-generation `turnComplete` is not enough to reopen
 while tools or their spoken continuation are outstanding. Exceeding the deadline
 logs `tool_reply_watchdog`, plays the short existing earcon, and reopens listening.
 Timed-out tool jobs are cancelled locally; late results and duplicate IDs are

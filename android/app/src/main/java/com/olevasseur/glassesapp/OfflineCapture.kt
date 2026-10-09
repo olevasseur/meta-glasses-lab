@@ -38,11 +38,11 @@ class OfflineCapture(context: Context, scope: CoroutineScope, sessions: StateFlo
             delay(3_000)
         }
     }
-    fun update(active: Boolean, online: Boolean, unavailable: Boolean) {
+    fun update(active: Boolean, online: Boolean, unavailable: Boolean, reason: String = "Connection lost; retrying") {
         enabled = active
         connected = online
         if (!online) pendingRecap = emptyList()
-        if (active && unavailable) { outage = true; voice.say("Gemini is busy, retrying") }
+        if (active && unavailable) { outage = true; voice.say(GeminiRecovery.announcement(reason)) }
         if (active && online && outage) { outage = false; voice.say("Back online") }
         val listen = active && !online && outage
         if (listen != listening) {
@@ -51,6 +51,7 @@ class OfflineCapture(context: Context, scope: CoroutineScope, sessions: StateFlo
         }
         if (!active) voice.stop()
     }
+    fun backendUnavailable(message: String) { if (enabled) voice.say(message) }
     fun audio(pcm: ByteArray) { if (listening && !voice.speaking) speech.audio(pcm) }
     fun review() = outbox.review()
     fun sendPendingRecap() {

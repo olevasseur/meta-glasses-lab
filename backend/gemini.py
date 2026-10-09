@@ -61,6 +61,8 @@ def token_config(
                 system_instruction=(translator_instruction(language) if persona == "translator"
                                     else system_instruction or assistant_instruction(mode)),
                 response_modalities=["AUDIO"],
+                # Native-audio Live does not support language_code; the assistant
+                # prompt owns English preference without constraining the translator.
                 speech_config={
                     "voice_config": {"prebuilt_voice_config": {"voice_name": "Kore"}}
                 },

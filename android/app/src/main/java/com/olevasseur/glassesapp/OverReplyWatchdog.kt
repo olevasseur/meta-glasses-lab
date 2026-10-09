@@ -18,18 +18,23 @@ internal class OverReplyWatchdog {
     }
 
     fun event(event: ServerEvent, nowMs: Long): String? {
+        // Tools can follow app-generated text or arrive without an activityEnd.
+        if (!waiting && event.calls.isNotEmpty()) begin(nowMs)
         if (!waiting) return null
-        if (event.calls.isNotEmpty()) {
-            calls.addAll(event.calls.map { it.id })
-            pendingCalls.addAll(event.calls.map { it.id })
+        val newCalls = event.calls.map { it.id }.filter { it !in calls }
+        if (newCalls.isNotEmpty()) {
+            if (pendingCalls.isEmpty()) deadlineMs = nowMs + 45_000
+            calls.addAll(newCalls)
+            pendingCalls.addAll(newCalls)
             replyContent = false // Wait for the continuation after the tool result.
         }
-        pendingCalls.removeAll(event.cancelledIds.toSet())
+        event.cancelledIds.forEach { toolResult(it, nowMs) }
         val content = event.modelContent || event.audio.any { it.isNotEmpty() } || !event.outputText.isNullOrBlank()
-        if (content && pendingCalls.isEmpty()) replyContent = true
-        if (calls.isNotEmpty()) deadlineMs = startedMs + 45_000
-        else if (content) deadlineMs = nowMs + 45_000 // Healthy long replies can keep streaming.
-        else if (!event.inputText.isNullOrBlank() || event.modelContent) deadlineMs = startedMs + 45_000
+        if (pendingCalls.isEmpty()) {
+            if (event.audio.any { it.isNotEmpty() } || !event.outputText.isNullOrBlank()) replyContent = true
+            if (content) deadlineMs = nowMs + 45_000 // Healthy long replies can keep streaming.
+            else if (!event.inputText.isNullOrBlank()) deadlineMs = startedMs + 45_000
+        }
         if (event.interrupted) { reset(); return null }
         if (event.turnComplete && pendingCalls.isEmpty()) {
             // A tool-call generation can complete before its result's spoken continuation.
@@ -40,7 +45,14 @@ internal class OverReplyWatchdog {
         return null
     }
 
-    fun toolResult(id: String) { pendingCalls.remove(id) }
+    fun toolResult(id: String, nowMs: Long) {
+        if (pendingCalls.remove(id) && pendingCalls.isEmpty()) {
+            // Tool execution has its own cap; the no-reply clock starts at successful send.
+            startedMs = nowMs
+            deadlineMs = nowMs + 8_000
+            replyContent = false
+        }
+    }
 
     fun expired(nowMs: Long): String? = if (waiting && nowMs >= deadlineMs) {
         if (calls.isEmpty()) "no_reply_watchdog" else "tool_reply_watchdog"

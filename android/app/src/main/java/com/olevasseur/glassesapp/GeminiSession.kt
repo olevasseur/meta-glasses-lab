@@ -131,7 +131,7 @@ class GeminiSession(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            recover(GeminiRecovery.classify((e as? BackendHttpException)?.code, (e as? BackendHttpException)?.detail.orEmpty(), backend = true))
+            recover(GeminiRecovery.backendFailure(e))
         }
     }
 
@@ -218,7 +218,11 @@ class GeminiSession(
         if (event.setupComplete) currentModel?.let { usageReporter.start(it) }
         usageReporter.add(event.usage)
         event.error?.let { recover(GeminiRecovery.classify(event.errorCode, it)); return }
-        val reopenReason = overReply.event(event, elapsedMs())
+        val replyEvent = event.copy(calls = event.calls.filter {
+            it.id !in cancelledCalls && (overReply.waiting || it.id !in responses)
+        })
+        val reopenReason = overReply.event(replyEvent, elapsedMs())
+        if (event.calls.isNotEmpty()) ensureOverReplyJob()
         val waitingForToolReply = overReply.waiting && event.turnComplete
         if (!event.inputText.isNullOrEmpty() || !event.outputText.isNullOrEmpty() || event.audio.isNotEmpty() || event.calls.isNotEmpty()) replyPending = true
         if ((event.turnComplete && !waitingForToolReply) || event.interrupted) replyPending = false
@@ -340,9 +344,10 @@ class GeminiSession(
                 }) { routeTool(call, token?.clientTools.orEmpty(), localTool, backend::tool) }
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 // Never automatically replay a POST whose side effects may already have happened.
-                ToolResult(toolError("Tool request failed; outcome may be unknown. Ask the user before retrying."))
+                val reason = if (e is BackendConnectionException) "Can't reach your Mac" else "Tool request failed"
+                ToolResult(toolError("$reason; outcome may be unknown. Ask the user before retrying."))
             }
             DiagnosticLog.add("latency", "tool_round_trip_ms=${elapsedMs() - toolStartedMs} feature=${diagnosticFeature(call.name)}")
             if (call.id !in cancelledCalls && active) {
@@ -372,7 +377,7 @@ class GeminiSession(
 
     private fun deliver(call: FunctionCall, result: JSONObject, jpeg: ByteArray? = null) {
         val sent = synchronized(sendLock) { ready && socket?.send(LiveProtocol.toolResponse(call, result, jpeg)) == true }
-        if (sent) { pendingResponses -= call.id; overReply.toolResult(call.id) }
+        if (sent) { pendingResponses -= call.id; overReply.toolResult(call.id, elapsedMs()) }
         else pendingResponses += call.id
     }
 
@@ -409,7 +414,7 @@ class GeminiSession(
         if (!active || !ready || audioSuspended || meetingGate.active || translationLanguage != null || talking || replyPending || !audio.playbackIdle || !canAnnounce() ||
             ws == null || ws.queueSize() > 256_000) return@synchronized false
         val sent = ws.send(message)
-        if (sent) replyPending = true
+        if (sent) { replyPending = true; watchOverReply() }
         sent
     }
 
@@ -466,7 +471,8 @@ class GeminiSession(
 
     fun setTalking(value: Boolean) {
         val changed = synchronized(sendLock) {
-            if (!active || !ready || !ptt || (value && (audioSuspended || audio.translationSpeaker.playing)) || talking == value) false
+            if (!active || !ready || !ptt || (value && (audioSuspended || audio.translationSpeaker.playing ||
+                    (settings.mode == ConversationMode.OVER && overReply.waiting))) || talking == value) false
             else if (socket?.send(LiveProtocol.activity(value)) == true) {
                 talking = value
                 if (value) {
@@ -500,6 +506,12 @@ class GeminiSession(
         if (settings.mode != ConversationMode.OVER || meetingGate.active) return
         overReplyJob?.cancel()
         overReply.begin(elapsedMs())
+        overReplyJob = null
+        ensureOverReplyJob()
+    }
+
+    private fun ensureOverReplyJob() {
+        if (settings.mode != ConversationMode.OVER || meetingGate.active || overReplyJob?.isActive == true) return
         overReplyJob = scope.launch {
             while (overReply.waiting) {
                 delay(100)

@@ -21,6 +21,7 @@ class BackendClient(
     private val client: OkHttpClient,
     baseUrl: String,
     private val secret: String,
+    private val onUnavailable: (String) -> Unit = {},
 ) {
     private val base = baseUrl.trimEnd('/').toHttpUrl()
 
@@ -138,7 +139,11 @@ class BackendClient(
             continuation.invokeOnCancellation { call.cancel() }
             call.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    if (continuation.isActive) continuation.resumeWithException(IOException("Backend unavailable", e))
+                    if (continuation.isActive) {
+                        val failure = BackendConnectionException(e)
+                        onUnavailable(failure.message!!)
+                        continuation.resumeWithException(failure)
+                    }
                 }
                 override fun onResponse(call: Call, response: Response) {
                     response.use {
@@ -147,7 +152,11 @@ class BackendClient(
                             val result = JSONObject(it.body?.string() ?: error("Empty backend response"))
                             if (continuation.isActive) continuation.resume(result)
                         } catch (e: Exception) {
-                            if (continuation.isActive) continuation.resumeWithException(e)
+                            if (continuation.isActive) {
+                                val failure = if (e is IOException && e !is BackendHttpException) BackendConnectionException(e) else e
+                                if (failure is BackendConnectionException) onUnavailable(failure.message!!)
+                                continuation.resumeWithException(failure)
+                            }
                         }
                     }
                 }
@@ -159,3 +168,5 @@ class BackendClient(
 data class LiveToken(val token: String, val model: String, val expiresAt: String, val clientTools: Set<String> = emptySet())
 
 class BackendHttpException(val code: Int, val detail: String = "") : IOException("Backend HTTP $code")
+
+class BackendConnectionException(cause: IOException) : IOException("Can't reach your Mac", cause)

@@ -81,7 +81,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val http = OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS)
         .readTimeout(25, TimeUnit.SECONDS) // Longer than the backend event poll (20 seconds).
         .retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).build()
-    private val backend = BackendClient(http, BuildConfig.BACKEND_URL, BuildConfig.APP_SHARED_SECRET)
+    private val backend = BackendClient(http, BuildConfig.BACKEND_URL, BuildConfig.APP_SHARED_SECRET, ::backendUnavailable)
     private val memory = TranscriptMemory(backend, File(application.noBackupFilesDir, "memory-outbox"), ::error).apply { onMeetingReady = ::meetingReady; onApproval = { approvals.offer(it) } }
     private val meetingCapture = MeetingCapture(File(application.noBackupFilesDir, "meeting-audio"), ::error)
     private val meetingWake by lazy {
@@ -169,7 +169,10 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
     private fun updateOffline(unavailable: Boolean = false) {
         offline.update(state.value.running && !state.value.stopping && audioReady && state.value.handsFree.shouldRun &&
-            !state.value.meeting && state.value.translationLanguage == null, state.value.connected, unavailable)
+            !state.value.meeting && state.value.translationLanguage == null, state.value.connected, unavailable, state.value.gemini)
+    }
+    fun backendUnavailable(message: String) {
+        viewModelScope.launch { error(message); offline.backendUnavailable(message) }
     }
     suspend fun usage() = backend.usage()
 
