@@ -1,6 +1,6 @@
 # Over mode and configurable patience
 
-Updated **2026-10-09** after the Pixel 10 Pro / Ray-Ban Meta latency report. Runtime conversation AI remains Gemini Live.
+Updated **2026-10-09** after the Pixel 10 Pro / Ray-Ban Meta latency and stalled-turn reports. Runtime conversation AI remains Gemini Live.
 
 ## Use
 
@@ -17,6 +17,8 @@ timeout persist locally in Preferences DataStore.
   or **your turn**. For example: “What is two plus two? Over.” Only the selected
   turn keyword is active. **Over and out** always stops the whole session.
   Alternatively, stop speaking for **10 continuous seconds** (configurable).
+  Silence before the first detected speech never ends a turn; keep listening
+  until speech arrives or the conversation idle timeout applies.
   **Stop** closes the session immediately. There is no manual Finish turn button
   in Over mode; if keyword recognition is unavailable, use the silence timeout.
 
@@ -66,7 +68,11 @@ no turn identifier or guaranteed ordering. Cold-start/restart fallback still
 needs hardware validation; the silence timeout remains available.
 
 Recognition callbacks ending on silence only restart recognition; they do not
-end the Gemini turn. The independent PCM detector owns the silence timeout.
+end the Gemini turn. Changing nonblank on-device partial/final hypotheses are
+the preferred speech evidence and reset the silence counter even for quiet HFP
+speech. Duplicate hypotheses do not keep a turn alive. The PCM energy detector
+is the fallback between recognition updates, including during service restart.
+Both speech sources refresh conversation activity; merely listening does not.
 Partial hypotheses must keep the same normalized text for
 1.2 seconds before a suffix commits. Final “go ahead”, “your turn” and “over and
 out” commit immediately; “over” gets the same 1.2-second grace period so “and
@@ -75,18 +81,50 @@ whole trailing words. It is not substring matching (“clover” does not match)
 
 **End turn after silence** defaults to **10 seconds**, adjustable from **5–30
 seconds** in one-second steps. A fresh full interval is required after speech
-resumes: short pauses never accumulate across speech. Silence before the first
-word also counts. The detector counts captured PCM samples, so missing microphone
+resumes: short pauses never accumulate across speech. **No detected speech means
+no silence expiry**, even after minutes of quiet. Each turn resets this latch.
+The detector counts captured PCM samples since the latest speech evidence, so missing microphone
 callbacks and recognizer restarts do not manufacture silence.
 
-The local energy gate removes DC, uses PCM16 RMS thresholds of 700 to start and
-450 to hold speech, and checks zero-crossing rate (0.008–0.20) to reject rumble
+The local energy gate removes DC, uses Over-specific PCM16 RMS thresholds of 350 to start and
+225 to hold speech, and checks zero-crossing rate (0.008–0.20) to reject rumble
 and broadband hiss. Speech onset must last 100 ms, ignoring short clicks. The
 lower threshold bridges weak syllables for up to 200 ms; weak breathing or
 background energy cannot hold that state forever. Completely quiet frames count
 as silence immediately. An onset at the timeout boundary gets at most 100 ms to
 qualify; otherwise the accumulated silence still ends the turn. This is an energy
-heuristic, not semantic or speaker-specific VAD; thresholds need hardware checks.
+heuristic, not semantic or speaker-specific VAD. On the six existing quiet-HFP
+fixture cases attenuated by 20 dB, the old gate detected 0/6 and the new gate
+detected 6/6 (five distinct utterances). This is synthetic calibration, not a
+measurement of the reported hardware session; background false speech and quiet
+wearer speech still need hardware checks. Other features retain 700/450.
+
+## Reply recovery
+
+After `activityEnd`, Over waits at most **8 seconds without a relevant event**
+(input transcription, model content, tool call or completion). With input-only
+progress it allows up to **45 seconds from End** for a reply. Active model output
+refreshes a 45-second stall deadline; this imposes no user speaking limit.
+An empty non-tool `turnComplete` immediately reopens the user turn. Recovery logs
+`turn_reopen reason=no_reply_watchdog` or `empty_turn_complete`, clears the reply
+gate and sends a new `activityStart`; microphone uplink and the warm recognizer
+resume. These recoveries are silent.
+
+A tool call switches to a **45-second overall deadline from End**, including all
+tool work and its reply. A tool-generation `turnComplete` is not enough to reopen
+while tools or their spoken continuation are outstanding. Exceeding the deadline
+logs `tool_reply_watchdog`, plays the short existing earcon, and reopens listening.
+Timed-out tool jobs are cancelled locally; late results and duplicate IDs are
+suppressed. A backend side effect may already have happened: recovery never
+retries it automatically. Calls/focus suspension defer recovery until audio is
+allowed again; Stop/reconnect cancel the old watchdog. Normal completed replies
+still wait for playback drain.
+
+Diagnostics record `speech_detected first_ms/last_ms` for each local user turn
+(monotonic time, null when no speech was detected), plus the Gemini turn number
+and re-open reason. No transcript content is included in these diagnostics.
+Provider events have no user-turn ID, so unusually late model/transcription events
+around a recovered turn remain a hardware stress-test item.
 
 **Migration:** the old `over_safety_seconds` preference is removed atomically
 when settings load (or save). Existing installs receive the new 10-second
@@ -116,6 +154,14 @@ prompt treats trailing sign-offs as turn control and never acknowledges them.
 No new backend secrets or environment variables are required.
 
 ## Verification
+
+- **2026-10-09 stall fix:** JVM socket tests cover no-event recovery, empty
+  completion, delayed tools/results, the overall tool deadline, suspension and
+  Stop. Detector tests cover silent startup, quiet partials, 8→16 kHz speech,
+  fresh silence intervals and continuous speech without a maximum. Two real
+  Live sessions both replied to digital silence, and both accepted subsequent
+  speech on the same socket; the reported provider stall was **not reproduced**.
+  See [stall evaluation](../evals/over-stall-2026-10-09.md).
 
 - **2026-10-09 latency correction:** JVM coverage checks warm reuse across three
   turns, first-word sign-offs, startup buffer/backpressure, transcription fallback,

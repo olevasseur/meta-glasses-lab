@@ -29,6 +29,7 @@ class GeminiSession(
     private val onTalking: (Boolean) -> Unit,
     private val onFatal: (String) -> Unit,
     private val onEvent: (ServerEvent) -> Unit = {},
+    private val onOverTurnReopen: (String) -> Unit = {},
     private val localTool: suspend (FunctionCall) -> ToolResult = { ToolResult(toolError("Client tool is unavailable")) },
     private val onTranslationChanged: (String?) -> Unit = {},
     private val onApproval: suspend (JSONObject) -> Unit = {},
@@ -62,6 +63,8 @@ class GeminiSession(
     private var websocketStartedMs = 0L
     private var setupStartedMs = 0L
     private var talkTimeout: Job? = null
+    private val overReply = OverReplyWatchdog()
+    private var overReplyJob: Job? = null
     private var attempts = 0
     private var modelFailures = 0
     private var currentModel: String? = null
@@ -215,8 +218,10 @@ class GeminiSession(
         if (event.setupComplete) currentModel?.let { usageReporter.start(it) }
         usageReporter.add(event.usage)
         event.error?.let { recover(GeminiRecovery.classify(event.errorCode, it)); return }
+        val reopenReason = overReply.event(event, elapsedMs())
+        val waitingForToolReply = overReply.waiting && event.turnComplete
         if (!event.inputText.isNullOrEmpty() || !event.outputText.isNullOrEmpty() || event.audio.isNotEmpty() || event.calls.isNotEmpty()) replyPending = true
-        if (event.turnComplete || event.interrupted) replyPending = false
+        if ((event.turnComplete && !waitingForToolReply) || event.interrupted) replyPending = false
         onEvent(event)
         if (event.resumable == true && event.handle != null) {
             handle = event.handle
@@ -293,7 +298,9 @@ class GeminiSession(
             }
         }
         event.outputText?.takeIf { it.isNotEmpty() && meetingGate.mayRespond }?.let { onTranscript("Gemini", it) }
-        if (event.turnComplete || event.interrupted) { DiagnosticMetrics.latency.reset(); onTurnEnd() }
+        if ((event.turnComplete && !waitingForToolReply && reopenReason == null) || event.interrupted) {
+            DiagnosticMetrics.latency.reset(); onTurnEnd()
+        }
         event.cancelledIds.forEach { id ->
             cancelledCalls += id
             toolJobs.remove(id)?.cancel()
@@ -311,6 +318,7 @@ class GeminiSession(
         }
         if (event.turnComplete && !replayingWake) meetingGate.endTurn()
         if (event.goAway) reconnect("Gemini is renewing the connection")
+        else if (reopenReason != null) reopenOverTurn(reopenReason)
     }
 
     private fun callTool(call: FunctionCall) {
@@ -364,7 +372,8 @@ class GeminiSession(
 
     private fun deliver(call: FunctionCall, result: JSONObject, jpeg: ByteArray? = null) {
         val sent = synchronized(sendLock) { ready && socket?.send(LiveProtocol.toolResponse(call, result, jpeg)) == true }
-        if (sent) pendingResponses -= call.id else pendingResponses += call.id
+        if (sent) { pendingResponses -= call.id; overReply.toolResult(call.id) }
+        else pendingResponses += call.id
     }
 
     fun sendGestureText(text: String): Boolean {
@@ -379,7 +388,7 @@ class GeminiSession(
             }
         }
         if (endedActivity) onTalking(false)
-        if (sent) replyPending = true
+        if (sent) { replyPending = true; watchOverReply() }
         return sent
     }
 
@@ -461,6 +470,7 @@ class GeminiSession(
             else if (socket?.send(LiveProtocol.activity(value)) == true) {
                 talking = value
                 if (value) {
+                    replyPending = false
                     diagnosticTurn++
                     firstInputLogged = false; firstModelLogged = false; firstAudioLogged = false
                     activityEndedMs = null; inputBytes = 0
@@ -475,6 +485,7 @@ class GeminiSession(
             else false
         }
         if (!changed) return
+        if (value) cancelOverReply() else watchOverReply()
         onTalking(value)
         talkTimeout?.cancel()
         if (value) {
@@ -483,6 +494,41 @@ class GeminiSession(
                 talkTimeout = scope.launch { delay(60_000); setTalking(false) }
             }
         }
+    }
+
+    private fun watchOverReply() {
+        if (settings.mode != ConversationMode.OVER || meetingGate.active) return
+        overReplyJob?.cancel()
+        overReply.begin(elapsedMs())
+        overReplyJob = scope.launch {
+            while (overReply.waiting) {
+                delay(100)
+                if (!audioSuspended) overReply.expired(elapsedMs())?.let {
+                    reopenOverTurn(it)
+                    return@launch
+                }
+            }
+        }
+    }
+
+    private fun cancelOverReply() {
+        overReplyJob?.cancel(); overReplyJob = null
+        overReply.reset()
+    }
+
+    private fun reopenOverTurn(reason: String) {
+        // A late result must not interrupt the reopened activity or replay a side effect.
+        overReply.calls.forEach { id ->
+            cancelledCalls += id
+            toolJobs.remove(id)?.cancel()
+            pendingResponses -= id
+        }
+        cancelOverReply()
+        replyPending = false
+        audioGeneration.incrementAndGet()
+        if (!flushAudio()) return
+        DiagnosticLog.add("over", "turn=$diagnosticTurn turn_reopen reason=$reason monotonic_ms=${elapsedMs()}")
+        onOverTurnReopen(reason)
     }
 
     private fun recover(failure: GeminiFailure) {
@@ -494,6 +540,7 @@ class GeminiSession(
 
     private fun reconnect(reason: String) {
         if (!active) return
+        cancelOverReply()
         usageReporter.stop()
         setupTimeout?.cancel()
         stableConnection?.cancel()
@@ -523,6 +570,7 @@ class GeminiSession(
     }
 
     fun stop() {
+        cancelOverReply()
         usageReporter.stop()
         synchronized(sendLock) {
             if (talking && ready) socket?.send(LiveProtocol.activity(false))
