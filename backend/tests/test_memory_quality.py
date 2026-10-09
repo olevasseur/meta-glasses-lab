@@ -150,6 +150,6 @@ def test_simplified_provider_schema_keeps_local_fact_bounds(change):
     from pydantic import ValidationError
     from memory_summary import response_schema
     wire = response_schema()['$defs']['Fact']
-    assert set(wire['required']) == {'key', 'text', 'confidence', 'priority', 'supersedes'}
+    assert set(wire['required']) == {'key', 'text', 'confidence', 'priority', 'supersedes', 'modality', 'subject', 'durable'}
     with pytest.raises(ValidationError):
         Fact(**{'key': 'name', 'text': 'Sister Ana.', **change})

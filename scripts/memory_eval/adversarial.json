@@ -1,0 +1,754 @@
+[
+  {
+    "id": "hypothetical-1",
+    "category": "hypothetical",
+    "user": "If I moved to Paris, I would cycle to work.",
+    "query": "Where do I live?",
+    "topic": "Paris",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "if",
+      "hypothetical",
+      "would",
+      "might",
+      "scenario",
+      "possib",
+      "suppos"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "hypothetical-2",
+    "category": "hypothetical",
+    "user": "Imagine I owned a sailboat called Zephyr; where would I dock it?",
+    "query": "What is my sailboat called?",
+    "topic": "Zephyr",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "imagin",
+      "hypothetical",
+      "would",
+      "might",
+      "scenario",
+      "possib",
+      "suppos"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "hypothetical-3",
+    "category": "hypothetical",
+    "user": "Suppose I were a surgeon in Ottawa. What would my commute be like?",
+    "query": "What is my occupation?",
+    "topic": "surgeon",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "suppos",
+      "hypothetical",
+      "would",
+      "might",
+      "scenario",
+      "possib"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "hypothetical-4",
+    "category": "hypothetical",
+    "user": "In an alternate universe I have three cats. This is just a fictional scenario.",
+    "query": "How many cats do I have?",
+    "topic": "cats",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "fiction",
+      "scenario",
+      "hypothetical",
+      "alternate",
+      "would",
+      "might",
+      "possib",
+      "suppos"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "conditional-1",
+    "category": "conditional",
+    "user": "If I get the promotion, I will move to Berlin. No decision yet.",
+    "query": "Where do I live?",
+    "topic": "Berlin",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "if",
+      "conditional",
+      "might",
+      "would",
+      "hypothetical",
+      "scenario",
+      "possib",
+      "suppos"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "conditional-2",
+    "category": "conditional",
+    "user": "I would buy a Tesla if I won the lottery.",
+    "query": "What car do I own?",
+    "topic": "Tesla",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "if",
+      "would",
+      "conditional",
+      "hypothetical",
+      "might",
+      "scenario",
+      "possib",
+      "suppos"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "conditional-3",
+    "category": "conditional",
+    "user": "Had I accepted that job, I would be living in Tokyo now.",
+    "query": "Where do I live now?",
+    "topic": "Tokyo",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "if",
+      "would",
+      "had",
+      "counterfactual",
+      "hypothetical",
+      "might",
+      "scenario",
+      "possib",
+      "suppos"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "conditional-4",
+    "category": "conditional",
+    "user": "Unless the grant comes through, opening a bakery is just a hypothetical.",
+    "query": "What business do I run?",
+    "topic": "bakery",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "unless",
+      "hypothetical",
+      "conditional",
+      "would",
+      "might",
+      "scenario",
+      "possib",
+      "suppos"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "wish-1",
+    "category": "wish",
+    "user": "I wish I had a dog named Maple.",
+    "query": "What is my dog named?",
+    "topic": "Maple",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "wish",
+      "hope",
+      "want"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "wish-2",
+    "category": "wish",
+    "user": "I wish I lived in Lisbon.",
+    "query": "Where do I live?",
+    "topic": "Lisbon",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "wish",
+      "hope"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "wish-3",
+    "category": "wish",
+    "user": "My dream is to speak fluent Icelandic someday.",
+    "query": "Which language do I speak fluently?",
+    "topic": "Icelandic",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "dream",
+      "wish",
+      "cannot",
+      "can't"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "wish-4",
+    "category": "wish",
+    "user": "If only I owned a cabin in Banff!",
+    "query": "Where is my cabin?",
+    "topic": "Banff",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "if only",
+      "wish",
+      "would"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "plan-1",
+    "category": "plan",
+    "user": "I'm thinking about quitting my job; I have not quit.",
+    "query": "Have I quit my job?",
+    "topic": "job",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [
+      "not",
+      "no",
+      "haven't",
+      "have not",
+      "not yet"
+    ],
+    "recollection_markers": [
+      "thinking",
+      "consider",
+      "might",
+      "consider",
+      "contemplat",
+      "intend",
+      "plan"
+    ],
+    "storage": "plan"
+  },
+  {
+    "id": "plan-2",
+    "category": "plan",
+    "user": "I plan to move to Paris next spring; I have not moved.",
+    "query": "Have I moved to Paris?",
+    "topic": "Paris",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [
+      "not",
+      "no",
+      "haven't",
+      "have not",
+      "not yet"
+    ],
+    "recollection_markers": [
+      "plan",
+      "intend",
+      "might",
+      "consider",
+      "contemplat",
+      "intend",
+      "plan"
+    ],
+    "storage": "plan"
+  },
+  {
+    "id": "plan-3",
+    "category": "plan",
+    "user": "I'm considering adopting a dog called Pepper, but haven't adopted one.",
+    "query": "Have I adopted Pepper?",
+    "topic": "Pepper",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [
+      "not",
+      "no",
+      "haven't",
+      "have not",
+      "not yet"
+    ],
+    "recollection_markers": [
+      "consider",
+      "might",
+      "plan",
+      "consider",
+      "contemplat",
+      "intend",
+      "plan"
+    ],
+    "storage": "plan"
+  },
+  {
+    "id": "plan-4",
+    "category": "plan",
+    "user": "I intend to start a pottery business next year. It is not operating yet.",
+    "query": "Am I running a pottery business?",
+    "topic": "pottery",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [
+      "not",
+      "no",
+      "haven't",
+      "have not",
+      "not yet"
+    ],
+    "recollection_markers": [
+      "intend",
+      "plan",
+      "consider",
+      "consider",
+      "contemplat",
+      "intend",
+      "plan"
+    ],
+    "storage": "plan"
+  },
+  {
+    "id": "reported-1",
+    "category": "reported",
+    "user": "My friend said, 'I am vegan.' Those were her words, not my diet.",
+    "query": "What is my diet?",
+    "topic": "vegan",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "friend",
+      "she",
+      "her"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "reported-2",
+    "category": "reported",
+    "user": "My coworker said he lives in Oslo. I was quoting him.",
+    "query": "Where do I live?",
+    "topic": "Oslo",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "coworker",
+      "he",
+      "him"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "reported-3",
+    "category": "reported",
+    "user": "My brother told me, 'I quit my job yesterday.'",
+    "query": "Have I quit my job?",
+    "topic": "job",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "brother",
+      "he",
+      "his"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "reported-4",
+    "category": "reported",
+    "user": "In the novel the narrator says, \"I have a dog named Comet.\" I am reading aloud.",
+    "query": "What is my dog named?",
+    "topic": "Comet",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "novel",
+      "narrator",
+      "reading"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "joke-1",
+    "category": "joke",
+    "user": "Sure, I own a palace in Monaco. Just kidding, that was a joke.",
+    "query": "Where is my palace?",
+    "topic": "Monaco",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "jok",
+      "kidding",
+      "sarcas"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "joke-2",
+    "category": "joke",
+    "user": "Oh yes, I'm absolutely a billionaire. That was sarcasm.",
+    "query": "What is my net worth?",
+    "topic": "billionaire",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "sarcas",
+      "jok"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "joke-3",
+    "category": "joke",
+    "user": "My pet dragon is named Ember, haha, I made that up for a joke.",
+    "query": "What pet do I own?",
+    "topic": "Ember",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "jok",
+      "made",
+      "fiction"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "joke-4",
+    "category": "joke",
+    "user": "I just bought the moon! Obviously I'm joking.",
+    "query": "What property did I buy?",
+    "topic": "moon",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "jok",
+      "sarcas"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "negation-1",
+    "category": "negation",
+    "user": "I don't drink coffee anymore. I drink peppermint tea instead.",
+    "query": "Which drink do I prefer now?",
+    "topic": "peppermint tea",
+    "expected": [
+      "peppermint tea"
+    ],
+    "forbidden": [
+      "coffee"
+    ],
+    "current_negations": [],
+    "recollection_markers": [
+      "instead",
+      "no longer",
+      "don't",
+      "stopped"
+    ],
+    "storage": "fact"
+  },
+  {
+    "id": "negation-2",
+    "category": "negation",
+    "user": "I am not vegan; I eat an omnivorous diet.",
+    "query": "What is my diet?",
+    "topic": "omnivorous",
+    "expected": [
+      "omnivorous"
+    ],
+    "forbidden": [
+      "vegan"
+    ],
+    "current_negations": [],
+    "recollection_markers": [
+      "not",
+      "omnivor"
+    ],
+    "storage": "fact"
+  },
+  {
+    "id": "negation-3",
+    "category": "negation",
+    "user": "I do not live in Paris. I live in Toronto.",
+    "query": "Where do I live?",
+    "topic": "Toronto",
+    "expected": [
+      "Toronto"
+    ],
+    "forbidden": [
+      "Paris"
+    ],
+    "current_negations": [],
+    "recollection_markers": [
+      "Toronto"
+    ],
+    "storage": "fact"
+  },
+  {
+    "id": "negation-4",
+    "category": "negation",
+    "user": "I never owned a dog. My only pet is a cat named Miso.",
+    "query": "What is my pet named?",
+    "topic": "Miso",
+    "expected": [
+      "Miso"
+    ],
+    "forbidden": [
+      "dog"
+    ],
+    "current_negations": [],
+    "recollection_markers": [
+      "cat",
+      "Miso"
+    ],
+    "storage": "fact"
+  },
+  {
+    "id": "question-1",
+    "category": "question",
+    "user": "Would living in Rome suit me?",
+    "query": "Where do I live?",
+    "topic": "Rome",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "ask",
+      "question",
+      "would",
+      "wonder",
+      "inquir",
+      "curious"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "question-2",
+    "category": "question",
+    "user": "Should I become a dentist?",
+    "query": "What is my occupation?",
+    "topic": "dentist",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "ask",
+      "question",
+      "should",
+      "wonder",
+      "inquir",
+      "curious"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "question-3",
+    "category": "question",
+    "user": "How expensive is owning a horse named Clover?",
+    "query": "What pet do I own?",
+    "topic": "Clover",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "ask",
+      "question",
+      "cost",
+      "expens",
+      "wonder",
+      "inquir",
+      "curious"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "question-4",
+    "category": "question",
+    "user": "Do vegans need supplements?",
+    "query": "What is my diet?",
+    "topic": "vegan",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "ask",
+      "question",
+      "supplement",
+      "wonder",
+      "inquir",
+      "curious"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "changed-1",
+    "category": "changed",
+    "user": "I used to live in Lyon, but now I live in Nice.",
+    "query": "Where do I live now?",
+    "topic": "Nice",
+    "expected": [
+      "Nice"
+    ],
+    "forbidden": [
+      "Lyon"
+    ],
+    "current_negations": [],
+    "recollection_markers": [
+      "now",
+      "moved",
+      "Nice"
+    ],
+    "storage": "fact"
+  },
+  {
+    "id": "changed-2",
+    "category": "changed",
+    "user": "I was a teacher; I am now a librarian.",
+    "query": "What is my current occupation?",
+    "topic": "librarian",
+    "expected": [
+      "librarian"
+    ],
+    "forbidden": [
+      "teacher"
+    ],
+    "current_negations": [],
+    "recollection_markers": [
+      "now",
+      "librarian"
+    ],
+    "storage": "fact"
+  },
+  {
+    "id": "changed-3",
+    "category": "changed",
+    "user": "My dog was called Max; I renamed him Milo.",
+    "query": "What is my dog named now?",
+    "topic": "Milo",
+    "expected": [
+      "Milo"
+    ],
+    "forbidden": [
+      "Max"
+    ],
+    "current_negations": [],
+    "recollection_markers": [
+      "renam",
+      "now",
+      "Milo"
+    ],
+    "storage": "fact"
+  },
+  {
+    "id": "changed-4",
+    "category": "changed",
+    "user": "I used to prefer espresso. These days I prefer chamomile tea.",
+    "query": "Which drink do I prefer now?",
+    "topic": "chamomile tea",
+    "expected": [
+      "chamomile tea"
+    ],
+    "forbidden": [
+      "espresso"
+    ],
+    "current_negations": [],
+    "recollection_markers": [
+      "now",
+      "prefer",
+      "these days"
+    ],
+    "storage": "fact"
+  },
+  {
+    "id": "other-1",
+    "category": "other",
+    "user": "My sister Clara lives in Madrid. I have not told you where I live.",
+    "query": "Where do I live?",
+    "topic": "Madrid",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "sister",
+      "Clara"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "other-2",
+    "category": "other",
+    "user": "My neighbor is a pilot and owns a Cessna.",
+    "query": "What is my occupation?",
+    "topic": "pilot",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "neighbor"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "other-3",
+    "category": "other",
+    "user": "My colleague Ben has a dog named Pippin.",
+    "query": "What is my dog named?",
+    "topic": "Pippin",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "colleague",
+      "Ben"
+    ],
+    "storage": "no_fact"
+  },
+  {
+    "id": "other-4",
+    "category": "other",
+    "user": "My mother prefers decaf coffee. I have not mentioned my drink preference.",
+    "query": "Which drink do I prefer?",
+    "topic": "coffee",
+    "expected": [],
+    "forbidden": [],
+    "current_negations": [],
+    "recollection_markers": [
+      "mother",
+      "she",
+      "her"
+    ],
+    "storage": "no_fact"
+  }
+]

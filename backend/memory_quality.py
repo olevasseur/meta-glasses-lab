@@ -16,6 +16,9 @@ def migrate(db):
         "observed_at": "TEXT NOT NULL DEFAULT ''",
         "confidence": "REAL NOT NULL DEFAULT 1.0",
         "priority": "INTEGER NOT NULL DEFAULT 2",
+        "modality": "TEXT NOT NULL DEFAULT 'reported'",
+        "subject": "TEXT NOT NULL DEFAULT 'user'",
+        "review_date": "TEXT",
         "supersedes": "TEXT NOT NULL DEFAULT '[]'",
     }.items():
         if name not in columns:

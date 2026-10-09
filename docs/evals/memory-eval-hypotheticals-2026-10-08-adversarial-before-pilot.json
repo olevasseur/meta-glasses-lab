@@ -1,0 +1,148 @@
+{
+  "corpus_sha256": "74e0b4f0228161f204597e25d4e7e2c41be7440df5e2334bccdfe181d2d9bc82",
+  "source_sha256": {
+    "memory": "40a948d4c59e3315e623b36201fcef55a2c5d365990b1ce47e0c797bb3da7491",
+    "memory_summary": "6e8325aaa86283e326a16a3c38645d771e2462b9059067eb891f1c0dd412ddcc"
+  },
+  "oracle_sha256": "d762e523a27d7f070970ffeca47b5f6e99b07f444a3adef8eebdca2190ca4a19",
+  "support_sha256": {
+    "memory_quality": "3346770a5ac4df59c9ccc06742e40cbec2ae8ec4a96eb41eb3e23571a5de28c4"
+  },
+  "model": "gemini-3.5-flash-lite",
+  "live_sessions": 0,
+  "cases": [
+    {
+      "id": "hypothetical-1",
+      "category": "hypothetical",
+      "facts": [],
+      "summary_error": "GeminiUnavailable",
+      "storage_correct": false,
+      "recall_results": {
+        "status": "ok",
+        "matches": [
+          {
+            "kind": "transcript",
+            "id": "hypothetical-1",
+            "speaker": "user",
+            "text": "If I moved to Paris, I would cycle to work.",
+            "score": 50.0,
+            "historical": true
+          }
+        ]
+      },
+      "profile": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "I haven't mentioned anything about Paris yet."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": false
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You mentioned that if you moved to Paris, you would cycle to work."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      }
+    },
+    {
+      "id": "hypothetical-2",
+      "category": "hypothetical",
+      "facts": [],
+      "summary_error": null,
+      "storage_correct": true,
+      "recall_results": {
+        "status": "ok",
+        "matches": [
+          {
+            "kind": "transcript",
+            "id": "hypothetical-2",
+            "speaker": "user",
+            "text": "Imagine I owned a sailboat called Zephyr; where would I dock it?",
+            "score": 100.0,
+            "historical": true
+          },
+          {
+            "kind": "summary",
+            "id": "hypothetical-2",
+            "text": "The user presented a hypothetical scenario about owning a sailboat named Zephyr.",
+            "score": 66.7,
+            "historical": true
+          }
+        ]
+      },
+      "profile": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You presented a hypothetical scenario about owning a sailboat named Zephyr."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      },
+      "recall": {
+        "answer": null,
+        "available": false,
+        "current_correct": false,
+        "recollection_correct": false
+      }
+    },
+    {
+      "id": "hypothetical-3",
+      "category": "hypothetical",
+      "facts": [],
+      "summary_error": "GeminiUnavailable",
+      "storage_correct": false,
+      "recall_results": {
+        "status": "ok",
+        "matches": [
+          {
+            "kind": "transcript",
+            "id": "hypothetical-3",
+            "speaker": "user",
+            "text": "Suppose I were a surgeon in Ottawa. What would my commute be like?",
+            "score": 50.0,
+            "historical": true
+          }
+        ]
+      },
+      "profile": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You mentioned being a surgeon, but did not state it as your current occupation."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": false
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You asked what your commute would be like if you were a surgeon in Ottawa."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      }
+    }
+  ],
+  "metrics": {
+    "storage": 1,
+    "summary_completion": 1,
+    "total": 3,
+    "profile": {
+      "available": 3,
+      "current_correct": 3,
+      "recollection_correct": 1
+    },
+    "recall": {
+      "available": 2,
+      "current_correct": 2,
+      "recollection_correct": 2
+    }
+  }
+}

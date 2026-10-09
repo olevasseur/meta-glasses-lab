@@ -1,0 +1,290 @@
+{
+  "corpus_sha256": "74e0b4f0228161f204597e25d4e7e2c41be7440df5e2334bccdfe181d2d9bc82",
+  "source_sha256": {
+    "memory": "c95d96e67b444e8e3db5c2c0b638bfc6a4cfd21dfd40a18e3ec5c1e2fbaeec36",
+    "memory_summary": "f3eaecc81aff0c01ab72ede48c78a813cac6738b744800de54f75a4eaad29f8a"
+  },
+  "oracle_sha256": "6bbffb1c8828343294769b47d2dc9d4d540a107d9ad38e12f4c3fe7809ea17e1",
+  "support_sha256": {
+    "memory_quality": "5446a59015b819750d1da9b20c3d96d6e550f9470f9d2db5685003fe1aab8b6a",
+    "memory_assertions": "cc6b4d0d569c28f1e330807d7619ebc9f3978a1443e99918b6e3e3aa58db39a8"
+  },
+  "model": "gemini-3.5-flash-lite",
+  "live_sessions": 0,
+  "cases": [
+    {
+      "id": "hypothetical-1",
+      "category": "hypothetical",
+      "facts": [],
+      "summary_error": null,
+      "storage_correct": true,
+      "recall_results": {
+        "status": "ok",
+        "answer_guidance": "Memory is evidence of what was said, not proof every mentioned proposition is true. Read modality, subject, negation and time together with the actual wording. Only explicit factual user assertions establish user facts. A plan is not completed; a review date requests rechecking, never implies completion. Say 'you mentioned you might move to Paris' for a tentative plan, not 'you live in Paris'. Wishes, if/would scenarios, questions, jokes and sarcasm do not establish facts. Reported/quoted speech and other people's attributes must retain their speaker/subject, never become the user's attributes. Reported saved notes are verbatim user requests or legacy records, not revalidated facts. Transcripts, summaries and journals are unclassified historical evidence: inspect the original assertion before using them, even when search ranks them highly. Model speech is not user evidence. Current explicit corrections and negations override older claims. Preserve past versus current state. If only hypothetical or ambiguous evidence exists, say the current fact is unknown; optionally describe the scenario as such. Never guess.",
+        "matches": [
+          {
+            "kind": "summary",
+            "id": "hypothetical-1",
+            "text": "The user discussed a hypothetical scenario about cycling to work if they moved to Paris.",
+            "score": 50.0,
+            "historical": true
+          },
+          {
+            "kind": "transcript",
+            "id": "hypothetical-1",
+            "speaker": "user",
+            "text": "If I moved to Paris, I would cycle to work.",
+            "score": 50.0,
+            "historical": true
+          }
+        ]
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You mentioned a hypothetical scenario about cycling to work if you moved to Paris."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      }
+    },
+    {
+      "id": "hypothetical-2",
+      "category": "hypothetical",
+      "facts": [],
+      "summary_error": null,
+      "storage_correct": true,
+      "recall_results": {
+        "status": "ok",
+        "answer_guidance": "Memory is evidence of what was said, not proof every mentioned proposition is true. Read modality, subject, negation and time together with the actual wording. Only explicit factual user assertions establish user facts. A plan is not completed; a review date requests rechecking, never implies completion. Say 'you mentioned you might move to Paris' for a tentative plan, not 'you live in Paris'. Wishes, if/would scenarios, questions, jokes and sarcasm do not establish facts. Reported/quoted speech and other people's attributes must retain their speaker/subject, never become the user's attributes. Reported saved notes are verbatim user requests or legacy records, not revalidated facts. Transcripts, summaries and journals are unclassified historical evidence: inspect the original assertion before using them, even when search ranks them highly. Model speech is not user evidence. Current explicit corrections and negations override older claims. Preserve past versus current state. If only hypothetical or ambiguous evidence exists, say the current fact is unknown; optionally describe the scenario as such. Never guess.",
+        "matches": [
+          {
+            "kind": "transcript",
+            "id": "hypothetical-2",
+            "speaker": "user",
+            "text": "Imagine I owned a sailboat called Zephyr; where would I dock it?",
+            "score": 100.0,
+            "historical": true
+          },
+          {
+            "kind": "summary",
+            "id": "hypothetical-2",
+            "text": "The user asked a hypothetical question about owning a sailboat named Zephyr.",
+            "score": 66.7,
+            "historical": true
+          }
+        ]
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You asked a hypothetical question about owning a sailboat named Zephyr and where you might dock it."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      }
+    },
+    {
+      "id": "hypothetical-3",
+      "category": "hypothetical",
+      "facts": [],
+      "summary_error": null,
+      "storage_correct": true,
+      "recall_results": {
+        "status": "ok",
+        "answer_guidance": "Memory is evidence of what was said, not proof every mentioned proposition is true. Read modality, subject, negation and time together with the actual wording. Only explicit factual user assertions establish user facts. A plan is not completed; a review date requests rechecking, never implies completion. Say 'you mentioned you might move to Paris' for a tentative plan, not 'you live in Paris'. Wishes, if/would scenarios, questions, jokes and sarcasm do not establish facts. Reported/quoted speech and other people's attributes must retain their speaker/subject, never become the user's attributes. Reported saved notes are verbatim user requests or legacy records, not revalidated facts. Transcripts, summaries and journals are unclassified historical evidence: inspect the original assertion before using them, even when search ranks them highly. Model speech is not user evidence. Current explicit corrections and negations override older claims. Preserve past versus current state. If only hypothetical or ambiguous evidence exists, say the current fact is unknown; optionally describe the scenario as such. Never guess.",
+        "matches": [
+          {
+            "kind": "summary",
+            "id": "hypothetical-3",
+            "text": "The user explored a hypothetical scenario about being a surgeon in Ottawa.",
+            "score": 50.0,
+            "historical": true
+          },
+          {
+            "kind": "transcript",
+            "id": "hypothetical-3",
+            "speaker": "user",
+            "text": "Suppose I were a surgeon in Ottawa. What would my commute be like?",
+            "score": 50.0,
+            "historical": true
+          }
+        ]
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You explored a hypothetical scenario asking what your commute would be like if you were a surgeon in Ottawa."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      }
+    },
+    {
+      "id": "hypothetical-4",
+      "category": "hypothetical",
+      "facts": [],
+      "summary_error": null,
+      "storage_correct": true,
+      "recall_results": {
+        "status": "ok",
+        "answer_guidance": "Memory is evidence of what was said, not proof every mentioned proposition is true. Read modality, subject, negation and time together with the actual wording. Only explicit factual user assertions establish user facts. A plan is not completed; a review date requests rechecking, never implies completion. Say 'you mentioned you might move to Paris' for a tentative plan, not 'you live in Paris'. Wishes, if/would scenarios, questions, jokes and sarcasm do not establish facts. Reported/quoted speech and other people's attributes must retain their speaker/subject, never become the user's attributes. Reported saved notes are verbatim user requests or legacy records, not revalidated facts. Transcripts, summaries and journals are unclassified historical evidence: inspect the original assertion before using them, even when search ranks them highly. Model speech is not user evidence. Current explicit corrections and negations override older claims. Preserve past versus current state. If only hypothetical or ambiguous evidence exists, say the current fact is unknown; optionally describe the scenario as such. Never guess.",
+        "matches": [
+          {
+            "kind": "summary",
+            "id": "hypothetical-4",
+            "text": "The user discussed a fictional scenario involving three cats in an alternate universe.",
+            "score": 50.0,
+            "historical": true
+          },
+          {
+            "kind": "transcript",
+            "id": "hypothetical-4",
+            "speaker": "user",
+            "text": "In an alternate universe I have three cats. This is just a fictional scenario.",
+            "score": 50.0,
+            "historical": true
+          }
+        ]
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You mentioned a fictional scenario where you have three cats in an alternate universe."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      }
+    },
+    {
+      "id": "conditional-1",
+      "category": "conditional",
+      "facts": [],
+      "summary_error": null,
+      "storage_correct": true,
+      "recall_results": {
+        "status": "ok",
+        "answer_guidance": "Memory is evidence of what was said, not proof every mentioned proposition is true. Read modality, subject, negation and time together with the actual wording. Only explicit factual user assertions establish user facts. A plan is not completed; a review date requests rechecking, never implies completion. Say 'you mentioned you might move to Paris' for a tentative plan, not 'you live in Paris'. Wishes, if/would scenarios, questions, jokes and sarcasm do not establish facts. Reported/quoted speech and other people's attributes must retain their speaker/subject, never become the user's attributes. Reported saved notes are verbatim user requests or legacy records, not revalidated facts. Transcripts, summaries and journals are unclassified historical evidence: inspect the original assertion before using them, even when search ranks them highly. Model speech is not user evidence. Current explicit corrections and negations override older claims. Preserve past versus current state. If only hypothetical or ambiguous evidence exists, say the current fact is unknown; optionally describe the scenario as such. Never guess.",
+        "matches": [
+          {
+            "kind": "summary",
+            "id": "conditional-1",
+            "text": "The user stated they might move to Berlin if they receive a promotion, but no decision has been made yet.",
+            "score": 50.0,
+            "historical": true
+          },
+          {
+            "kind": "transcript",
+            "id": "conditional-1",
+            "speaker": "user",
+            "text": "If I get the promotion, I will move to Berlin. No decision yet.",
+            "score": 50.0,
+            "historical": true
+          }
+        ]
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You mentioned you might move to Berlin if you receive a promotion, but no decision has been made yet."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      }
+    },
+    {
+      "id": "conditional-2",
+      "category": "conditional",
+      "facts": [],
+      "summary_error": null,
+      "storage_correct": true,
+      "recall_results": {
+        "status": "ok",
+        "answer_guidance": "Memory is evidence of what was said, not proof every mentioned proposition is true. Read modality, subject, negation and time together with the actual wording. Only explicit factual user assertions establish user facts. A plan is not completed; a review date requests rechecking, never implies completion. Say 'you mentioned you might move to Paris' for a tentative plan, not 'you live in Paris'. Wishes, if/would scenarios, questions, jokes and sarcasm do not establish facts. Reported/quoted speech and other people's attributes must retain their speaker/subject, never become the user's attributes. Reported saved notes are verbatim user requests or legacy records, not revalidated facts. Transcripts, summaries and journals are unclassified historical evidence: inspect the original assertion before using them, even when search ranks them highly. Model speech is not user evidence. Current explicit corrections and negations override older claims. Preserve past versus current state. If only hypothetical or ambiguous evidence exists, say the current fact is unknown; optionally describe the scenario as such. Never guess.",
+        "matches": []
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You mentioned you would buy a Tesla if you won the lottery."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      }
+    },
+    {
+      "id": "conditional-3",
+      "category": "conditional",
+      "facts": [],
+      "summary_error": null,
+      "storage_correct": true,
+      "recall_results": {
+        "status": "ok",
+        "answer_guidance": "Memory is evidence of what was said, not proof every mentioned proposition is true. Read modality, subject, negation and time together with the actual wording. Only explicit factual user assertions establish user facts. A plan is not completed; a review date requests rechecking, never implies completion. Say 'you mentioned you might move to Paris' for a tentative plan, not 'you live in Paris'. Wishes, if/would scenarios, questions, jokes and sarcasm do not establish facts. Reported/quoted speech and other people's attributes must retain their speaker/subject, never become the user's attributes. Reported saved notes are verbatim user requests or legacy records, not revalidated facts. Transcripts, summaries and journals are unclassified historical evidence: inspect the original assertion before using them, even when search ranks them highly. Model speech is not user evidence. Current explicit corrections and negations override older claims. Preserve past versus current state. If only hypothetical or ambiguous evidence exists, say the current fact is unknown; optionally describe the scenario as such. Never guess.",
+        "matches": [
+          {
+            "kind": "summary",
+            "id": "conditional-3",
+            "text": "The user noted that if they had accepted a job offer, they would currently be living in Tokyo.",
+            "score": 100.0,
+            "historical": true
+          },
+          {
+            "kind": "transcript",
+            "id": "conditional-3",
+            "speaker": "user",
+            "text": "Had I accepted that job, I would be living in Tokyo now.",
+            "score": 100.0,
+            "historical": true
+          }
+        ]
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You mentioned that if you had accepted a job offer, you would currently be living in Tokyo."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      }
+    },
+    {
+      "id": "conditional-4",
+      "category": "conditional",
+      "facts": [],
+      "summary_error": null,
+      "storage_correct": true,
+      "recall_results": {
+        "status": "ok",
+        "answer_guidance": "Memory is evidence of what was said, not proof every mentioned proposition is true. Read modality, subject, negation and time together with the actual wording. Only explicit factual user assertions establish user facts. A plan is not completed; a review date requests rechecking, never implies completion. Say 'you mentioned you might move to Paris' for a tentative plan, not 'you live in Paris'. Wishes, if/would scenarios, questions, jokes and sarcasm do not establish facts. Reported/quoted speech and other people's attributes must retain their speaker/subject, never become the user's attributes. Reported saved notes are verbatim user requests or legacy records, not revalidated facts. Transcripts, summaries and journals are unclassified historical evidence: inspect the original assertion before using them, even when search ranks them highly. Model speech is not user evidence. Current explicit corrections and negations override older claims. Preserve past versus current state. If only hypothetical or ambiguous evidence exists, say the current fact is unknown; optionally describe the scenario as such. Never guess.",
+        "matches": []
+      },
+      "recall": {
+        "answer": {
+          "current": "UNKNOWN",
+          "recollection": "You noted that opening a bakery remains hypothetical unless a grant comes through."
+        },
+        "available": true,
+        "current_correct": true,
+        "recollection_correct": true
+      }
+    }
+  ],
+  "metrics": {
+    "storage": 8,
+    "summary_completion": 8,
+    "total": 8,
+    "recall": {
+      "available": 8,
+      "current_correct": 8,
+      "recollection_correct": 8
+    }
+  }
+}

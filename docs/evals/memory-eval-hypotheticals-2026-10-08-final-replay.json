@@ -1,0 +1,15 @@
+{
+  "mode": "local final-code read-side replay; zero API calls",
+  "source_sha256": {
+    "memory.py": "676551f87bf7095236f216791091b861d579f7ae95fa1e047f464a676e70482d",
+    "memory_assertions.py": "bcecace43ac51e8dd20bcd496abdeed5bf78b3d47c6a8f1da1e85e14ad54501f",
+    "memory_summary.py": "f3eaecc81aff0c01ab72ede48c78a813cac6738b744800de54f75a4eaad29f8a",
+    "memory_quality.py": "5446a59015b819750d1da9b20c3d96d6e550f9470f9d2db5685003fe1aab8b6a"
+  },
+  "original_recall_payloads_identical": 80,
+  "adversarial_recall_payloads_identical": 40,
+  "original_sessions": 120,
+  "original_question_guard_triggers": 0,
+  "maximum_memory_bytes": 2620,
+  "note": "Question-only guard is prospective; it does not rewrite already completed synthetic stores. Fresh final-code question cases are measured separately."
+}

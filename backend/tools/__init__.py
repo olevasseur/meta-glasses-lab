@@ -79,9 +79,9 @@ APPEND_TO_DOC = types.FunctionDeclaration(
 
 REMEMBER = types.FunctionDeclaration(
     name="remember",
-    description="Save a durable fact the user explicitly asks to remember. Use an existing semantic key when correcting a fact. Never store credentials.",
+    description="Save a durable statement the user explicitly asks to remember. Preserve uncertainty, negation, speaker and time; never turn a plan, wish or hypothetical into a completed fact. Use an existing semantic key only for an explicit correction of that fact, a separate key for a plan. Never store credentials.",
     parameters=types.Schema(type="OBJECT", required=["fact"], properties={
-        "fact": types.Schema(type="STRING", description="The user fact, stated in third person."),
+        "fact": types.Schema(type="STRING", description="The user's statement in third person, preserving modality, negation and who it is about."),
         "key": types.Schema(type="STRING", description="Stable topic, e.g. user.home_city; reuse for updates."),
     }),
 )

@@ -175,3 +175,74 @@ caches. Added regressions for shared quota refusal, summary fallback accounting,
 restored production metering and dashboard/voice alias suppression. Assertions
 were not weakened. No credentialed provider, Google Docs, emulator or physical
 phone/glasses checks ran during this merge.
+
+## Assertion adversarial extension — 2026-10-08
+
+See [memory assertion handling](memory-hypotheticals.md) and its
+[before/after report](../evals/memory-eval-hypotheticals-2026-10-08.md).
+`scripts/memory_eval/adversarial.json` contains forty independently authored cases:
+four each for hypotheticals, conditionals, wishes, plans, reported speech, jokes,
+negations, questions, changed facts and other people's attributes. Each case gets
+an isolated database and real production extraction, profile and recall. The
+`adversarial` command records storage metadata and recall-assisted answers using the production profile,
+including a natural recollection to check attribution/hedging separately
+from the current fact. Expected answers are never sent to Gemini.
+
+```sh
+MEMORY_EVAL_RETRIES=0 MEMORY_EVAL_TIMEOUT_MS=60000 \
+  MEMORY_EVAL_MODEL=gemini-3.5-flash-lite GEMINI_TEXT_MODELS=gemini-3.5-flash-lite \
+  UV_CACHE_DIR=/tmp/memory-eval-uv uv run --project backend python scripts/memory_eval adversarial \
+  --corpus scripts/memory_eval/adversarial.json \
+  --output /tmp/assertions-after.json --state /tmp/assertions-after \
+  --ledger /tmp/assertions-budget.json --limit 600
+```
+
+Use separate before/after state/output paths and one shared ledger. Snapshot
+`memory.py`, `memory_summary.py` **and** `memory_quality.py` for the assertion
+baseline. `MEMORY_EVAL_BASELINE` selects that snapshot. The full original suite
+still runs with `run`; it is not replaced by the adversarial suite. Configure the
+existing local usage allowance for the authorized run, preserving shared headroom;
+`--limit` cannot override a smaller usage-meter allowance. No Live sessions run.
+
+Current-answer scores use strict expected/forbidden spans or exact `UNKNOWN`;
+explicit not-done plan questions require a negative answer. Recollection scores
+require the topic and a case-specific uncertainty/attribution marker. Storage
+checks distinguish facts from plans with review dates and detect retention of
+excluded topic spans. These lexical proxies are intentionally reported separately;
+inspect the individual answers when interpreting semantic quality.
+
+`--interval` now defaults to ten seconds between completed text calls, in addition
+to provider-error backoff. A structured 429 identifying a daily quota stops the
+run immediately; the ledger stores only `daily`, `minute` or `unknown`, never raw
+quota errors or project identifiers. A different authorized Gemini model can use
+the remaining shared call budget, but comparisons must disclose that change.
+
+For the original `run` corpus, `--retry-incomplete` revisits only records with
+deferred summaries or missing probe batches. It does not select cases by whether
+an answer was correct. Available answers are reused when memory did not change;
+newly completed summaries cause that persona's questions to be asked again. Copy
+the initial output before retrying if retaining a before-recovery artifact. Every
+retry remains charged to the same `--ledger`/`--limit` budget.
+
+The adversarial recall query uses only its authored topic keyword to deliberately
+retrieve the potentially misleading statement. This isolates interpretation under
+retrieval exposure; it is not a natural-query retrieval benchmark. Original-corpus
+hit@3 continues to use the unchanged natural questions.
+
+The report also records a fresh four-question follow-up after adding a
+question-only storage guard. Reproduce that subset without editing the fixed
+forty-case fixture:
+
+```sh
+python3 - <<'PY'
+import json
+from pathlib import Path
+cases = json.loads(Path('scripts/memory_eval/adversarial.json').read_text())
+Path('/tmp/assertion-questions.json').write_text(json.dumps(
+    [case for case in cases if case['category'] == 'question'], indent=2) + '\n')
+PY
+```
+
+Use the same adversarial command with `--corpus /tmp/assertion-questions.json`,
+fresh output/state paths, and the existing shared ledger. Keep the full-run
+results and follow-up results separate; do not replace individual wrong answers.
