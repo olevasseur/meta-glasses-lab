@@ -42,6 +42,7 @@ from jobs import Jobs
 from coach import Projects
 from notes import BACKEND_DIR, Notes
 from tools import REGISTRY
+from study import Study
 
 load_dotenv(BACKEND_DIR.parent / ".env")  # Explicit environment values take precedence.
 
@@ -62,6 +63,7 @@ def record_note(document, text):
 
 notes = Notes(on_append=record_note)
 projects = Projects()
+study = Study(notes)
 
 
 @asynccontextmanager
@@ -237,7 +239,7 @@ async def execute_tool(name, request):
         except (OSError, ValueError, sqlite3.Error):
             raise HTTPException(503, "Check the job configuration and repository allowlist") from None
     try:
-        service = (journal_service() if owner == "journal" else notes if owner == "notes"
+        service = (study if owner == "study" else journal_service() if owner == "journal" else notes if owner == "notes"
                    else workouts if owner == "workouts" else visual_api.memory if owner == "visual" else memory_api.memory)
         return await asyncio.to_thread(getattr(service, method), **request.model_dump())
     except JournalDateError as exc:
@@ -245,12 +247,16 @@ async def execute_tool(name, request):
     except MemoryConflict as exc:
         raise HTTPException(409, str(exc)) from exc
     except (FileNotFoundError, ValueError, GoogleAuthError) as exc:
+        if owner == "study":
+            raise HTTPException(503, "Study unavailable; check Google access, document size and local storage") from exc
         if owner == "journal":
             raise HTTPException(503, "Journal unavailable; check schedule, Gemini and Google credentials") from exc
         if owner in {"memory", "workouts", "visual"}:
             raise HTTPException(503, "Memory storage unavailable") from exc
         raise HTTPException(503, "Check Google credentials and doc_aliases.json; run scripts/google_auth.py if needed") from exc
     except (APIError, httpx.HTTPError, HttpError, OSError, RuntimeError) as exc:
+        if owner == "study":
+            raise HTTPException(502, "Study read failed; use study_progress to recover saved state") from exc
         if owner == "journal":
             raise HTTPException(502, "Journal operation failed; a local draft may be saved. Retrying replaces the same day's entry.") from exc
         if owner in {"memory", "workouts", "visual"}:

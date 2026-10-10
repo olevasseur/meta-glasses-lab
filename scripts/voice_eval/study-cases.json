@@ -1,0 +1,174 @@
+[
+  {
+    "id": "study-open",
+    "feature": "study",
+    "context": "We are studying my Atomic Habits notes. The active document is open.",
+    "segments": [
+      "Let's study my Atomic Habits notes. Over."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "over",
+    "expected": [
+      {
+        "name": "study_open",
+        "args": {
+          "doc_name": {
+            "contains": "Atomic"
+          }
+        }
+      }
+    ],
+    "allowed": [],
+    "forbidden": [
+      "append_to_doc",
+      "create_doc",
+      "codex_task",
+      "await_gesture_confirmation",
+      "end_conversation"
+    ]
+  },
+  {
+    "id": "study-section",
+    "feature": "study",
+    "context": "We are studying my Atomic Habits notes. The active document is open.",
+    "segments": [
+      "Go to the chapter on environment. Over."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "over",
+    "expected": [
+      {
+        "name": "study_section",
+        "args": {
+          "action": "goto",
+          "target": {
+            "contains": "environment"
+          }
+        }
+      }
+    ],
+    "allowed": [],
+    "forbidden": [
+      "append_to_doc",
+      "create_doc",
+      "codex_task",
+      "await_gesture_confirmation",
+      "end_conversation"
+    ]
+  },
+  {
+    "id": "study-search",
+    "feature": "study",
+    "context": "We are studying my Atomic Habits notes. The active document is open.",
+    "segments": [
+      "What did I write about motivation? Over."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "over",
+    "expected": [
+      {
+        "name": "study_search",
+        "args": {
+          "question": {
+            "contains": "motivation"
+          }
+        }
+      }
+    ],
+    "allowed": [],
+    "forbidden": [
+      "append_to_doc",
+      "create_doc",
+      "codex_task",
+      "await_gesture_confirmation",
+      "end_conversation"
+    ]
+  },
+  {
+    "id": "quiz-next",
+    "feature": "study",
+    "context": "We are studying my Atomic Habits notes. The active document is open.",
+    "segments": [
+      "Quiz me on my notes. Over."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "over",
+    "expected": [
+      {
+        "name": "quiz_next",
+        "args": {}
+      }
+    ],
+    "allowed": [],
+    "forbidden": [
+      "append_to_doc",
+      "create_doc",
+      "codex_task",
+      "await_gesture_confirmation",
+      "end_conversation"
+    ]
+  },
+  {
+    "id": "quiz-record",
+    "feature": "study",
+    "context": "We are studying my Atomic Habits notes. The active document is open. You asked what identity-based habits mean. quiz_next returned attempt_id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, concept_id=b73516c2c4f6bc4a983bfcdc, source heading Identity-based habits, passage: An identity-based habit starts with the kind of person I want to become; each small action is evidence for that identity. Wait for my answer then grade it.",
+    "segments": [
+      "My answer is: each small action is evidence of the person I want to become. Over."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "over",
+    "expected": [
+      {
+        "name": "quiz_record",
+        "args": {
+          "score": {
+            "any_of": [
+              2,
+              3
+            ]
+          }
+        }
+      }
+    ],
+    "allowed": [
+      "quiz_next"
+    ],
+    "forbidden": [
+      "append_to_doc",
+      "create_doc",
+      "codex_task",
+      "await_gesture_confirmation",
+      "end_conversation"
+    ]
+  },
+  {
+    "id": "study-progress",
+    "feature": "study",
+    "context": "We are studying my Atomic Habits notes. The active document is open.",
+    "segments": [
+      "How am I doing with these notes? Over."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "over",
+    "expected": [
+      {
+        "name": "study_progress",
+        "args": {}
+      }
+    ],
+    "allowed": [],
+    "forbidden": [
+      "append_to_doc",
+      "create_doc",
+      "codex_task",
+      "await_gesture_confirmation",
+      "end_conversation"
+    ]
+  }
+]

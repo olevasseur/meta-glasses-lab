@@ -110,6 +110,18 @@ def backend(prompt=None, tools_file=None):
         notes.preview = lambda **kw: {'status':'matched','document':{'id':'synthetic-doc','title':kw.get('doc_name','Inbox')}}
         notes.append = lambda **kw: {'status':'ok','doc_title':kw.get('doc_name','Inbox')}
         stack.enter_context(patch.object(app,'notes',notes))
+        # Study tools must never reach the personal Google account or SQLite store.
+        from eval_study_mode import fixture_notes
+        from study import Study
+        (root / 'study').mkdir()
+        study_notes, _ = fixture_notes(root / 'study')
+        study = Study(study_notes, root / 'study.sqlite3')
+        study.open('atomic habits')
+        quiz = study.quiz_next()['data']
+        with study.database() as db:
+            db.execute("UPDATE attempts SET id=? WHERE id=?", ('a' * 32, quiz['attempt_id']))
+            db.execute("UPDATE state SET pending=?", ('a' * 32,))
+        stack.enter_context(patch.object(app, 'study', study))
         journal_result = {'status':'ok','doc_status':'synced','date':'2026-10-07',
                           'text':'Walked by the harbour. Task: buy apples.'}
         stack.enter_context(patch.object(app,'journal_service',return_value=SimpleNamespace(

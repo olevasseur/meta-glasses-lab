@@ -112,3 +112,5 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
   nickname validation/forms, duplicate checks, and reuse of tier 1 device approvals.
 
 - [live-recovery-context.md](live-recovery-context.md) — **2026-10-09**: ephemeral resumption probes, temporary nonresumable checkpoints, policy-close fallback, silent untrusted recap, and remaining hardware uncertainty.
+
+- [study-mode.md](study-mode.md) — **2026-10-10**: single-Doc study, heading/tab parsing, revision cache, local BM25, passage concepts and durable Leitner practice; no extra inference calls.

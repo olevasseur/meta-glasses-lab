@@ -252,5 +252,8 @@ for name, request, description, properties, required in (
         name=name, description=description + DOC_APPROVAL_GUIDANCE,
         parameters=types.Schema(type="OBJECT", properties=properties, required=required)))
 
+from study_tools import STUDY_REGISTRY
+REGISTRY.update(STUDY_REGISTRY)
+
 DECLARATIONS = [entry[3] for entry in REGISTRY.values()]
 TRANSLATION_DECLARATIONS = [entry[3] for entry in REGISTRY.values() if entry[1] == "translation"]

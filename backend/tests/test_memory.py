@@ -224,6 +224,7 @@ def test_token_locks_memory_and_registry_but_not_resumption(client, store, monke
         "check_progress", "set_timer", "list_timers", "cancel_timer", "set_nod_navigation",
         "start_workout", "stop_workout", "workout_status", "workout_history",
         "set_visual_memory", "remember_this", "delete_visual_memory", "find_object", "when_did_i_see", "end_conversation",
+        "study_open", "study_section", "study_search", "quiz_next", "quiz_record", "study_progress",
     }
     assert config.lock_additional_fields == [] and live.session_resumption is None
 
