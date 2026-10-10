@@ -6,6 +6,7 @@ from google.genai import types
 
 import app
 import gemini
+from doc_nicknames import nickname_context
 import memory_api
 from memory import Memory
 
@@ -22,7 +23,7 @@ def test_auto_patience_is_clamped_at_request_and_sdk_boundaries(monkeypatch, tmp
     assert result.status_code == 200
     assert create.call_args.args[2:] == ("auto",)
     assert create.call_args.kwargs == {
-        "silence_ms": expected, "system_instruction": gemini.PROMPT_PATH.read_text(),
+        "silence_ms": expected, "system_instruction": gemini.PROMPT_PATH.read_text() + nickname_context(app.notes),
         "persona": "assistant", "language": None,
     }
     config = gemini.token_config(gemini.DEFAULT_MODEL, "auto", silence_ms=silence)

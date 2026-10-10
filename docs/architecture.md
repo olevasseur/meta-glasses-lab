@@ -39,6 +39,12 @@ Session config (backend-owned):
 - `responseModalities: ["AUDIO"]`, input + output audio transcription enabled
 - Tools: function declarations (see below)
 
+After a reconnect requires fresh credentials, Android can include a bounded
+`reconnect_context` string in `/token`. The backend JSON-quotes this recent
+conversation/tool recap as untrusted data in the locked session context, alongside
+current nicknames. This seeds fallback sessions without triggering a reply; see
+[live context recovery](features/live-context-recovery.md).
+
 `client_tools` identifies declarations executed on Android, not `/tools`. M4 adds
 `look(question)` and `set_watch_mode(on)`. Camera frames go directly to Gemini;
 see [M4 vision](features/m4-vision.md) for lifecycle and image-bound tool responses.

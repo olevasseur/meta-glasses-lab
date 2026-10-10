@@ -20,6 +20,7 @@ from googleapiclient.errors import HttpError
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 import gemini
+from doc_nicknames import nickname_context
 import usage_api
 import gemini_health
 import resilience_work
@@ -147,6 +148,7 @@ class TokenRequest(BaseModel):
     silence_ms: int = Field(default=2000, strict=True)
     persona: Literal["assistant", "translator"] = "assistant"
     language: str | None = Field(default=None, max_length=40)
+    reconnect_context: str | None = Field(default=None, max_length=24_000)
     avoid_models: list[str] = Field(default_factory=list, max_length=16)
 
     @model_validator(mode="after")
@@ -174,7 +176,8 @@ def token(request: TokenRequest):
     try:
         return gemini.create_token(
             api_key, model, request.mode,
-            system_instruction=(memory_api.memory.context(gemini.assistant_instruction(request.mode))
+            system_instruction=(memory_api.memory.context(gemini.assistant_instruction(request.mode)) + nickname_context(notes)
+                                + gemini.reconnect_instruction(request.reconnect_context)
                                 if request.persona == "assistant" else None),
             silence_ms=request.silence_ms,
             persona=request.persona, language=request.language,

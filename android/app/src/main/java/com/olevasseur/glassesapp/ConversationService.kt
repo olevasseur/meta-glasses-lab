@@ -305,6 +305,14 @@ class ConversationService : Service(), ViewModelStoreOwner {
         Handler(Looper.getMainLooper()).postDelayed({ tone.release() }, 180)
     }
 
+    fun recoveryCue() {
+        if (controls.shouldRun && hasFocus) chime(true)
+    }
+
+    fun nothingToConfirmCue() {
+        if (controls.shouldRun && hasFocus) chime(false)
+    }
+
     private fun chime(start: Boolean) {
         // Platform-generated short tones: no bundled media or runtime AI request.
         val tone = runCatching { ToneGenerator(AudioManager.STREAM_VOICE_CALL, 35) }.getOrNull() ?: return

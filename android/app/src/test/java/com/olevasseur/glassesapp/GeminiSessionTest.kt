@@ -62,6 +62,7 @@ class GeminiSessionTest {
         intercept: (Request) -> Unit = {}, end: (GeminiSession) -> Unit = {}) : Closeable {
         val reopens = mutableListOf<String>()
         var ended = 0
+        var recoveredReplies = 0
         val audio = Audio()
         val errors = mutableListOf<String>()
         val states = mutableListOf<String>()
@@ -81,7 +82,7 @@ class GeminiSessionTest {
         val session: GeminiSession = GeminiSession(scope, BackendClient(http, "http://localhost/", "fixture"), audio,
             { label, _ -> states += label }, { _, _ -> }, { ended++; end(sessionRef()) }, {}, {}, { errors += it; sessionRef().stop() }, localTool = local,
             onClientTool = { _, _ -> action(sessionRef()) }, onEvent = event,
-            canAnnounce = canAnnounce,
+            canAnnounce = canAnnounce, onRecoveredReply = { recoveredReplies++ },
             onOverTurnReopen = { reopens += it; sessionRef().setTalking(true) },
             elapsedMs = clock, retryDelay = { 1L },
             sockets = WebSocket.Factory { request, listener -> Socket(request, listener).also { created.trySend(it) } })
@@ -90,10 +91,10 @@ class GeminiSessionTest {
             session.start(settings, meeting)
             return nextSocket()
         }
-        suspend fun nextSocket(): Socket {
+        suspend fun nextSocket(completeSetup: Boolean = true): Socket {
             val socket = withTimeout(5_000) { created.receive() }
             socket.open(); yield()
-            socket.receive("""{"setupComplete":{}}"""); yield()
+            if (completeSetup) { socket.receive("""{"setupComplete":{}}"""); yield() }
             return socket
         }
         override fun close() {
@@ -627,7 +628,72 @@ class GeminiSessionTest {
             assertEquals(2, f.tokenRequests.size)
             third.receive("""{"sessionResumptionUpdate":{"resumable":false}}"""); yield()
             third.listener.onClosing(third, 1011, "Internal error encountered")
-            assertFalse(f.nextSocket().sent.first().contains("keep-me"))
+            assertTrue(f.nextSocket().sent.first().contains("keep-me"))
+        }
+    }
+
+    @Test fun hardwareDropThenTwoPolicyClosesRestoresContextBeforeOverActivity() = runBlocking {
+        Fixture(this).use { f ->
+            val first = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            first.receive("""{"sessionResumptionUpdate":{"resumable":true,"newHandle":"checkpoint"}}""")
+            first.receive("""{"serverContent":{"inputTranscription":{"text":"Add a note to small talk. Over."}}}""")
+            first.receive(tool(name = "append_to_doc"))
+            withTimeout(2_000) { while (first.sent.none { it.contains("functionResponses") }) yield() }
+            first.receive("""{"serverContent":{"outputTranscription":{"text":"I've added that note to The Fine Art of Small"}}}""")
+            first.receive(audioMessage); yield()
+            first.listener.onFailure(first, java.io.IOException("drop"), null)
+            val reused = f.nextSocket(completeSetup = false)
+            assertTrue(reused.sent.single().contains("checkpoint"))
+            assertEquals(1, f.tokenRequests.size)
+            reused.listener.onClosing(reused, 1008, "")
+            val freshToken = f.nextSocket(completeSetup = false)
+            assertTrue(freshToken.sent.single().contains("checkpoint"))
+            assertEquals(2, f.tokenRequests.size)
+            freshToken.listener.onClosing(freshToken, 1008, "")
+            val freshSession = f.nextSocket()
+            assertEquals(3, f.tokenRequests.size)
+            assertFalse(freshSession.sent.first().contains("checkpoint"))
+            val recap = f.tokenRequests.last().getString("reconnect_context")
+            assertEquals(1, freshSession.sent.size) // Setup only: history never requests a model reply.
+            assertTrue(recap.contains("small talk"))
+            assertTrue(recap.contains("Fine Art of Small"))
+            assertTrue(recap.contains("append_to_doc"))
+            assertTrue(recap.contains("ok"))
+            assertEquals(1, f.recoveredReplies)
+            f.session.setTalking(true)
+            assertTrue(freshSession.sent.last().contains("activityStart"))
+            assertEquals(1, f.backendCalls.get()) // The saved note was never replayed.
+            assertTrue(f.tokenRequests.none { it.optJSONArray("avoid_models")?.length()?.let { n -> n > 0 } == true })
+            assertTrue(f.errors.isEmpty())
+        }
+    }
+
+    @Test fun generatingUpdateAndRepeatedNetworkLossKeepLastCheckpointWithoutRecap() = runBlocking {
+        Fixture(this).use { f ->
+            var socket = f.connected()
+            socket.receive("""{"sessionResumptionUpdate":{"resumable":true,"newHandle":"last-valid"}}""")
+            socket.receive("""{"sessionResumptionUpdate":{"resumable":false,"newHandle":""}}"""); yield()
+            repeat(4) {
+                socket.listener.onClosing(socket, 1011, "Internal error")
+                socket = f.nextSocket()
+                assertTrue(socket.sent.single().contains("last-valid"))
+            }
+            assertEquals(1, f.tokenRequests.size)
+        }
+    }
+
+    @Test fun explicitInvalidHandleRestoresHistoryAndIntentionalRestartClearsIt() = runBlocking {
+        Fixture(this).use { f ->
+            val first = f.connected()
+            first.receive("""{"serverContent":{"inputTranscription":{"text":"private previous topic"}}}""")
+            first.receive("""{"sessionResumptionUpdate":{"resumable":true,"newHandle":"expired"}}"""); yield()
+            first.listener.onClosing(first, 1008, "invalid resumption handle")
+            val replacement = f.nextSocket()
+            assertEquals(1, replacement.sent.size)
+            assertTrue(f.tokenRequests.last().getString("reconnect_context").contains("private previous topic"))
+            f.session.start(ConversationSettings())
+            assertEquals(1, f.nextSocket().sent.size)
+            assertFalse(f.tokenRequests.last().has("reconnect_context"))
         }
     }
 

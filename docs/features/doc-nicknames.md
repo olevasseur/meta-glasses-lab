@@ -25,9 +25,10 @@ cannot drift with title/alias changes. Approvals are consumed once.
 
 Settings → Google Doc aliases lists nicknames, titles and document links. Paste a
 Google Docs HTTPS URL or bare ID to add/replace a nickname, or click Remove nickname.
-The advanced JSON editor remains available. Names normalize by trimming and
-casefolding, must be 1–60 characters without control characters, and must be unique
-after normalization. IDs use letters, numbers, hyphens and underscores (1–200
+The advanced JSON editor remains available. Display names normalize by trimming and
+casefolding; matching also ignores whitespace and punctuation. Names must be
+1–60 characters without control characters, and unique after this normalization.
+IDs use letters, numbers, hyphens and underscores (1–200
 characters). Only `inbox` may be null. Inbox cannot be assigned or removed by voice
 or the simple form; advanced JSON may retain its current app-assigned ID or reset
 it to null. App-created Inbox IDs are saved automatically. Writes are atomic and
@@ -61,3 +62,7 @@ Sources checked 2026-10-09: [Google Docs documents.create](https://developers.go
 (title-only creation, supported scopes) and [Drive files.list](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list)
 (pagination and incomplete-search reporting). See [research notes](../research/doc-nicknames.md)
 and the existing [device approvals](device-approvals.md) for the phone flow.
+
+Session-start nickname context and not_found nickname lists are described in
+[live context recovery](live-context-recovery.md). Document destinations use exact
+titles (ignoring case) when no nickname matches; no fuzzy title matching.

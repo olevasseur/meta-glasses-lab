@@ -4,7 +4,7 @@ import kotlin.random.Random
 
 /** Reasons are inspected locally, never echoed into logs/UI (they can contain credentials). */
 data class GeminiFailure(val message: String, val fatal: Boolean = false,
-    val refreshToken: Boolean = false, val clearHandle: Boolean = false)
+    val refreshToken: Boolean = false, val clearHandle: Boolean = false, val policyClose: Boolean = false)
 
 object GeminiRecovery {
     fun backendFailure(error: Exception): GeminiFailure = when (error) {
@@ -31,7 +31,7 @@ object GeminiRecovery {
                 mentions("invalid_argument", "field mask", "fieldmask", "constraint", "permission_denied", "api key", "not supported", "unsupported", "invalid setup", "invalid model", "malformed", "policy violation") ->
                 GeminiFailure(if (backend && code == 401) "Backend authentication rejected; check the app shared secret"
                     else "Gemini configuration or access rejected; check model, credentials and token constraints", fatal = true)
-            code == 1008 -> GeminiFailure("Gemini policy close; retrying with fresh access", refreshToken = true)
+            code == 1008 -> GeminiFailure("Gemini policy close; retrying with fresh access", refreshToken = true, policyClose = true)
             else -> GeminiFailure(if (backend) "Mac backend error; retrying" else "Connection lost; retrying")
         }
     }

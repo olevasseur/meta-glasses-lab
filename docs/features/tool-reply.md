@@ -44,3 +44,8 @@ including Google's [Live voice/language documentation](https://ai.google.dev/gem
   existing local backend virtualenv with an identical `uv.lock` after fresh
   dependency downloads stalled; no dependencies or lockfile changed. Warnings
   concern Starlette/httpx, Python audioop and experimental Gemini token creation.
+
+The follow-up [live context recovery fix](live-context-recovery.md) retains valid
+checkpoints, seeds fresh sessions silently, and adds recovery/empty-confirmation
+cues. Approval speech requires a real needs_confirmation result with approval_id
+in the current conversation; function-call syntax must never be spoken.

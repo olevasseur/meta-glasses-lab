@@ -7,6 +7,17 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class GlassesTriggersTest {
+    @Test fun unclaimedShortCaptureGivesFeedbackButHoldAndRealApprovalKeepPrecedence() {
+        var feedback = 0
+        for (press in CapturePressType.entries) {
+            val event = InputEvent.Capture(press, InputSource.CAPTURE_BUTTON, 1)
+            assertTrue(approvalCapture(event, { fail("Already pending") }) { true })
+            assertEquals(press != CapturePressType.HOLD, approvalCapture(event, { feedback++ }) { false })
+        }
+        assertEquals(CapturePressType.entries.size - 1, feedback)
+        assertFalse(approvalCapture(InputEvent.Select(InputSource.CAPTOUCH, 1), { fail("Not capture") }) { false })
+    }
+
     @Test fun `approval consumes only actual capture input before other triggers`() {
         var calls = 0
         for (press in CapturePressType.entries) {

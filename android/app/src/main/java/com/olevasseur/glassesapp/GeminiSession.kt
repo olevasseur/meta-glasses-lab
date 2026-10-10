@@ -33,6 +33,7 @@ class GeminiSession(
     private val localTool: suspend (FunctionCall) -> ToolResult = { ToolResult(toolError("Client tool is unavailable")) },
     private val onTranslationChanged: (String?) -> Unit = {},
     private val onApproval: suspend (JSONObject) -> Unit = {},
+    private val onRecoveredReply: () -> Unit = {},
     private val onSlowTool: () -> Unit = {},
     private val onClientTool: (String, JSONObject) -> Unit = { _, _ -> },
     private val canAnnounce: () -> Boolean = { true },
@@ -58,6 +59,10 @@ class GeminiSession(
     private var replyPending = false
     private var token: LiveToken? = null
     private var handle: String? = null
+    private val recap = ConversationRecap()
+    private var resumedConnection = false
+    private var resumePolicyCloses = 0
+    private var interruptedReply = false
     private var reconnectJob: Job? = null
     private var setupTimeout: Job? = null
     private var websocketStartedMs = 0L
@@ -100,14 +105,14 @@ class GeminiSession(
 
     private suspend fun connect() {
         if (!active) return
-        onState(if (handle == null) "Connecting…" else "Resuming…", false)
         try {
             if (handleReceivedAt?.isBefore(Instant.now().minusSeconds(7200)) == true) handle = null
             val reusable = token?.takeIf {
                 handle != null && runCatching { Instant.parse(it.expiresAt).isAfter(Instant.now().plusSeconds(30)) }.getOrDefault(false)
             }
             val tokenStartedMs = elapsedMs()
-            val credentials = reusable ?: backend.token(settings.mode, settings.silenceMs, translationLanguage, meetingGate.active, avoidedModels).also {
+            val credentials = reusable ?: backend.token(settings.mode, settings.silenceMs, translationLanguage, meetingGate.active, avoidedModels,
+                reconnectContext = if (translationLanguage == null) recap.message() else null).also {
                 if (handleModel != null && handleModel != it.model) { handle = null; handleReceivedAt = null }
                 if (it.model in avoidedModels) avoidedModels.clear() // All candidates failed: start a new circuit.
                 currentModel = it.model
@@ -120,6 +125,8 @@ class GeminiSession(
                 toolJobs.values.forEach { it.cancel() }; toolJobs.clear()
                 responses.clear(); pendingResponses.clear(); cancelledCalls.clear()
             }
+            resumedConnection = handle != null
+            onState(if (resumedConnection) "Resuming…" else "Connecting…", false)
             val request = Request.Builder().url(LiveProtocol.ENDPOINT)
                 .header("Authorization", "Token ${credentials.token}").build()
             websocketStartedMs = elapsedMs()
@@ -174,6 +181,7 @@ class GeminiSession(
             webSocket.close(code, null)
             scope.launch {
                 if (webSocket !== socket || !active) return@launch
+                logClose(code, reason)
                 recover(GeminiRecovery.classify(code, reason))
             }
         }
@@ -232,17 +240,23 @@ class GeminiSession(
             handleReceivedAt = Instant.now()
             handleModel = token?.model
             DiagnosticMetrics.handleUpdatedMs = elapsedMs()
-        } else if (event.resumable == false) { handle = null; handleReceivedAt = null; DiagnosticMetrics.handleUpdatedMs = null }
+        }
+        // resumable=false describes the current generation/tool boundary, not expiry
+        // of the last checkpoint. Retain it until explicit rejection or age expiry.
         if (!audioSuspended && !event.interrupted && event.audio.isNotEmpty()) DiagnosticMetrics.response(if (ptt) null else settings.silenceMs)
         if (event.setupComplete) {
             DiagnosticLog.add("latency", "live_setup_ms=${elapsedMs() - setupStartedMs}")
             setupTimeout?.cancel()
+            resumePolicyCloses = 0
             stableConnection?.cancel()
             stableConnection = scope.launch {
                 delay(60_000)
                 attempts = 0; modelFailures = 0; avoidedModels.clear()
             }
             synchronized(sendLock) {
+                if (!resumedConnection && translationLanguage == null && recap.message() != null) {
+                    DiagnosticLog.add("gemini", "fresh_session_context_restored")
+                }
                 ready = true
                 if (meetingGate.active) {
                     val dropped = meetingAudio.droppedBytes
@@ -251,6 +265,7 @@ class GeminiSession(
                     if (dropped > 0) onTranscript("You", " [Capture gap: ${dropped / 32_000} seconds of audio lost during disconnection.] ")
                 }
             }
+            if (interruptedReply) { interruptedReply = false; onRecoveredReply() }
             onState("Connected", true)
             pendingResponses.toList().forEach { id -> responses[id]?.let { deliver(it.first, it.second) } }
         }
@@ -274,6 +289,7 @@ class GeminiSession(
                     meetingGate.endTurn()
                 }
             }
+            recap.text("user", it)
             onTranscript("You", it)
         }
         if (meetingGate.active && meetingGate.mayRespond &&
@@ -301,7 +317,8 @@ class GeminiSession(
                 } else if (!audioSuspended && meetingGate.mayRespond) event.audio.forEach(audio::enqueue)
             }
         }
-        event.outputText?.takeIf { it.isNotEmpty() && meetingGate.mayRespond }?.let { onTranscript("Gemini", it) }
+        event.outputText?.takeIf { it.isNotEmpty() && meetingGate.mayRespond }?.let { recap.text("model", it); onTranscript("Gemini", it) }
+        if (event.turnComplete || event.interrupted) recap.endTurn()
         if ((event.turnComplete && !waitingForToolReply && reopenReason == null) || event.interrupted) {
             DiagnosticMetrics.latency.reset(); onTurnEnd()
         }
@@ -331,6 +348,7 @@ class GeminiSession(
         if (toolJobs.containsKey(call.id)) return
         logDiagnosticTool(call.name, finished = false)
         onTool("${call.name}: running…")
+        recap.tool(call, JSONObject().put("status", "outcome_unknown").put("message", "Started; never automatically retry"))
         // Register before execution: local tools can complete or switch sessions without suspending.
         val job = scope.launch(start = CoroutineStart.LAZY) {
             val toolStartedMs = elapsedMs()
@@ -356,6 +374,7 @@ class GeminiSession(
                 responses[call.id] = call to if (result.jpeg == null) result.response
                     else toolError("This visual response cannot be replayed; request a fresh look if needed.")
                 logDiagnosticTool(call.name, finished = true, failed = result.response.has("error") || result.response.optString("status") == "error")
+                recap.tool(call, result.response)
                 onTool("${call.name}: ${result.response}")
                 deliver(call, result.response, result.jpeg)
                 onApproval(result.response)
@@ -393,7 +412,7 @@ class GeminiSession(
             }
         }
         if (endedActivity) onTalking(false)
-        if (sent) { replyPending = true; watchOverReply() }
+        if (sent) { recap.text("app_event", text); recap.endTurn(); replyPending = true; watchOverReply() }
         return sent
     }
 
@@ -547,11 +566,24 @@ class GeminiSession(
         if (failure.fatal) { onFatal(failure.message); return }
         if (failure.refreshToken) token = null
         if (failure.clearHandle) { handle = null; handleReceivedAt = null }
-        reconnect(failure.message)
+        if (failure.policyClose && resumedConnection && ++resumePolicyCloses >= 2) {
+            handle = null; handleReceivedAt = null
+            DiagnosticLog.add("gemini", "resume_rejected_twice restoring_recent_context")
+        }
+        reconnect(failure.message, countModelFailure = !failure.policyClose)
     }
 
-    private fun reconnect(reason: String) {
+    private fun logClose(code: Int, reason: String) {
+        val category = GeminiRecovery.classify(code, reason)
+        DiagnosticLog.add("gemini", "websocket_close code=$code setup_complete=$ready " +
+            "resuming=$resumedConnection handle_age_seconds=${handleReceivedAt?.let { java.time.Duration.between(it, Instant.now()).seconds }} " +
+            "category=${category.message}")
+    }
+
+    private fun reconnect(reason: String, countModelFailure: Boolean = true) {
         if (!active) return
+        interruptedReply = interruptedReply || replyPending || !audio.playbackIdle
+        recap.endTurn()
         cancelOverReply()
         usageReporter.stop()
         setupTimeout?.cancel()
@@ -568,7 +600,7 @@ class GeminiSession(
         meetingGate.endTurn()
         onTalking(false)
         attempts = (attempts + 1).coerceAtMost(100)
-        if (++modelFailures >= 3 && currentModel != null) {
+        if (countModelFailure && handle == null && ++modelFailures >= 3 && currentModel != null) {
             avoidedModels += currentModel!!
             token = null; handle = null; handleReceivedAt = null; modelFailures = 0
         }
@@ -582,6 +614,7 @@ class GeminiSession(
     }
 
     fun stop() {
+        recap.clear(); interruptedReply = false; resumePolicyCloses = 0; resumedConnection = false
         cancelOverReply()
         usageReporter.stop()
         synchronized(sendLock) {
