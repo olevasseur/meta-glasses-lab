@@ -26,8 +26,12 @@ suspend fun visualImageHash(jpeg: ByteArray): Long = withContext(Dispatchers.Def
     }
 }
 
-fun visualCaptureChime(scope: CoroutineScope) {
-    val tone = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 80)
+fun visualCaptureChime(scope: CoroutineScope) = captureChime(scope, AudioManager.STREAM_NOTIFICATION)
+
+fun photoShutterCue(scope: CoroutineScope) = captureChime(scope, AudioManager.STREAM_VOICE_CALL)
+
+private fun captureChime(scope: CoroutineScope, stream: Int) {
+    val tone = ToneGenerator(stream, 80)
     try {
         check(tone.startTone(ToneGenerator.TONE_PROP_BEEP, 180))
     } catch (e: Exception) { tone.release(); throw e }

@@ -277,7 +277,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         ConversationToolController(
             access = { FeatureAccess(!state.value.handsFree.shouldRun || !audioReady || state.value.stopping,
                 state.value.meeting, state.value.translationLanguage != null) },
-            visual = visualMemory::tool,
+            visual = visualMemory::tool, photo = photoToMac::tool,
             coach = { coachTool(it, backend::tool, vision::tool, coachAlarms::tool, ::setNodNavigation) },
             reading = reading::tool, workout = workout::localTool, gestures = gestures::localTool, vision = vision::tool,
         )
@@ -298,6 +298,17 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     private val vision: VisionController by lazy {
         VisionController(viewModelScope, camera::capture, gemini::sendImage, camera::stop,
             onWatch = { enabled -> mutableState.update { it.copy(watchMode = enabled) } }, onError = ::error)
+    }
+    private val photoToMac by lazy {
+        PhotoToMacController(PhotoOutbox(File(application.noBackupFilesDir, "photo-outbox")),
+            capture = { vision.capturePhoto(camera::capturePhoto) },
+            shutter = { photoShutterCue(viewModelScope) }, upload = backend::savePhoto)
+    }
+    private val photoRetryJob = viewModelScope.launch {
+        while (isActive) {
+            photoToMac.retry()?.let { result -> mutableState.update { it.copy(lastTool = result.optString("message")) } }
+            delay(60_000)
+        }
     }
     private val reading: ReadToMeController by lazy {
         ReadToMeController({ vision.sendFrame(camera::captureText) }, vision::stop, audio::flush)

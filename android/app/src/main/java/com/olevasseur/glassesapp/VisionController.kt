@@ -63,6 +63,9 @@ class VisionController(
 
     suspend fun captureForMemory(): ByteArray = captureSerialized(capture, sendToLive = false)
 
+    suspend fun capturePhoto(captureStill: suspend () -> ByteArray): ByteArray =
+        captureSerialized(captureStill, sendToLive = false)
+
     suspend fun sendFrame(captureFrame: suspend () -> ByteArray = capture): ByteArray =
         captureSerialized(captureFrame, sendToLive = true)
 
@@ -132,7 +135,7 @@ suspend fun routeTool(
     local: suspend (FunctionCall) -> ToolResult,
     backend: suspend (FunctionCall) -> JSONObject,
 ): ToolResult = when {
-    call.name == VoiceStop.TOOL || call.name == GestureConfirmation.TOOL || call.name in VisionController.TOOL_NAMES ||
+    call.name == PhotoToMacController.TOOL || call.name == VoiceStop.TOOL || call.name == GestureConfirmation.TOOL || call.name in VisionController.TOOL_NAMES ||
         call.name in WorkoutCoach.TOOL_NAMES || call.name in ReadToMeController.TOOL_NAMES ||
         call.name in COACH_TOOL_NAMES || call.name in VisualMemoryController.TOOL_NAMES -> local(call)
     call.name in clientTools -> ToolResult(toolError("Client tool is not supported by this app version"))

@@ -10,7 +10,7 @@ data class FeatureAccess(val paused: Boolean, val meeting: Boolean, val translat
         meeting && (call.name == "start_workout" || call.name == "read_text" || call.name == "submit_reading" ||
             (call.name == "reading_control" && call.args.opt("action") != "stop") ||
             (call.name in setOf("set_watch_mode", "set_nod_navigation", "set_visual_memory") && call.args.opt("on") != false) ||
-            call.name == "remember_this") -> "Stop the meeting before starting this feature"
+            call.name == "remember_this" || call.name == PhotoToMacController.TOOL) -> "Stop the meeting before starting this feature"
         else -> null
     }
 }
@@ -23,6 +23,7 @@ class ConversationToolController(
     private val workout: (FunctionCall) -> JSONObject?,
     private val gestures: (FunctionCall) -> JSONObject?,
     private val vision: suspend (FunctionCall) -> ToolResult,
+    private val photo: suspend (FunctionCall) -> ToolResult = { ToolResult(toolError("Photo capture unavailable")) },
 ) {
     suspend fun tool(call: FunctionCall): ToolResult {
         val current = access()
@@ -30,6 +31,7 @@ class ConversationToolController(
         return when {
             current.meeting && call.name == GestureConfirmation.TOOL -> ToolResult(JSONObject()
                 .put("status", "unavailable").put("message", "Use spoken confirmation during meeting capture"))
+            call.name == PhotoToMacController.TOOL -> photo(call)
             call.name in VisualMemoryController.TOOL_NAMES -> visual(call)
             call.name in COACH_TOOL_NAMES -> coach(call)
             call.name in ReadToMeController.TOOL_NAMES -> reading(call)

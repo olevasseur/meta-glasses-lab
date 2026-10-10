@@ -178,6 +178,11 @@ class AndroidTools:
             if self.case.get('meeting'):
                 return {'status':'error','message':'Use stop_meeting to end capture'},None
             return {'status':'ok','message':'Say only Bye! now. The phone closes after playback, within four seconds.'},None
+        if name == 'save_photo':
+            from photos import clean_label
+            clean_label(args.get('label'))
+            return {'status':'ok','filename':'glasses-2026-10-10_13-14-15.jpg',
+                    'message':"Saved to your Mac's Downloads as glasses-2026-10-10_13-14-15.jpg"},None
         if name in ('look','read_text','check_progress'):
             result = {'status':'frame_sent'}
             if name == 'read_text':

@@ -18,7 +18,7 @@ from gemini_resilience import generate_content, GeminiUnavailable
 from usage import meter
 from google import genai
 from google.genai import types
-from PIL import Image, ImageOps, UnidentifiedImageError
+from jpeg_images import decode_jpeg
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 DEFAULT_MODEL = "gemini-3.5-flash-lite"
@@ -44,21 +44,15 @@ class Frame(BaseModel):
 
 def prepare_image(encoded: str) -> tuple[bytes, bytes]:
     """Decode bounded JPEG, discard EXIF/GPS, store whole-scene thumbnail, never crops."""
-    try:
-        raw = base64.b64decode(encoded, validate=True)
-        with Image.open(io.BytesIO(raw)) as source:
-            if source.format != "JPEG" or source.width * source.height > 4_000_000:
-                raise ValueError("Expected JPEG up to 4 megapixels")
-            image = ImageOps.exif_transpose(source).convert("RGB")
-            image.thumbnail((1024, 1024))
-            output = io.BytesIO()
-            image.save(output, format="JPEG", quality=80)
-            image.thumbnail((320, 320))
-            thumb = io.BytesIO()
-            image.save(thumb, format="JPEG", quality=65)
-            return output.getvalue(), thumb.getvalue()
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
-        raise ValueError("Invalid JPEG") from exc
+    raw = base64.b64decode(encoded, validate=True)
+    with decode_jpeg(raw, max_bytes=1_500_000, max_pixels=4_000_000) as image:
+        image.thumbnail((1024, 1024))
+        output = io.BytesIO()
+        image.save(output, format="JPEG", quality=80)
+        image.thumbnail((320, 320))
+        thumb = io.BytesIO()
+        image.save(thumb, format="JPEG", quality=65)
+        return output.getvalue(), thumb.getvalue()
 
 
 def caption_image(jpeg: bytes) -> Caption:

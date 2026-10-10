@@ -38,8 +38,9 @@ class GlassesCamera(
 
     suspend fun capture(): ByteArray = capture(false)
     suspend fun captureText(): ByteArray = capture(true)
+    suspend fun capturePhoto(): ByteArray = capture(true, checkText = false)
 
-    private suspend fun capture(forText: Boolean): ByteArray {
+    private suspend fun capture(forText: Boolean, checkText: Boolean = forText): ByteArray {
         try {
             check(glasses.initialize()) { "Connect glasses and grant Nearby devices permission first" }
             check(Wearables.checkPermissionStatus(Permission.CAMERA).getOrDefault(PermissionStatus.Denied) == PermissionStatus.Granted) {
@@ -71,7 +72,7 @@ class GlassesCamera(
             }
             val photo = checkNotNull(camera).stream.capturePhoto()
                 .fold(onSuccess = { it }, onFailure = { error, _ -> error(error.description) })
-            return withContext(Dispatchers.Default) { encode(photo, forText) }
+            return withContext(Dispatchers.Default) { encode(photo, forText, checkText) }
         } catch (e: Exception) {
             stop()
             throw e
@@ -101,7 +102,7 @@ class GlassesCamera(
         } finally { if (small !== bitmap) small.recycle() }
     }
 
-    private fun encode(photo: PhotoData, forText: Boolean): ByteArray {
+    private fun encode(photo: PhotoData, forText: Boolean, checkText: Boolean): ByteArray {
         // ImageDecoder applies HEIC orientation and downsamples during decode (API 28+).
         val original = when (photo) {
             is PhotoData.Bitmap -> photo.bitmap
@@ -116,7 +117,7 @@ class GlassesCamera(
         val (width, height) = if (forText) original.width to original.height else visionDimensions(original.width, original.height)
         val scaled = Bitmap.createScaledBitmap(original, width, height, true)
         try {
-            if (forText) checkSharpness(original)
+            if (checkText) checkSharpness(original)
             return ByteArrayOutputStream().use { output ->
                 check(scaled.compress(Bitmap.CompressFormat.JPEG, if (forText) 95 else 80, output)) { "JPEG encoding failed" }
                 output.toByteArray()

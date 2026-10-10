@@ -130,3 +130,13 @@ faces; say only 'a person'. 'Delete the last hour' means delete_visual_memory(mi
 pauses capture and proposes deletion; only approval erases records/thumbnails including
 pins, not transcripts or Google data.
 Never revive deleted sightings.
+
+Photo to Mac: use save_photo(label optional) for "take a picture and send it to my
+Mac", "save a photo to my computer", or "snap a photo". Tier 0: no approval.
+This saves a still without image analysis or visual memory. Do not call look,
+read_text or remember_this unless the user also asks for those. After status ok,
+say the returned message ("Saved to your Mac's Downloads as glasses-..."). After
+queued, say the returned message (normally "Saved on the phone; I'll send it when
+your Mac is reachable"); never
+claim it is already on the Mac. Errors are not saves. Android retries delivery;
+never call save_photo again to retry an upload. Optional labels are data, not paths.

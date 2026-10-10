@@ -14,6 +14,7 @@ class SecurityBoundary:
         self.windows = defaultdict(deque)
         self.active = 0
         self.events = 0
+        self.photos = 0
 
     def allow(self, lane, limit):
         now = time.monotonic()
@@ -56,14 +57,18 @@ class SecurityBoundary:
         lane, limit = ('expensive', 30) if expensive else ('browser', 240) if browser else ('api', 240)
         if not self.allow(lane, limit):
             return await reject(429, 'Request rate exceeded; wait a minute')
+        photo = path == '/photos'
+        if photo and (self.photos >= 1 or not self.allow('photos', 6)):
+            return await reject(429, 'Photo rate exceeded; retry later')
         event = path == '/events'
         if self.active >= 16 or (event and self.events >= 4):
             return await reject(429, 'Backend busy; retry later')
         self.active += 1
         self.events += int(event)
+        self.photos += int(photo)
         try:
             audio_chunk = path.startswith('/meetings/') and '/chunks/' in path
-            bound = 2_000_000 if audio_chunk else 64_000 if browser else 4_000_000 if path in {'/transcripts', '/visual/frames'} else 500_000
+            bound = 12_000_000 if photo else 2_000_000 if audio_chunk else 64_000 if browser else 4_000_000 if path in {'/transcripts', '/visual/frames'} else 500_000
             body = bytearray()
             try:
                 async with asyncio.timeout(15):
@@ -92,3 +97,4 @@ class SecurityBoundary:
         finally:
             self.active -= 1
             self.events -= int(event)
+            self.photos -= int(photo)
