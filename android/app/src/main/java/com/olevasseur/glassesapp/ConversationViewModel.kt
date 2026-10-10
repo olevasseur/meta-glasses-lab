@@ -250,6 +250,11 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             if (event.interrupted || !event.inputText.isNullOrBlank() || !event.outputText.isNullOrBlank() || event.calls.isNotEmpty()) coachNavigation.cancel()
             if (!state.value.meeting && state.value.handsFree.shouldRun && audioReady) gestures.onEvent(event)
         },
+        onRecoveredReply = {
+            thinkingUntilNs = System.nanoTime() + 250_000_000L
+            service?.recoveryCue()
+            DiagnosticLog.add("gemini", "interrupted_reply_recovery_cue")
+        },
         onApproval = { approvals.offer(it) },
         onSlowTool = {
             val now = System.nanoTime()
@@ -328,6 +333,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         onGlasses = { label -> mutableState.update { it.copy(glasses = label) } },
         onInputs = { label -> mutableState.update { it.copy(inputs = label) } },
         onApprovalCapture = { approvals.capture() },
+        onUnclaimedCapture = { nothingToConfirm("capture") },
         onHold = { service?.captureHold() },
         onDoubleTap = { service?.toggleInput() },
         onInputLost = { service?.inputsAvailable(false) },
@@ -407,7 +413,8 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
         gestures.observe(motionSessions, ::sendGesture,
             workout.state.map { it.needsMotion }.distinctUntilChanged(), workout::onSample, workout::motionUnavailable,
-            deviceApproval = approvals::gesture, navigate = coachNavigation::gesture)
+            deviceApproval = approvals::gesture, navigate = coachNavigation::gesture,
+            unclaimedNod = { nothingToConfirm("nod") })
         viewModelScope.launch {
             workout.state.map { it.needsMotion }.distinctUntilChanged().collect { needed ->
                 if (needed && state.value.running && !state.value.stopping) glasses.startInputs()
@@ -614,6 +621,14 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         }
         gemini.setTalking(true)
         if (state.value.talking) over.start(state.value.settings)
+    }
+
+    private fun nothingToConfirm(source: String) {
+        if (!state.value.running || state.value.meeting || !state.value.handsFree.shouldRun) return
+        DiagnosticLog.add("approval", "nothing_to_confirm source=$source")
+        mutableState.update { it.copy(lastTool = "Nothing to confirm") }
+        thinkingUntilNs = System.nanoTime() + 250_000_000L
+        service?.nothingToConfirmCue()
     }
 
     private fun sendGesture(text: String): Boolean {

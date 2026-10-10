@@ -12,11 +12,32 @@ import time
 import uuid
 from pathlib import Path
 
-from notes import BACKEND_DIR, match_document
+from notes import BACKEND_DIR
+from rapidfuzz import fuzz, process, utils
 from secret_redaction import redact
 from job_agents import normalize_agent, claude_command, claude_result, compare_reports, merge_sources
 
 TERMINAL = {"completed", "failed", "cancelled"}
+
+
+def match_repo(doc_name: str, documents: list[dict]) -> dict:
+    matches = process.extract(
+        doc_name,
+        [document["title"] for document in documents],
+        scorer=fuzz.token_set_ratio,
+        processor=utils.default_process,
+        limit=3,
+    )
+    if not matches or matches[0][1] < 60:
+        return {"status": "not_found", "suggestion": "create_or_inbox"}
+    best_score = matches[0][1]
+    runner_up = matches[1][1] if len(matches) > 1 else 0
+    if best_score >= 85 and best_score - runner_up >= 10:
+        return {"status": "matched", "document": documents[matches[0][2]]}
+    return {
+        "status": "needs_confirmation",
+        "candidates": [documents[index] for _, _, index in matches],
+    }
 
 
 class Jobs:
@@ -156,7 +177,7 @@ class Jobs:
         aliases = self._repos()
         alias = spoken.strip().casefold()
         if alias not in aliases:
-            result = match_document(alias, [{"id": k, "title": k} for k in aliases])
+            result = match_repo(alias, [{"id": k, "title": k} for k in aliases])
             if result["status"] != "matched":
                 return {"status": "choose_repo", "candidates": [d["title"] for d in result.get("candidates", [])]}
             alias = result["document"]["id"]

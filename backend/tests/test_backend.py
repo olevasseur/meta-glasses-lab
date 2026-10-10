@@ -14,6 +14,8 @@ from googleapiclient.errors import HttpError
 import app
 import gemini
 import notes
+import jobs
+from doc_nicknames import nickname_context
 import memory_api
 from memory import Memory
 
@@ -117,7 +119,7 @@ def test_token_config_and_response(client, gemini_client, mode):
     constraints = config.live_connect_constraints
     assert constraints.model == "gemini-3.8-live"
     live = constraints.config
-    assert live.system_instruction == gemini.PROMPT_PATH.read_text()
+    assert live.system_instruction == gemini.PROMPT_PATH.read_text() + nickname_context(app.notes)
     assert live.response_modalities == ["AUDIO"]
     assert live.speech_config.voice_config.prebuilt_voice_config.voice_name == "Kore"
     assert live.input_audio_transcription is not None
@@ -219,23 +221,22 @@ def test_real_sdk_http_serialization(client, monkeypatch, mode):
     ([85], "matched"),
     ([], "not_found"),
 ])
-def test_matching_boundaries(monkeypatch, scores, status):
+def test_repo_matching_boundaries(monkeypatch, scores, status):
     documents = [{"id": str(i), "title": f"Doc {i}"} for i in range(len(scores))]
     extract = Mock(return_value=[(doc["title"], score, i) for i, (doc, score) in enumerate(zip(documents, scores))])
-    monkeypatch.setattr(notes.process, "extract", extract)
-    result = notes.match_document("requested", documents)
+    monkeypatch.setattr(jobs.process, "extract", extract)
+    result = jobs.match_repo("requested", documents)
     assert result["status"] == status
-    assert extract.call_args.kwargs["scorer"] is notes.fuzz.token_set_ratio
+    assert extract.call_args.kwargs["scorer"] is jobs.fuzz.token_set_ratio
     assert extract.call_args.kwargs["limit"] == 3
 
 
-def test_real_fuzzy_matching_normalization_ties_and_candidate_limit():
-    assert notes.match_document("WORK, log!", [{"id": "1", "title": "Work Log"}])["status"] == "matched"
-    assert notes.match_document("zzzz", [{"id": "1", "title": "Work Log"}])["status"] == "not_found"
-    documents = [{"id": str(i), "title": f"Work Log {i}"} for i in range(5)]
-    result = notes.match_document("work log", documents)
-    assert result["status"] == "needs_confirmation"
-    assert len(result["candidates"]) == 3
+def test_titles_match_exactly_ignoring_case_only():
+    docs = [{"id": "1", "title": "Work Log"}, {"id": "2", "title": "Work Log 2026"}]
+    assert notes.match_document("WORK LOG", docs)["document"]["id"] == "1"
+    for name in ("WORK, log!", "Work", "Work-Log", "WorkLog", " Work Log "):
+        assert notes.match_document(name, docs)["status"] == "not_found"
+    assert notes.match_document("Work Log", docs + [docs[0]])["status"] == "needs_confirmation"
 
 
 def test_alias_append_request_body(client, google_clients):
@@ -271,7 +272,7 @@ def test_confirmed_id_bypasses_aliases_and_matching(client, google_clients):
 @pytest.mark.parametrize("name,status", [("work log", "needs_confirmation"), ("zzzz", "not_found")])
 def test_ambiguous_or_missing_docs_never_write(client, google_clients, name, status):
     google_clients.drive.files().list().execute.return_value = {"files": [
-        {"id": "1", "name": "Work Log"}, {"id": "2", "name": "Work Log 2026"},
+        {"id": "1", "name": "Work Log"}, {"id": "2", "name": "Work Log"},
     ]}
     response = approved_post(client, "/tools/append_to_doc", json={"doc_name": name, "text": "Note"})
     assert response.status_code == 200
@@ -280,7 +281,7 @@ def test_ambiguous_or_missing_docs_never_write(client, google_clients, name, sta
     google_clients.docs.documents().create.assert_not_called()
 
 
-def test_unambiguous_fuzzy_match_appends(client, google_clients):
+def test_unambiguous_exact_title_appends(client, google_clients):
     google_clients.docs.documents().get().execute.return_value = {"documentId": "1", "title": "Work Log"}
     google_clients.drive.files().list().execute.return_value = {"files": [{"id": "1", "name": "Work Log"}]}
     response = approved_post(client, "/tools/append_to_doc", json={"doc_name": "WORK LOG", "text": "Note"})

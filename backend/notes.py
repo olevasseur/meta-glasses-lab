@@ -11,9 +11,8 @@ from time import monotonic
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from rapidfuzz import fuzz, process, utils
 
-from doc_nicknames import read_aliases, write_aliases
+from doc_nicknames import find_alias, read_aliases, write_aliases
 
 BACKEND_DIR = Path(__file__).resolve().parent
 SCOPES = [
@@ -41,23 +40,12 @@ def save_credentials(credentials: Credentials, path: Path = TOKEN_PATH) -> None:
 
 
 def match_document(doc_name: str, documents: list[dict]) -> dict:
-    matches = process.extract(
-        doc_name,
-        [document["title"] for document in documents],
-        scorer=fuzz.token_set_ratio,
-        processor=utils.default_process,
-        limit=3,
-    )
-    if not matches or matches[0][1] < 60:
+    matches = [doc for doc in documents if doc["title"].casefold() == doc_name.casefold()]
+    if not matches:
         return {"status": "not_found", "suggestion": "create_or_inbox"}
-    best_score = matches[0][1]
-    runner_up = matches[1][1] if len(matches) > 1 else 0
-    if best_score >= 85 and best_score - runner_up >= 10:
-        return {"status": "matched", "document": documents[matches[0][2]]}
-    return {
-        "status": "needs_confirmation",
-        "candidates": [documents[index] for _, _, index in matches],
-    }
+    if len(matches) == 1:
+        return {"status": "matched", "document": matches[0]}
+    return {"status": "needs_confirmation", "candidates": matches[:3]}
 
 
 class Notes:
@@ -127,7 +115,7 @@ class Notes:
                 raise ValueError("Invalid document ID")
             return {"status": "matched", "document": self._document(confirmed_doc_id)}
         aliases = ({"inbox": None} if confirmed_doc_id == CREATE_INBOX else read_aliases(self))
-        name = "inbox" if confirmed_doc_id == CREATE_INBOX else doc_name.strip().casefold()
+        name = "inbox" if confirmed_doc_id == CREATE_INBOX else find_alias(aliases, doc_name)
         if name in aliases and aliases[name] is not None:
             return {"status": "matched", "document": self._document(aliases[name])}
         if name == "inbox" and name in aliases:
@@ -151,7 +139,10 @@ class Notes:
             write_aliases(self, aliases)
             self.cached_documents.append(document)
             return {"status": "matched", "document": document}
-        return match_document(doc_name, self._list_documents())
+        result = match_document(doc_name, self._list_documents())
+        if result["status"] == "not_found":
+            result["nicknames"] = sorted(aliases)
+        return result
 
     def preview(self, doc_name: str, text: str, confirmed_doc_id: str | None = None) -> dict:
         with self.lock:
@@ -181,7 +172,7 @@ class Notes:
         return result
 
     def append_research(self, doc_name: str, text: str) -> dict:
-        """Create only the default research document; keep normal alias/fuzzy policy."""
+        """Create only the default research document; keep normal alias/exact-title policy."""
         if doc_name.strip().casefold() != "glasses research":
             return self.append(doc_name, text)
         with self.lock:

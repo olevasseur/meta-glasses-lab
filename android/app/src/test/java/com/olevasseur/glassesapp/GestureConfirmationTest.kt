@@ -7,6 +7,17 @@ import org.junit.Test
 class GestureConfirmationTest {
     private fun request(id: String = "confirm") = FunctionCall(id, GestureConfirmation.TOOL, JSONObject().put("question", "Use Work Log?"))
 
+    @Test fun unclaimedNodGivesFeedbackWithoutInventingApprovalOrBlockingNavigation() {
+        val gate = GestureConfirmation()
+        var feedback = 0
+        for (gesture in HeadGesture.entries) gate.route(gesture, 0, { fail("No question"); true }, { false }, { feedback++ })
+        assertEquals(1, feedback)
+        assertTrue(gate.route(HeadGesture.NOD, 0, { false }, { true }, { fail("Navigation owns nod") }))
+        gate.request(request(), true, 0)
+        gate.onEvent(ServerEvent(turnComplete = true))
+        assertTrue(gate.route(HeadGesture.NOD, 1, { true }, { fail("Question owns nod"); false }, { fail("Question pending") }))
+    }
+
     @Test fun confirmationAlwaysPrecedesCoachEvenBeforeReadyOnExpiryOrFailedSend() {
         for (gesture in HeadGesture.entries) {
             val gate = GestureConfirmation()

@@ -28,10 +28,11 @@ class BackendClient(
     suspend fun token(ptt: Boolean, meeting: Boolean = false): LiveToken =
         token(if (ptt) ConversationMode.PTT else ConversationMode.AUTO, meeting = meeting)
 
-    suspend fun token(mode: ConversationMode, silenceMs: Int = 2000, translationLanguage: String? = null, meeting: Boolean = false, avoidModels: Set<String> = emptySet()): LiveToken {
+    suspend fun token(mode: ConversationMode, silenceMs: Int = 2000, translationLanguage: String? = null, meeting: Boolean = false, avoidModels: Set<String> = emptySet(), reconnectContext: String? = null): LiveToken {
         val body = if (meeting) JSONObject().put("mode", "meeting").put("silence_ms", silenceMs.coerceIn(500, 5000))
             else Translation.tokenRequest(mode, silenceMs, translationLanguage)
         if (avoidModels.isNotEmpty()) body.put("avoid_models", JSONArray(avoidModels.toList()))
+        if (reconnectContext != null) body.put("reconnect_context", reconnectContext)
         val json = post(listOf("token"), body)
         val local = json.optJSONArray("client_tools")
         return LiveToken(json.getString("token"), json.getString("model"), json.getString("expires_at"),
