@@ -233,6 +233,8 @@ def test_meeting_token_rejects_translator_and_budgets_prompt(monkeypatch, tmp_pa
         db.execute('INSERT INTO sessions VALUES (?,?,?)', ('normal', 'now', 'now'))
         db.execute('INSERT INTO summaries VALUES (?,?,?)', ('normal', 'Latest normal summary', 'now'))
     monkeypatch.setattr(memory_api, 'memory', store)
+    # Keep the budget hermetic: runtime nicknames live outside the memory budget.
+    monkeypatch.setattr(app, 'nickname_context', lambda notes: '')
     monkeypatch.setenv('GEMINI_API_KEY', 'fake')
     factory = Mock(return_value={})
     monkeypatch.setattr(gemini, 'create_token', factory)
