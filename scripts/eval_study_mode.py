@@ -15,7 +15,7 @@ from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
-FIXTURE = ROOT / "backend/tests/fixtures/study_notes.json"
+FIXTURE = ROOT / "backend/tests/fixtures/study_notes_tabs.json"
 
 
 def fixture_notes(directory):
@@ -91,7 +91,7 @@ def offline():
             call("quiz_next", action="stop")
             assert call("study_progress")["data"]["mode"] == "normal"
             document["revisionId"] = "fixture-r2"
-            document["body"]["content"][1]["paragraph"]["elements"][0]["textRun"]["content"] += " A revised example."
+            document["tabs"][0]["documentTab"]["body"]["content"][1]["paragraph"]["elements"][0]["textRun"]["content"] += " A revised example."
             assert call("study_progress")["data"]["revision_changed"]
             notes.docs.documents().create.assert_not_called()
             notes.docs.documents().batchUpdate.assert_not_called()

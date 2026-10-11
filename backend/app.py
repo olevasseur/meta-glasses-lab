@@ -242,6 +242,10 @@ async def execute_tool(name, request):
         service = (study if owner == "study" else journal_service() if owner == "journal" else notes if owner == "notes"
                    else workouts if owner == "workouts" else visual_api.memory if owner == "visual" else memory_api.memory)
         return await asyncio.to_thread(getattr(service, method), **request.model_dump())
+    except sqlite3.Error as exc:
+        if owner == "study":
+            raise HTTPException(503, "Study storage busy or unavailable; retry the study request") from exc
+        raise
     except JournalDateError as exc:
         raise HTTPException(422, str(exc)) from exc
     except MemoryConflict as exc:
