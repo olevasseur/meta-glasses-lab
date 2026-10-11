@@ -223,7 +223,7 @@ def test_token_locks_memory_and_registry_but_not_resumption(client, store, monke
         "start_project", "next_step", "previous_step", "repeat_step", "current_step", "how_much", "scale_project",
         "check_progress", "set_timer", "list_timers", "cancel_timer", "set_nod_navigation",
         "start_workout", "stop_workout", "workout_status", "workout_history",
-        "set_visual_memory", "remember_this", "delete_visual_memory", "find_object", "when_did_i_see", "end_conversation",
+        "set_visual_memory", "remember_this", "delete_visual_memory", "find_object", "when_did_i_see", "end_conversation", "save_photo",
     }
     assert config.lock_additional_fields == [] and live.session_resumption is None
 

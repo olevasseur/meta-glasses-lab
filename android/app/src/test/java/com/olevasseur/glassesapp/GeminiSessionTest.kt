@@ -167,6 +167,40 @@ class GeminiSessionTest {
         }
     }
 
+    @Test fun photoSaveKeepsTurnClosedUntilFollowUpAndReplaysOnlyReceipt() = runBlocking {
+        for (mode in listOf(ConversationMode.AUTO, ConversationMode.PTT, ConversationMode.OVER)) {
+            val release = kotlinx.coroutines.CompletableDeferred<Unit>()
+            var captures = 0
+            Fixture(this, local = {
+                captures++
+                release.await()
+                ToolResult(JSONObject().put("status", "ok").put("filename", "glasses-2026-10-10_13-14-15.jpg"))
+            }).use { f ->
+                val socket = f.connected(settings = ConversationSettings(mode = mode))
+                if (mode != ConversationMode.AUTO) { f.session.setTalking(true); f.session.setTalking(false) }
+                val starts = socket.sent.count { it.contains("activityStart") }
+                socket.receive(JSONObject(tool(name = "save_photo"))
+                    .put("serverContent", JSONObject().put("turnComplete", true)).toString()); yield()
+                assertEquals(0, f.ended)
+                assertEquals(starts, socket.sent.count { it.contains("activityStart") })
+                release.complete(Unit)
+                withTimeout(1_000) { while (socket.sent.none { it.contains("functionResponses") }) kotlinx.coroutines.delay(1) }
+                assertEquals(0, f.ended)
+                val receipt = socket.sent.single { it.contains("functionResponses") }
+                assertFalse(receipt.contains("inlineData"))
+                assertFalse(socket.sent.any { it.contains("image/jpeg") })
+                socket.receive(tool(name = "save_photo")); yield()
+                assertEquals(1, captures)
+                assertEquals(0, f.backendCalls.get())
+                socket.receive(audioMessage); yield()
+                socket.receive("""{"serverContent":{"turnComplete":true}}"""); yield()
+                assertEquals(1, f.ended)
+                assertEquals(1, f.audio.chunks.size)
+                assertEquals(starts, socket.sent.count { it.contains("activityStart") })
+            }
+        }
+    }
+
     @Test fun autoAndPttDeliverToolConfirmationWithoutAnotherUserTurn() = runBlocking {
         for (mode in listOf(ConversationMode.AUTO, ConversationMode.PTT)) {
             Fixture(this).use { f ->

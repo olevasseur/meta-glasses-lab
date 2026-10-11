@@ -7,6 +7,7 @@ from doc_nicknames import alias_name
 
 from job_tools import JOB_DECLARATIONS, REQUESTS
 from gesture_tools import AWAIT_GESTURE_CONFIRMATION
+from photo_tools import SAVE_PHOTO
 from vision import CLIENT_TOOLS
 from read_to_me import READING_TOOLS
 from translation import START_TRANSLATION, STOP_TRANSLATION, StartTranslationRequest, StopTranslationRequest
@@ -205,6 +206,7 @@ REGISTRY.update({tool.name: (None, "client", None, tool) for tool in COACH_CLIEN
 REGISTRY.update({tool.name: (None, "client", None, tool) for tool in VISUAL_CLIENT_TOOLS})
 REGISTRY.update({tool.name: (RecallRequest, "visual", "find", tool) for tool in SEARCH_TOOLS})
 REGISTRY["end_conversation"] = (None, "client", None, END_CONVERSATION)
+REGISTRY["save_photo"] = (None, "client", None, SAVE_PHOTO)
 CLIENT_TOOL_NAMES = [name for name, entry in REGISTRY.items() if entry[1] == "client"]
 
 for name in ("codex_task", "deep_research", "forget", "write_journal", "cancel_job"):

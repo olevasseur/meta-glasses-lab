@@ -1,0 +1,50 @@
+[
+  {
+    "id": "photo-to-mac",
+    "feature": "photos",
+    "segments": [
+      "Take a picture and send it to my Mac."
+    ],
+    "pauses": [],
+    "voice": "Kore",
+    "mode": "auto",
+    "expected": [
+      {
+        "name": "save_photo",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "id": "photo-to-computer",
+    "feature": "photos",
+    "segments": [
+      "Save a photo to my computer."
+    ],
+    "pauses": [],
+    "voice": "Puck",
+    "mode": "ptt",
+    "expected": [
+      {
+        "name": "save_photo",
+        "args": {}
+      }
+    ]
+  },
+  {
+    "id": "photo-snap",
+    "feature": "photos",
+    "segments": [
+      "Snap a photo."
+    ],
+    "pauses": [],
+    "voice": "Aoede",
+    "mode": "auto",
+    "expected": [
+      {
+        "name": "save_photo",
+        "args": {}
+      }
+    ]
+  }
+]

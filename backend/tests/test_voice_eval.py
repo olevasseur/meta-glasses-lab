@@ -24,7 +24,8 @@ CASES=json.loads((Path(__file__).resolve().parents[2]/'scripts/voice_eval/cases.
 def test_all_tools_and_features_have_cases():
     stop_cases=json.loads((Path(__file__).resolve().parents[2]/'scripts/voice_eval/voice-stop-cases.json').read_text())
     nickname_cases=json.loads((Path(__file__).resolve().parents[2]/'scripts/voice_eval/doc-nickname-cases.json').read_text())
-    covered={e['name'] for c in CASES + stop_cases + nickname_cases for e in c['expected']}
+    photo_cases=json.loads((Path(__file__).resolve().parents[2]/'scripts/voice_eval/photo-to-mac-cases.json').read_text())
+    covered={e['name'] for c in CASES + stop_cases + nickname_cases + photo_cases for e in c['expected']}
     covered|={c['required_followup'] for c in CASES if c.get('required_followup')}
     assert covered==set(REGISTRY)
     assert len(CASES)==len({c['id'] for c in CASES})

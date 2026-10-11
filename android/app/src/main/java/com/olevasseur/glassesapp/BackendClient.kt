@@ -119,6 +119,14 @@ class BackendClient(
             .put("label", label).put("pinned", pinned).put("location_label", location),
     )
 
+    suspend fun savePhoto(photo: PendingPhoto): JSONObject {
+        val url = base.newBuilder().addPathSegment("photos")
+            .addQueryParameter("upload_id", photo.id).addQueryParameter("captured_at", photo.capturedAt)
+            .apply { photo.label?.let { addQueryParameter("label", it) } }.build()
+        return execute(Request.Builder().url(url).header("X-App-Secret", secret)
+            .post(photo.jpeg.toRequestBody("image/jpeg".toMediaType())).build(), notifyUnavailable = false)
+    }
+
     suspend fun deleteVisual(minutes: Int): JSONObject = post(
         listOf("visual", "delete"), JSONObject().put("minutes", minutes),
     )
@@ -134,15 +142,16 @@ class BackendClient(
         return execute(request)
     }
 
-    private suspend fun execute(request: Request): JSONObject {
+    private suspend fun execute(request: Request, notifyUnavailable: Boolean = true): JSONObject {
         return suspendCancellableCoroutine { continuation ->
             val call = client.newCall(request)
+            if (!notifyUnavailable) call.timeout().timeout(20, java.util.concurrent.TimeUnit.SECONDS)
             continuation.invokeOnCancellation { call.cancel() }
             call.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     if (continuation.isActive) {
                         val failure = BackendConnectionException(e)
-                        onUnavailable(failure.message!!)
+                        if (notifyUnavailable) onUnavailable(failure.message!!)
                         continuation.resumeWithException(failure)
                     }
                 }
@@ -155,7 +164,7 @@ class BackendClient(
                         } catch (e: Exception) {
                             if (continuation.isActive) {
                                 val failure = if (e is IOException && e !is BackendHttpException) BackendConnectionException(e) else e
-                                if (failure is BackendConnectionException) onUnavailable(failure.message!!)
+                                if (notifyUnavailable && failure is BackendConnectionException) onUnavailable(failure.message!!)
                                 continuation.resumeWithException(failure)
                             }
                         }
