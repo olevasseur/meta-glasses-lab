@@ -42,8 +42,9 @@ def test_vision_declarations_are_locked_client_tools(monkeypatch, mode):
         "start_project", "next_step", "previous_step", "repeat_step", "current_step", "how_much", "scale_project",
         "check_progress", "set_timer", "list_timers", "cancel_timer", "set_nod_navigation",
         "set_visual_memory", "remember_this", "delete_visual_memory", "find_object", "when_did_i_see", "end_conversation", "save_photo",
+        "study_open", "study_section", "study_search", "quiz_next", "quiz_record", "study_progress",
     }
-    assert len(setup["tools"][0]["functionDeclarations"]) == 47
+    assert len(setup["tools"][0]["functionDeclarations"]) == 53
     for name, field, kind in [("look", "question", "STRING"), ("set_watch_mode", "on", "BOOLEAN")]:
         tool = declarations[name]
         assert "Client-executed" in tool["description"]

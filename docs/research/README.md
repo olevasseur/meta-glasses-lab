@@ -114,3 +114,4 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 - [live-recovery-context.md](live-recovery-context.md) — **2026-10-09**: ephemeral resumption probes, temporary nonresumable checkpoints, policy-close fallback, silent untrusted recap, and remaining hardware uncertainty.
 
 - [Photo to Mac](photo-to-mac.md) — **2026-10-10**: installed DAT HIGH still API, documented FULL 4032 × 3024 size and 24 MP cap, metadata-free JPEG storage, bounded failed outbox, retry and macOS Files & Folders handling. Physical capture/HFP/Tailscale/TCC checks remain unverified.
+- [study-mode.md](study-mode.md) — **2026-10-10**: single-Doc study, heading/tab parsing, revision cache, local BM25, passage concepts and durable Leitner practice; corrected tabs-only fixtures, stable paragraph IDs, unlocked fetching, smart-chip fields and local-midnight scheduling; no extra inference calls.

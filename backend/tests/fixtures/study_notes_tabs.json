@@ -1,0 +1,324 @@
+{
+  "documentId": "fixture-notes",
+  "title": "Atomic Habits \u2014 personal study notes",
+  "revisionId": "fixture-r1",
+  "tabs": [
+    {
+      "tabProperties": {
+        "tabId": "t.0",
+        "title": "Tab 1",
+        "index": 0
+      },
+      "documentTab": {
+        "body": {
+          "content": [
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Identity-based habits\n"
+                    }
+                  }
+                ],
+                "paragraphStyle": {
+                  "namedStyleType": "HEADING_1",
+                  "headingId": "h1"
+                }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "An identity-based habit starts with the kind of person I want to become, not just an outcome. Each small action is evidence for that identity. A person who wants to be a reader can start by reading one page after breakfast.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "My interpretation: one missed day is not a verdict on identity. Return to the next small action instead of treating a lapse as proof of failure.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Goals and systems\n"
+                    }
+                  }
+                ],
+                "paragraphStyle": {
+                  "namedStyleType": "HEADING_1",
+                  "headingId": "h2"
+                }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "A goal describes a desired result; a system is the repeated process that makes progress possible. My goal is to finish twelve books this year. My system is to read for ten minutes after breakfast and leave a book on the table.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Goals give direction, but a repeatable system matters on ordinary days. Winning once does not show that a process is sustainable.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Motivation and friction\n"
+                    }
+                  }
+                ],
+                "paragraphStyle": {
+                  "namedStyleType": "HEADING_1",
+                  "headingId": "h3"
+                }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Motivation varies from day to day, so my plan should not depend on feeling inspired. Reduce the effort needed to begin: put the exercise shoes by the door and choose a short route before the morning arrives.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Friction is the effort between intention and action. Adding friction can discourage an unwanted habit: log out of the video app and put the remote in a drawer.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Habit stacking\n"
+                    }
+                  }
+                ],
+                "paragraphStyle": {
+                  "namedStyleType": "HEADING_1",
+                  "headingId": "h4"
+                }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Attach a new action to an existing routine with a specific cue: after I pour my morning tea, I will read one paragraph. The established action makes the new action easier to remember.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "The cue must actually happen at the right time and place. Attaching evening stretching to an unpredictable phone call is less reliable than attaching it to brushing my teeth.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Environment design\n"
+                    }
+                  }
+                ],
+                "paragraphStyle": {
+                  "namedStyleType": "HEADING_1",
+                  "headingId": "h5"
+                }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Visible cues make helpful actions easier to notice. Keep a filled water bottle on the desk and place the guitar on a stand where I will see it. Put distracting devices in another room during focused work.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Environment design changes what is obvious around me; friction changes how much effort an action takes. A visible book is an environmental cue, while opening it to the bookmarked page removes a small starting cost.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "The two-minute start\n"
+                    }
+                  }
+                ],
+                "paragraphStyle": {
+                  "namedStyleType": "HEADING_1",
+                  "headingId": "h6"
+                }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Shrink the first step until starting feels easy: put on walking shoes instead of promising a long workout. Starting small is an entry ritual, not a rule forbidding a longer session.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "My experiment is to write one sentence after opening the laptop. On busy days that sentence counts; on other days I may keep writing.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Tracking and recovery\n"
+                    }
+                  }
+                ],
+                "paragraphStyle": {
+                  "namedStyleType": "HEADING_1",
+                  "headingId": "h7"
+                }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "A simple checkmark records that I showed up, but the measure should not replace the purpose. Counting pages is useful only if I still understand what I read.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "After a missed day, resume at the next planned opportunity. Review the obstacle without moral judgment. If the cue failed repeatedly, redesign the routine.\n"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "Weekly experiment\n"
+                    }
+                  }
+                ],
+                "paragraphStyle": {
+                  "namedStyleType": "HEADING_1",
+                  "headingId": "h8"
+                }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "For the next week I will place a book beside the kettle, read one paragraph after pouring tea, and mark a calendar. At the end of the week I will ask whether the cue was reliable and the action small enough.\n"
+                    }
+                  }
+                ],
+                "bullet": {
+                  "listId": "list-1",
+                  "nestingLevel": 0
+                }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  {
+                    "textRun": {
+                      "content": "These are my personal learning notes. They contain no sales figures, publication date, neuroscience claims, or biography of the author.\n"
+                    }
+                  }
+                ],
+                "bullet": {
+                  "listId": "list-1",
+                  "nestingLevel": 0
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
