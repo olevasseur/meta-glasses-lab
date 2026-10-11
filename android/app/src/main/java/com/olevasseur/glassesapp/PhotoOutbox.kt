@@ -8,8 +8,9 @@ import java.time.OffsetDateTime
 import java.util.UUID
 
 data class PendingPhoto(val id: String, val capturedAt: String, val label: String?, val jpeg: ByteArray)
+class UnreadablePhotoException : Exception("Unreadable photo moved to failed outbox")
 
-/** Owned by PhotoToMacController; private no-backup storage, never evict an unsent photo. */
+/** Owned by PhotoToMacController; private no-backup storage, bounded failed archive. */
 class PhotoOutbox(private val directory: File) {
     companion object {
         const val MAX_PHOTO_BYTES = 12_000_000
@@ -49,17 +50,43 @@ class PhotoOutbox(private val directory: File) {
     }
 
     fun first(): PendingPhoto? = files().firstOrNull()?.let { file ->
-        DataInputStream(file.inputStream()).use { input ->
-            val id = input.readUTF()
-            check(UUID.fromString(id).toString() == id && file.name == "$id.photo")
-            val capturedAt = input.readUTF()
-            OffsetDateTime.parse(capturedAt)
-            val label = input.readUTF().ifEmpty { null }
-            val size = input.readInt()
-            check(size in 1..MAX_PHOTO_BYTES)
-            val jpeg = ByteArray(size)
-            input.readFully(jpeg)
-            PendingPhoto(id, capturedAt, label, jpeg)
+        try {
+            DataInputStream(file.inputStream()).use { input ->
+                val id = input.readUTF()
+                check(UUID.fromString(id).toString() == id && file.name == "$id.photo")
+                val capturedAt = input.readUTF()
+                OffsetDateTime.parse(capturedAt)
+                val label = input.readUTF().ifEmpty { null }
+                val size = input.readInt()
+                check(size in 1..MAX_PHOTO_BYTES)
+                val jpeg = ByteArray(size)
+                input.readFully(jpeg)
+                PendingPhoto(id, capturedAt, label, jpeg)
+            }
+        } catch (_: Exception) {
+            quarantine(file, "unreadable")
+            throw UnreadablePhotoException()
+        }
+    }
+
+    fun failed(photo: PendingPhoto, code: Int) {
+        require(UUID.fromString(photo.id).toString() == photo.id)
+        quarantine(File(directory, "${photo.id}.photo"), "http_$code")
+    }
+
+    private fun quarantine(file: File, reason: String) {
+        val failed = File(directory, "failed")
+        check(failed.isDirectory || failed.mkdirs()) { "Cannot open failed photo outbox" }
+        val target = File(failed, file.name)
+        check(file.renameTo(target)) { "Cannot quarantine failed photo" }
+        target.setLastModified(System.currentTimeMillis())
+        DiagnosticLog.add("photo", "quarantined reason=$reason", "WARN")
+        val entries = failed.listFiles().orEmpty().sortedBy { it.lastModified() }.toMutableList()
+        var bytes = entries.sumOf { it.length() }
+        while (entries.size > MAX_COUNT || bytes > MAX_TOTAL_BYTES) {
+            val oldest = entries.removeAt(0)
+            bytes -= oldest.length()
+            check(oldest.deleteRecursively()) { "Cannot prune failed photo" }
         }
     }
 

@@ -1,10 +1,12 @@
 """Append-only, metadata-free Mac photos. No AI or model-selected filesystem paths."""
 import asyncio
+import errno
 import hashlib
 import io
 import os
 import re
 import sqlite3
+import stat
 import tempfile
 import threading
 from pathlib import Path
@@ -16,16 +18,14 @@ from pydantic import AwareDatetime
 from jpeg_images import decode_jpeg
 
 MAX_BYTES = 12_000_000
-MAX_PIXELS = 50_000_000
+MAX_PIXELS = 24_000_000  # Above DAT FULL stills (4032 × 3024); checked before decode.
 router = APIRouter()
 
 
 def clean_label(label: str | None) -> str:
     if label is None:
         return ""
-    if len(label) > 80 or any(c in label for c in ("/", "\\", "\x00")) or ".." in label:
-        raise ValueError("Invalid photo label")
-    return re.sub(r"[^a-zA-Z0-9_-]+", "-", label).strip("-_")[:60]
+    return re.sub(r"[^a-zA-Z0-9_-]+", "-", label[:80]).strip("-_")[:60]
 
 
 class PhotoStore:
@@ -82,10 +82,23 @@ class PhotoStore:
                     try:
                         os.link(temporary, destination)  # Atomic, never replaces an existing file or symlink.
                     except FileExistsError:
-                        fd = os.open(destination, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-                        with os.fdopen(fd, "rb") as existing:
-                            if existing.read(len(jpeg) + 1) != jpeg:
-                                raise HTTPException(409, "Reserved photo filename is occupied; phone copy retained")
+                        conflict = "Reserved photo filename is occupied; phone copy retained"
+                        if not stat.S_ISREG(destination.lstat().st_mode):
+                            raise HTTPException(409, conflict)
+                        try:
+                            fd = os.open(destination, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+                        except OSError as exc:
+                            if exc.errno == errno.ELOOP:
+                                raise HTTPException(409, conflict) from exc
+                            raise
+                        try:
+                            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                                raise HTTPException(409, conflict)
+                            with os.fdopen(fd, "rb", closefd=False) as existing:
+                                if existing.read(len(jpeg) + 1) != jpeg:
+                                    raise HTTPException(409, conflict)
+                        finally:
+                            os.close(fd)
                     dir_fd = os.open(directory, os.O_RDONLY)
                     try:
                         os.fsync(dir_fd)
@@ -103,7 +116,7 @@ store = PhotoStore()
 
 @router.post("/photos")
 async def save_photo(request: Request, upload_id: UUID, captured_at: AwareDatetime,
-                     label: str | None = Query(default=None, max_length=80)):
+                     label: str | None = Query(default=None)):
     if set(request.query_params) - {"upload_id", "captured_at", "label"}:
         raise HTTPException(422, "Unknown photo parameter")
     if request.headers.get("content-type", "").split(";")[0] != "image/jpeg":
@@ -112,5 +125,7 @@ async def save_photo(request: Request, upload_id: UUID, captured_at: AwareDateti
         return await asyncio.to_thread(store.save, await request.body(), upload_id, captured_at, label)
     except ValueError as exc:
         raise HTTPException(422, "Invalid JPEG or photo label") from exc
+    except PermissionError as exc:
+        raise HTTPException(507, "save_dir_permission") from exc
     except (OSError, sqlite3.Error) as exc:
         raise HTTPException(503, "Photo storage unavailable; phone copy retained") from exc

@@ -113,4 +113,4 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 
 - [live-recovery-context.md](live-recovery-context.md) — **2026-10-09**: ephemeral resumption probes, temporary nonresumable checkpoints, policy-close fallback, silent untrusted recap, and remaining hardware uncertainty.
 
-- [Photo to Mac](photo-to-mac.md) — **2026-10-10**: installed DAT HIGH still API rechecked, metadata-free full-resolution JPEG storage, private retry outbox and tool-reply tests. Physical capture/HFP/Tailscale checks remain unverified.
+- [Photo to Mac](photo-to-mac.md) — **2026-10-10**: installed DAT HIGH still API, documented FULL 4032 × 3024 size and 24 MP cap, metadata-free JPEG storage, bounded failed outbox, retry and macOS Files & Folders handling. Physical capture/HFP/Tailscale/TCC checks remain unverified.

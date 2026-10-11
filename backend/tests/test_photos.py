@@ -1,4 +1,5 @@
 import io
+import errno
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -105,12 +106,15 @@ def test_concurrent_same_timestamp_never_overwrites(store):
     assert len(set(names)) == len(list(directory.glob('*.jpg'))) == 4
 
 
-@pytest.mark.parametrize('label', ['../escape', '/tmp/escape', 'a\\b', 'x\x00y', '..', 'x' * 81])
-def test_label_traversal_rejected(store, label):
+@pytest.mark.parametrize('label, suffix', [('../escape', '-escape'), ('/tmp/escape', '-tmp-escape'),
+                                         ('a\\b', '-a-b'), ('x\x00y', '-x-y'), ('..', ''), ('', ''),
+                                         ('x' * 81, '-' + 'x' * 60)])
+def test_labels_are_sanitized_instead_of_blocking_capture(client, store, label, suffix):
     service, directory = store
-    with pytest.raises(ValueError):
-        service.save(jpeg(), uuid4(), WHEN, label)
-    assert not list(directory.iterdir())
+    response = post(client, params={'label': label})
+    assert response.status_code == 200
+    assert response.json()['filename'] == f'glasses-2026-10-10_13-14-15{suffix}.jpg'
+    assert len(list(directory.iterdir())) == 1
 
 
 def test_destination_must_exist_and_default_is_backend_users_downloads(store, monkeypatch, tmp_path):
@@ -134,12 +138,13 @@ def test_invalid_jpeg(store, raw):
     assert not list(directory.iterdir())
 
 
-def test_pixel_limit_checked_before_decode(store):
+def test_pixel_limit_checked_before_decode(store, monkeypatch):
     service, _ = store
-    # JPEG SOF dimensions: valid tiny compressed input claims >50 MP.
+    # JPEG SOF dimensions: just over 24 MP, below the previous 50 MP cap.
     raw = bytearray(jpeg())
     index = raw.index(b'\xff\xc0')
-    raw[index + 5:index + 9] = (8000).to_bytes(2, 'big') * 2
+    raw[index + 5:index + 9] = (4001).to_bytes(2, 'big') + (6000).to_bytes(2, 'big')
+    monkeypatch.setattr(Image.Image, 'load', lambda *a, **kw: pytest.fail('decoded oversized image'))
     with pytest.raises(ValueError, match='pixel limit'):
         service.save(bytes(raw), uuid4(), WHEN, None)
 
@@ -154,7 +159,67 @@ def test_endpoint_auth_content_type_and_success(client):
     assert set(response.json()) == {'status', 'filename', 'message'}
 
 
-@pytest.mark.parametrize('params', [{'label': '../bad'}, {'path': '/tmp/evil'}, {'upload_id': '../../bad'}, {'captured_at': '2026-10-10'}])
+@pytest.mark.parametrize('size', [(4032, 3024), (6000, 4000)])
+def test_dat_full_still_and_24mp_boundary_are_accepted(store, size):
+    service, directory = store
+    result = service.save(jpeg(size), uuid4(), WHEN, None)
+    with Image.open(directory / result['filename']) as image:
+        assert image.size == size
+
+
+@pytest.mark.parametrize('kind', ['symlink', 'directory', 'fifo', 'regular', 'eloop_race', 'fifo_race'])
+def test_reserved_nonregular_or_changed_destination_is_permanent(client, store, monkeypatch, tmp_path, kind):
+    service, directory = store
+    photo_id = str(uuid4())
+    response = post(client, params={'upload_id': photo_id})
+    destination = directory / response.json()['filename']
+    destination.unlink()
+    target = tmp_path / 'untouched'
+    target.write_bytes(b'private')
+    if kind == 'symlink':
+        destination.symlink_to(target)
+    elif kind == 'directory':
+        destination.mkdir()
+    elif kind == 'fifo':
+        os.mkfifo(destination)
+    else:
+        destination.write_bytes(b'occupied')
+    if kind.endswith('_race'):
+        original_open = os.open
+
+        def race(path, flags, *args, **kwargs):
+            if path == destination:
+                if kind == 'eloop_race':
+                    raise OSError(errno.ELOOP, 'symlink swapped in')
+                destination.unlink()
+                os.mkfifo(destination)
+            return original_open(path, flags, *args, **kwargs)
+
+        monkeypatch.setattr(os, 'open', race)
+    assert post(client, params={'upload_id': photo_id}).status_code == 409
+    assert target.read_bytes() == b'private'
+    assert not list(directory.glob('.glasses-*'))
+
+
+@pytest.mark.parametrize('stage', ['resolve', 'mkstemp', 'link'])
+def test_save_directory_permission_has_distinct_retryable_error(client, store, monkeypatch, stage):
+    def denied(*args, **kwargs):
+        raise PermissionError(errno.EACCES, 'TCC denied')
+
+    with monkeypatch.context() as patch:
+        if stage == 'resolve':
+            patch.setattr(photos.Path, 'resolve', denied)
+        elif stage == 'mkstemp':
+            patch.setattr(photos.tempfile, 'mkstemp', denied)
+        else:
+            patch.setattr(os, 'link', denied)
+        response = post(client)
+    assert response.status_code == 507
+    assert response.json() == {'detail': 'save_dir_permission'}
+    assert not list(store[1].iterdir())
+
+
+@pytest.mark.parametrize('params', [{'path': '/tmp/evil'}, {'upload_id': '../../bad'}, {'captured_at': '2026-10-10'}])
 def test_endpoint_rejects_paths_and_invalid_metadata(client, params):
     assert post(client, params=params).status_code == 422
 

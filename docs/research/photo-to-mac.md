@@ -22,13 +22,33 @@ Sources (artifact/source inspected locally on this date):
   clearing metadata and re-encoding. Tests inspect actual saved output, including
   a GPS-bearing synthetic JPEG rotated from 1800×1200 to 1200×1800.
 
-The 12 MB / 50 MP policy allows larger stills than visual memory's 4 MP input.
+The 12 MB / 24 MP policy allows larger stills than visual memory's 4 MP input.
 These are resource limits, not measured hardware maxima. Raw HTTP avoids base64
 inflation. Authentication and a body limit precede decode; one active photo
 request bounds full-resolution memory use. No Gemini caption/image path is used.
 Android's ordinary tool response remains image-free and uses the existing
 blocking-tool follow-up policy. Actual installed SDK compilation and JVM protocol
 checks establish integration, not hardware performance.
+
+## Review hardening evidence (2026-10-10)
+
+The locally cached [Meta DAT documentation dump](https://wearables.developer.meta.com/llms.txt?full=true),
+section “Capture high-quality photos”, lists standalone `PhotoResolution.FULL`
+as **4032 × 3024** (12,192,768 pixels). A 24,000,000-pixel cap stays above that
+documented maximum while reducing peak decode allocation. The existing app uses
+the installed SDK's stream still API; this evidence does not establish actual
+returned dimensions on the user's glasses. The live documentation reader
+required login during this review; the cached documentation was inspected locally.
+[Meta's product specification](https://www.meta.com/ai-glasses/ray-ban-meta-blayzer-shiny-black-clear-gen-2/)
+also lists 3024 × 4032 photo pixels. Tests retain actual 4032 × 3024 and 6000 × 4000
+JPEG dimensions and reject 6000 × 4001 before pixel loading.
+
+[Apple's Files & Folders guide](https://support.apple.com/guide/mac-help/control-access-to-files-and-folders-on-mac-mchld5a35146/mac)
+and [platform security guide](https://support.apple.com/en-ph/guide/security/secddd1d86a6/web)
+identify Downloads as protected user data controlled through Privacy & Security.
+The endpoint maps `PermissionError` to HTTP 507 / `save_dir_permission`; tests
+simulate denials while resolving, creating and publishing a photo. Actual TCC
+behavior for the backend's launch host remains unverified.
 
 ## Unverified
 

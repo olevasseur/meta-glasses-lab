@@ -34,8 +34,16 @@ full filesystem path or image.
 Run the backend as the Mac user whose Downloads folder should receive photos.
 `PHOTO_SAVE_DIR` optionally overrides the default `~/Downloads`. The destination
 **must already exist** and be writable; the backend never creates it. macOS may
-require Downloads access for the process hosting Python. This implementation does
-not change any local configuration or macOS permissions.
+require Downloads access for the process hosting Python. In **System Settings →
+Privacy & Security → Files & Folders**, enable **Downloads Folder** for the app
+hosting the backend (for example, Terminal when launched there), then restart the
+backend in that same host. Also check that the backend user can write to
+`PHOTO_SAVE_DIR`. A TCC/`PermissionError` returns HTTP **507** with
+`detail: "save_dir_permission"`; the phone explains that the Mac couldn't write
+to Downloads and asks you to check backend permissions. The photo stays queued.
+This implementation does not change local configuration or macOS permissions.
+See [Apple's Files & Folders guide](https://support.apple.com/guide/mac-help/control-access-to-files-and-folders-on-mac-mchld5a35146/mac)
+(checked 2026-10-10).
 
 Uploads use the app's existing `BACKEND_URL` and `X-App-Secret`; for the intended
 setup this is the Tailscale HTTPS backend address. Keep that host in the existing
@@ -44,14 +52,15 @@ setup this is the Tailscale HTTPS backend address. Keep that host in the existin
 `POST /photos?upload_id=<UUID>&captured_at=<aware ISO datetime>&label=<optional>`
 accepts raw `Content-Type: image/jpeg`. IDs/timestamps originate on the phone,
 not in the tool arguments. Authentication runs before body buffering. Unknown
-query arguments, paths/traversal in labels, invalid images and naive timestamps
-are rejected. Labels are limited to 80 input characters and sanitized to at most
-60 ASCII letters, digits, underscores or hyphens. Missing/unsafe configuration
-returns an error and leaves the private phone copy intact.
+query arguments, invalid images and naive timestamps are rejected. Both phone and
+backend truncate labels to 80 input characters, then sanitize to at most 60 ASCII
+letters, digits, underscores or hyphens. Slashes, traversal-like text and empty
+labels never prevent capture; labels that sanitize to empty are omitted.
+Missing/unsafe configuration returns an error and leaves the private phone copy intact.
 
-The limits are **12,000,000 JPEG bytes and 50,000,000 decoded pixels**. These give
-headroom beyond the visual-memory thumbnail limits for high-quality stills,
-without promising a particular sensor size. Pillow checks dimensions before pixel
+The limits are **12,000,000 JPEG bytes and 24,000,000 decoded pixels**. This exceeds
+the DAT documented FULL still size of **4032 × 3024** (~12.2 MP); see the
+[dated evidence](../research/photo-to-mac.md). Pillow checks dimensions before pixel
 loading, applies EXIF orientation, then re-encodes JPEG quality 95 with no EXIF,
 GPS, comments, XMP or ICC metadata. Dimensions are retained; JPEG re-encoding is
 lossy. There is at most one active photo request and six attempts per minute,
@@ -64,8 +73,9 @@ fsynced in the destination, mode **0644**, then atomically published with a hard
 link that cannot overwrite an existing file or symlink. Existing files remain
 untouched. Private receipts in `backend/data/photo-receipts.sqlite3` reserve the
 filename before publication, so a lost HTTP response or restart reuses the same
-ID/name. Reusing an ID with different bytes or metadata returns 409. Keep receipts
-when relocating/backing up the backend if outstanding phone retries exist.
+ID/name. Reusing an ID with different bytes or metadata returns 409. A reserved
+name occupied by a symlink, non-regular file or different bytes also returns 409.
+Keep receipts when relocating/backing up the backend if outstanding phone retries exist.
 
 ## Unreachable Mac and private outbox
 
@@ -77,14 +87,25 @@ is conservatively checked before opening the camera. A capture/encoding/storage
 failure reports an error and never claims a save.
 
 On a network failure Gemini says **“Saved on the phone; I'll send it when your Mac
-is reachable.”** Authentication/validation rejections instead explain that the
-Mac rejected delivery and that the phone retains the photo. Uploads have a
+is reachable.”** Authentication rejections explain that the Mac rejected delivery;
+permission failures explain that the Mac couldn't write to Downloads. Uploads have a
 20-second total timeout, keeping capture plus initial delivery below the existing
 45-second tool-reply budget under normal scheduling. Photos are removed only
-after an `ok` response with a valid filename.
+after an `ok` response with a valid filename, except for the failed archive below.
 
-The service retries one queued photo on startup and every 60 seconds, preserving
-its ID, timestamp, label and bytes. Retries never recapture or replay a shutter
+Permanent HTTP errors (4xx except 401/408/429) and unreadable entries move into
+`noBackupFilesDir/photo-outbox/failed/`. That private archive is independently
+capped at **eight entries / 64 MB**, pruning the oldest failed entries first.
+Each move logs a diagnostic and reports **“One photo couldn't be saved on your
+Mac”** once. Initial failures use the tool reply; deferred failures appear on the
+phone and are spoken when the assistant is idle. Retries skip archived entries
+and continue to the next queued photo in the same tick. Archived photos are not
+retried automatically, and may eventually be pruned.
+
+The service checks on startup and every 60 seconds, preserving
+the ID, timestamp, label and bytes. Transient failures use exponential backoff
+from **60 seconds to 15 minutes**; successful delivery resets it, and restarting
+the service allows an immediate attempt. Retries never recapture or replay a shutter
 cue. A successful deferred delivery updates the phone's last-tool status. Retry
 runs while the app's conversation service exists; after force-stop/process death,
 reopen the app to resume. No OS job scheduler was added. Camera actions are
@@ -103,9 +124,9 @@ eval simulator has three dedicated cases in
 `scripts/voice_eval/photo-to-mac-cases.json`; no new recorded speech or real Gemini
 calls were made for this feature.
 
-Validation on 2026-10-10: `uv run --frozen pytest` — **743 passed**, three existing
+Review validation on 2026-10-10: `uv run pytest` — **754 passed**, three existing
 dependency warnings. `./gradlew --no-daemon testDebugUnitTest assembleDebug` —
-**BUILD SUCCESSFUL**, **313 JVM tests**, zero failures/errors/skips. Temporary
+**BUILD SUCCESSFUL**, **319 JVM tests**, zero failures/errors/skips. Temporary
 writable dependency/build caches were used; local settings and secrets were not
 changed.
 
