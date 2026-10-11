@@ -39,7 +39,8 @@ class PhotoStore:
         if not directory.is_dir():
             raise OSError("Photo destination is not an existing directory")
         fingerprint = hashlib.sha256(raw).hexdigest()
-        stem = captured_at.strftime("glasses-%Y-%m-%d_%H-%M-%S") + (f"-{label}" if label else "")
+        # Name files in the Mac's local time, as Finder shows them.
+        stem = captured_at.astimezone().strftime("glasses-%Y-%m-%d_%H-%M-%S") + (f"-{label}" if label else "")
         # Single-worker service: serialize decoding too, bounding full-resolution memory use.
         with self.lock:
             image = decode_jpeg(raw, max_bytes=MAX_BYTES, max_pixels=MAX_PIXELS)
