@@ -82,6 +82,9 @@ class GlassesController(
 
     fun register(activity: Activity) { if (initialize()) Wearables.startRegistration(activity) }
 
+    /** Clears a stale registration (e.g. after a glasses factory reset) so Connect can run again. */
+    fun unregister(activity: Activity) { if (initialize()) Wearables.startUnregistration(activity) }
+
     // Camera, Inputs, Motion and Speech share one DAT session on Main.
     fun acquireSession(selector: DeviceSelector): DeviceSession {
         deviceSession?.takeIf { it.state.value != DeviceSessionState.STOPPED && it.state.value != DeviceSessionState.STOPPING }?.let { return it }
