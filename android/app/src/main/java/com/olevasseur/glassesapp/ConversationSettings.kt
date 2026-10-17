@@ -33,8 +33,11 @@ data class ConversationSettings(
     val meetingWakePhrase: String = "hey glasses",
     val meetingOver: Boolean = false,
     val thinkingCue: Boolean = false,
+    val silentPageCapture: Boolean = false,
+    val pageCaptureDoc: String = "reading notes",
 ) {
     fun normalized() = copy(
+        pageCaptureDoc = pageCaptureDoc.filterNot { it.isISOControl() }.trim().take(60).ifBlank { "reading notes" },
         meetingWakePhrase = meetingWakePhrase.take(80).ifBlank { "hey glasses" },
         workoutSensitivity = if (workoutSensitivity.isFinite()) workoutSensitivity.coerceIn(0f, 1f) else 0.5f,
         silenceMs = silenceMs.coerceIn(500, 5000),
@@ -57,6 +60,8 @@ val Context.conversationSettingsStore by preferencesDataStore(
 )
 
 class ConversationSettingsStore(private val store: DataStore<Preferences>) {
+    private val silentPageCaptureKey = booleanPreferencesKey("silent_page_capture")
+    private val pageCaptureDocKey = stringPreferencesKey("page_capture_doc")
     private val thinkingCueKey = booleanPreferencesKey("thinking_cue")
     private val meetingPhoneKey = booleanPreferencesKey("meeting_phone")
     private val meetingWakeKey = stringPreferencesKey("meeting_wake_phrase")
@@ -100,6 +105,8 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
             meetingWakePhrase = prefs[meetingWakeKey] ?: "hey glasses",
             meetingOver = prefs[meetingOverKey] ?: false,
             thinkingCue = prefs[thinkingCueKey] ?: false,
+            silentPageCapture = prefs[silentPageCaptureKey] ?: false,
+            pageCaptureDoc = prefs[pageCaptureDocKey] ?: "reading notes",
         ).normalized()
     }
 
@@ -117,6 +124,8 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
             it[meetingWakeKey] = value.meetingWakePhrase
             it[meetingOverKey] = value.meetingOver
             it[thinkingCueKey] = value.thinkingCue
+            it[silentPageCaptureKey] = value.silentPageCapture
+            it[pageCaptureDocKey] = value.pageCaptureDoc
             it[workoutKey] = value.workoutSensitivity
             it[coachNavigationKey] = value.coachNodNavigation
             it.remove(legacyWorkoutKey)

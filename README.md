@@ -16,6 +16,7 @@ A personal voice assistant for Meta smart glasses that **doesn't cut you off**, 
 | Live translator | "Translate Spanish" | [live-translator.md](docs/features/live-translator.md) |
 | Meeting mode | "Start meeting" → silent scribe → minutes in Google Docs | [meeting-mode.md](docs/features/meeting-mode.md) |
 | Journal & morning brief | Nightly diary in Google Docs, "morning brief" | [end-of-day-journal.md](docs/features/end-of-day-journal.md) |
+| Silent page capture | Short-press capture → highlighted passages and handwriting in an existing Google Doc; no speech needed | [page-capture.md](docs/features/page-capture.md) |
 | Read-to-me | "Read this", "what's the wifi password on this card?" | [read-to-me.md](docs/features/read-to-me.md) |
 | Cooking / DIY coach | Steps, timers, "does this look done?", nod = next step | [cooking-diy-coach.md](docs/features/cooking-diy-coach.md) |
 | Workout coach | "Start squats, 3 sets of 12" — reps counted from head motion | [workout-coach.md](docs/features/workout-coach.md) |

@@ -14,9 +14,10 @@ fun glassesTrigger(event: InputEvent): GlassesTrigger? = when {
 }
 
 /** A pending device approval consumes capture before HOLD can stop the conversation. */
-fun approvalCapture(event: InputEvent, unclaimed: (() -> Unit)? = null, confirm: () -> Boolean): Boolean {
+fun approvalCapture(event: InputEvent, unclaimed: (() -> Unit)? = null, pageCapture: () -> Boolean = { false }, confirm: () -> Boolean): Boolean {
     if (event !is InputEvent.Capture || event.source != InputSource.CAPTURE_BUTTON) return false
     if (confirm()) return true
+    if (event.pressType == CapturePressType.SHORT_PRESS && pageCapture()) return true
     // HOLD still owns conversation start/stop. A short capture with no action gets feedback.
     if (event.pressType != CapturePressType.HOLD && unclaimed != null) { unclaimed(); return true }
     return false

@@ -30,10 +30,21 @@ fun visualCaptureChime(scope: CoroutineScope) = captureChime(scope, AudioManager
 
 fun photoShutterCue(scope: CoroutineScope) = captureChime(scope, AudioManager.STREAM_VOICE_CALL)
 
-private fun captureChime(scope: CoroutineScope, stream: Int) {
+fun pageCaptureCue(scope: CoroutineScope, cue: PageCue, conversationAudio: Boolean) = captureChime(
+    scope, if (conversationAudio) AudioManager.STREAM_VOICE_CALL else AudioManager.STREAM_MUSIC,
+    when (cue) {
+        PageCue.SHUTTER -> ToneGenerator.TONE_PROP_BEEP
+        PageCue.SUCCESS -> ToneGenerator.TONE_PROP_ACK
+        PageCue.RETRY -> ToneGenerator.TONE_PROP_BEEP2
+        PageCue.NOTHING -> ToneGenerator.TONE_PROP_PROMPT
+        PageCue.ERROR -> ToneGenerator.TONE_PROP_NACK
+    },
+)
+
+private fun captureChime(scope: CoroutineScope, stream: Int, toneType: Int = ToneGenerator.TONE_PROP_BEEP) {
     val tone = ToneGenerator(stream, 80)
     try {
-        check(tone.startTone(ToneGenerator.TONE_PROP_BEEP, 180))
+        check(tone.startTone(toneType, 180))
     } catch (e: Exception) { tone.release(); throw e }
     scope.launch { try { delay(250) } finally { tone.release() } }
 }

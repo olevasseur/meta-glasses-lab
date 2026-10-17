@@ -127,6 +127,14 @@ class BackendClient(
             .post(photo.jpeg.toRequestBody("image/jpeg".toMediaType())).build(), notifyUnavailable = false)
     }
 
+    suspend fun savePage(page: PendingPhoto): JSONObject {
+        val url = base.newBuilder().addPathSegment("pages")
+            .addQueryParameter("upload_id", page.id).addQueryParameter("captured_at", page.capturedAt)
+            .addQueryParameter("doc", page.label ?: "reading notes").build()
+        return execute(Request.Builder().url(url).header("X-App-Secret", secret)
+            .post(page.jpeg.toRequestBody("image/jpeg".toMediaType())).build(), notifyUnavailable = false, timeoutSeconds = 60)
+    }
+
     suspend fun deleteVisual(minutes: Int): JSONObject = post(
         listOf("visual", "delete"), JSONObject().put("minutes", minutes),
     )
@@ -142,10 +150,12 @@ class BackendClient(
         return execute(request)
     }
 
-    private suspend fun execute(request: Request, notifyUnavailable: Boolean = true): JSONObject {
+    private suspend fun execute(request: Request, notifyUnavailable: Boolean = true, timeoutSeconds: Long = 20): JSONObject {
         return suspendCancellableCoroutine { continuation ->
-            val call = client.newCall(request)
-            if (!notifyUnavailable) call.timeout().timeout(20, java.util.concurrent.TimeUnit.SECONDS)
+            val transport = if (timeoutSeconds > 20) client.newBuilder()
+                .readTimeout(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS).build() else client
+            val call = transport.newCall(request)
+            if (!notifyUnavailable) call.timeout().timeout(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS)
             continuation.invokeOnCancellation { call.cancel() }
             call.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {

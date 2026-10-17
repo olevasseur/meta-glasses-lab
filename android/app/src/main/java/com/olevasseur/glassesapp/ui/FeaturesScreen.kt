@@ -13,7 +13,8 @@ import com.olevasseur.glassesapp.*
 fun FeaturesScreen(state: ConversationState, model: ConversationViewModel, overview: Overview, timers: List<String>, dashboard: () -> Unit) {
     val workout by model.workout.state.collectAsState()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        ScreenTitle("Features", "Start a conversation in Talk, then ask naturally.")
+        ScreenTitle("Features", "Ask naturally in Talk, or capture reading notes silently.")
+        SilentPageSettings(state, model)
         SectionCard("Vision", "What am I looking at?") {
             LabeledSwitch("Watch mode · 2 minute limit", state.watchMode,
                 !state.meeting && state.translationLanguage == null && state.connected && state.handsFree.shouldRun, model::setWatchMode)

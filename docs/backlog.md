@@ -2,6 +2,12 @@
 
 Feature requests from the user, newest first. Move an item to `docs/features/` when built.
 
+## Requested 2026-10-16
+
+1. **Silent page capture → Google Doc — done (2026-10-16).** Short capture press,
+   marked passages/handwriting, silent cues and durable delivery. See
+   [page capture](features/page-capture.md); hardware/live extraction checks remain.
+
 ## Requested 2026-10-10
 
 1. **Photo to Mac Downloads — done (2026-10-10).** See [Photo to Mac](features/photo-to-mac.md).

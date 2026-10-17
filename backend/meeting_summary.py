@@ -29,10 +29,10 @@ class MeetingSummary(BaseModel):
     recap: list[str] = Field(min_length=2, max_length=2, description="Exactly two short spoken sentences.")
 
 
-def response_schema() -> dict:
+def response_schema(model=MeetingSummary) -> dict:
     # Gemini rejected the constrained nested schema in a real call. Keep structure
     # on the wire and enforce length/count/extra-field constraints locally.
-    schema = MeetingSummary.model_json_schema()
+    schema = model.model_json_schema()
     def simplify(value):
         if isinstance(value, dict):
             for key in ("minLength", "maxLength", "minItems", "maxItems", "default", "additionalProperties"):
