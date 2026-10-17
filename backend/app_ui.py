@@ -7,6 +7,7 @@ import sqlite3
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+import doc_nicknames
 import memory_api
 from coach import Projects
 
@@ -48,3 +49,11 @@ async def overview(request: Request):
     jobs = [{key: row.get(key) for key in ("job_id", "kind", "status", "summary")}
             for row in request.app.state.jobs.status()["jobs"][:5]]
     return JSONResponse(dict(snapshot, jobs=jobs), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/ui/nicknames")
+async def nicknames():
+    """Existing doc nicknames for the phone's pickers; read-only."""
+    import app
+    names = await asyncio.to_thread(doc_nicknames.existing_nicknames, app.notes)
+    return JSONResponse({"nicknames": names}, headers={"Cache-Control": "no-store"})

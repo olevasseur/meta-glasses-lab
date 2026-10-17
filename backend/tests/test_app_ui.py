@@ -70,3 +70,14 @@ def test_completed_project_has_no_active_banner(client):
             {"title": "Shelf", "steps": [{"instruction": "Finish"}]}),))
     response = client.get("/ui/overview", headers={"X-App-Secret": "ui-test-secret"})
     assert response.json()["project"] is None
+
+
+def test_nicknames_auth_and_sorted_list(client, monkeypatch, tmp_path):
+    aliases = tmp_path / "doc_aliases.json"
+    aliases.write_text(json.dumps({"inbox": None, "zeta notes": "doc-z", "reading notes": "doc-r"}))
+    monkeypatch.setattr(app.notes, "aliases_path", aliases)
+    assert client.get("/ui/nicknames").status_code == 401
+    response = client.get("/ui/nicknames", headers={"X-App-Secret": "ui-test-secret"})
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"nicknames": ["inbox", "reading notes", "zeta notes"]}
