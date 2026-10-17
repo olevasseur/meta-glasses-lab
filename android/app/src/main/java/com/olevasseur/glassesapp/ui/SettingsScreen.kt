@@ -6,8 +6,10 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import android.app.Activity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
@@ -61,6 +63,8 @@ fun SettingsScreen(state: ConversationState, model: ConversationViewModel, permi
             Text(state.glasses)
             Text("Audio: ${state.route}", style = MaterialTheme.typography.bodySmall)
             OutlinedButton(onClick = register, enabled = !state.handsFree.armed) { Text("Connect glasses") }
+            val activity = LocalContext.current as? Activity
+            TextButton(onClick = { activity?.let(model.glasses::unregister) }, enabled = !state.handsFree.armed) { Text("Disconnect from Meta AI (then Connect again)") }
             OutlinedButton(onClick = permissions, enabled = !state.handsFree.armed) { Text("Permissions") }
             TextButton(onClick = microphone, enabled = !state.handsFree.armed) { Text("Grant DAT microphone permission") }
             TextButton(onClick = camera, enabled = !state.handsFree.armed) { Text("Grant DAT camera permission") }
