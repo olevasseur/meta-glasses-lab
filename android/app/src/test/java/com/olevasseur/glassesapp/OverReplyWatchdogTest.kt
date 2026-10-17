@@ -5,6 +5,25 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class OverReplyWatchdogTest {
+    @Test fun pureStallRequiresNoTranscriptionContentOrToolEvenIfTranscriptionIsEmpty() {
+        val watchdog = OverReplyWatchdog()
+        watchdog.begin(0)
+        watchdog.event(ServerEvent(resumable = true, handle = "checkpoint"), 1_000)
+        assertFalse(watchdog.progress)
+        assertEquals("no_reply_watchdog", watchdog.expired(8_000))
+        for (event in listOf(ServerEvent(inputText = "heard"), ServerEvent(inputText = ""),
+            ServerEvent(modelContent = true), ServerEvent(audio = listOf(byteArrayOf(1, 2))),
+            ServerEvent(calls = listOf(FunctionCall("1", "append_to_doc", JSONObject()))))) {
+            watchdog.begin(0)
+            watchdog.event(event, 1_000)
+            assertTrue(watchdog.progress)
+        }
+        watchdog.begin(0)
+        watchdog.event(ServerEvent(inputText = "heard"), 1_000)
+        assertNull(watchdog.expired(8_000))
+        assertEquals("no_reply_watchdog", watchdog.expired(45_000))
+    }
+
     @Test fun toolExecutionIsCappedAndDuplicatesCannotExtendIt() {
         val watchdog = OverReplyWatchdog()
         watchdog.begin(1_000)

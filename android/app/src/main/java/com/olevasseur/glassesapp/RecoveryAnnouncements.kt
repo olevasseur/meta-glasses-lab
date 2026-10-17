@@ -46,8 +46,8 @@ class RecoveryAnnouncements(context: Context, private val earcon: () -> Unit) {
             pending?.let { pending = null; speak(it) }
         } }
     }
-    fun say(phrase: String) {
-        if (!limit.allow(phrase, SystemClock.elapsedRealtime())) return
+    fun say(phrase: String, rateLimit: Boolean = true) {
+        if (rateLimit && !limit.allow(phrase, SystemClock.elapsedRealtime())) return
         mutedUntil = SystemClock.elapsedRealtime() + 10_000
         earcon()
         if (ready) speak(phrase) else pending = phrase

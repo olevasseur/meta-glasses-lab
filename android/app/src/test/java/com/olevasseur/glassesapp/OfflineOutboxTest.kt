@@ -7,6 +7,52 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class OfflineOutboxTest {
+    @Test fun stallFallbackBypassesGrammarAndKeepsReceiptAndSavedStateAcrossRestart() = runBlocking {
+        val dir = Files.createTempDirectory("stall-outbox").toFile()
+        try {
+            val id = java.util.UUID.randomUUID().toString()
+            val text = "remember this belongs in Inbox, not memory"
+            OfflineOutbox(dir).captureStallFallback(id, text)
+            val outbox = OfflineOutbox(dir)
+            outbox.replay { receipt, call ->
+                assertEquals(id, receipt)
+                assertEquals("append_to_doc", call.name)
+                assertEquals("Inbox", call.args.getString("doc_name"))
+                assertEquals("[Gemini didn't answer] $text", call.args.getString("text"))
+                throw java.io.IOException("lost response")
+            }
+            outbox.captureStallFallback(id, text)
+            outbox.replay { receipt, _ -> assertEquals(id, receipt); JSONObject().put("status", "ok") }
+            OfflineOutbox(dir).captureStallFallback(id, text)
+            outbox.replay { _, _ -> fail("Saved fallback must not repeat"); JSONObject() }
+            assertEquals(listOf(id), outbox.summary()!!.first)
+            assertTrue(outbox.review().contains("saved: [Gemini didn't answer]"))
+        } finally { dir.deleteRecursively() }
+    }
+
+    @Test fun longFallbackPreservesEveryCharacterWithStablePerAppendReceipts() = runBlocking {
+        val dir = Files.createTempDirectory("long-stall-outbox").toFile()
+        try {
+            val outbox = OfflineOutbox(dir)
+            val id = java.util.UUID.randomUUID().toString()
+            val text = "x".repeat(100_001)
+            outbox.captureStallFallback(id, text)
+            outbox.captureStallFallback(id, text)
+            val receipts = mutableSetOf<String>()
+            var restored = ""
+            outbox.replay { receipt, call ->
+                assertTrue(receipts.add(receipt))
+                val body = call.args.getString("text")
+                assertTrue(body.length <= 100_000)
+                restored += body.removePrefix("[Gemini didn't answer] ")
+                JSONObject().put("status", "ok")
+            }
+            assertEquals(2, receipts.size)
+            assertTrue(id in receipts)
+            assertEquals(text, restored)
+        } finally { dir.deleteRecursively() }
+    }
+
     @Test fun grammarAllowsOnlyExactLocalPrefixesAndKeepsContentsAsData() {
         assertEquals("append_to_doc", OfflineGrammar.parse("Add a note buy eggs")!!.name)
         assertEquals("Inbox", OfflineGrammar.parse("add a note buy eggs")!!.args.getString("doc_name"))

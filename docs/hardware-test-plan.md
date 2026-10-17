@@ -554,8 +554,8 @@ Use Over with the default 10-second silence setting; retain UTC structured logs.
   last-speech time; check silent-start false detections and normal conversation
   idle shutdown. The new gate is more sensitive; record false speech as a failure.
 - [ ] With a debug server/proxy withholding all relevant events after End,
-  verify `no_reply_watchdog` at ~8 seconds, another `activityStart`, resumed PCM,
-  and a successful new spoken question. No manual Stop is required.
+  verify the one-retry flow below at ~8 seconds, then resumed listening after
+  the recovered reply or durable fallback. No manual Stop is required.
 - [ ] Deliver empty `turnComplete`; confirm immediate `empty_turn_complete`
   recovery, no duplicate Start, and warm recognition.
 - [ ] Delay a tool result >8 seconds but <45 seconds; input remains gated until
@@ -609,3 +609,22 @@ turn on Silent page capture in Settings/Features. Do not use private test pages.
 10. In a disposable Doc, interrupt backend/Google delivery around append. A retry
     must not append twice; an uncertain result must say to inspect the Doc. Record
     any manual recovery needed and preserve receipts when restarting the backend.
+
+
+## Over stall retry — 2026-10-17
+
+- [ ] On Pixel + glasses with an existing disposable Inbox, withhold all relevant
+  Gemini events after the first Over activityEnd using a debug socket/proxy. Say
+  a note ending in the selected sign-off. Expect one recovery cue at ~8 seconds,
+  fresh context-restored setup, paced replay (6,400-byte chunks / 10 ms), and one
+  tool append. Withhold the retry reply too: expect `outcome=stalled`,
+  `stall_fallback saved=inbox`, the local saved-to-Inbox phrase, exactly one note
+  prefixed `[Gemini didn't answer] ` without sign-off, and a usable next turn.
+  Inject a late original/retry tool call: neither may append after abandonment.
+  Repeat with the backend unavailable, kill/restart the app, restore it and check
+  the durable receipt prevents duplicates. Repeat with empty local recognition
+  (repeat-request phrase, no note), >3 minutes of continuous speech (direct
+  fallback), a transcript before timeout (no replay), Stop during replay and a
+  call/focus interruption (no capture/announcement during the call). Check cue/TTS
+  routing, absence of announcement echo, preserved previous conversation context,
+  and unchanged Auto/PTT/meeting/translator operation. Retain payload-free logs.

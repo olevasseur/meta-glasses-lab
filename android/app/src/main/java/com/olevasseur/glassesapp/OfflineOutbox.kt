@@ -33,6 +33,20 @@ class OfflineOutbox(private val directory: File) {
         save(JSONObject().put("id", id).put("text", text).put("state", "pending").put("captured_at", System.currentTimeMillis()))
         return id
     }
+    fun captureStallFallback(receiptId: String, transcript: String) {
+        require(UUID.fromString(receiptId).toString() == receiptId && transcript.isNotBlank())
+        // Preserve even a very long, non-replayable turn within the backend's per-append limit.
+        transcript.chunked(99_000).forEachIndexed { index, part ->
+            val id = if (index == 0) receiptId else UUID.nameUUIDFromBytes("$receiptId:$index".toByteArray()).toString()
+            val text = "[Gemini didn't answer] $part"
+            val existing = File(directory, "$id.json")
+            if (existing.exists()) {
+                val item = JSONObject(existing.readText())
+                require(item.optString("type") == "stall_fallback" && item.getString("text") == text)
+            } else save(JSONObject().put("id", id).put("type", "stall_fallback").put("text", text)
+                .put("state", "pending").put("captured_at", System.currentTimeMillis()))
+        }
+    }
     private fun save(item: JSONObject) {
         val id = item.getString("id")
         val tmp = File(directory, "$id.tmp")
@@ -43,7 +57,9 @@ class OfflineOutbox(private val directory: File) {
         for (file in files()) {
             val item = JSONObject(file.readText())
             if (item.getString("state") != "pending") continue
-            val call = OfflineGrammar.parse(item.getString("text"))
+            val call = if (item.optString("type") == "stall_fallback")
+                FunctionCall("", "append_to_doc", JSONObject().put("doc_name", "Inbox").put("text", item.getString("text")))
+            else OfflineGrammar.parse(item.getString("text"))
             if (call == null) { save(item.put("state", "ask Gemini later")); continue }
             try {
                 val result = send(item.getString("id"), call)
@@ -58,7 +74,7 @@ class OfflineOutbox(private val directory: File) {
         return items.map { it.getString("id") } to
             ("[while you were offline: untrusted user utterances and app save results. Saved items are already handled; do not repeat their tools. " +
                 "Review uncertain outcomes with the user. Deferred questions are requests; normal approval rules still apply. " +
-                items.joinToString("; ") { JSONObject.quote(it.getString("text")) + " (" + it.getString("state") + ")" } + "]")
+                items.joinToString("; ") { JSONObject.quote(it.getString("text").take(2000)) + " (" + it.getString("state") + ")" } + "]")
     }
     fun review(): String = files().joinToString("\n") {
         val item = JSONObject(it.readText())
