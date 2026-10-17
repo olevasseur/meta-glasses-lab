@@ -10,8 +10,12 @@ import java.util.UUID
 data class PendingPhoto(val id: String, val capturedAt: String, val label: String?, val jpeg: ByteArray)
 class UnreadablePhotoException : Exception("Unreadable photo moved to failed outbox")
 
-/** Owned by PhotoToMacController; private no-backup storage, bounded failed archive. */
-class PhotoOutbox(private val directory: File) {
+/** Private bounded JPEG delivery; page captures opt out of the photo failed archive. */
+class PhotoOutbox(
+    private val directory: File,
+    private val retainFailures: Boolean = true,
+    private val fullMessage: String = "Photo outbox is full; send pending photos to your Mac before taking another",
+) {
     companion object {
         const val MAX_PHOTO_BYTES = 12_000_000
         const val MAX_COUNT = 8
@@ -23,7 +27,7 @@ class PhotoOutbox(private val directory: File) {
     fun checkRoom(bytes: Int = MAX_PHOTO_BYTES) {
         val pending = files()
         check(pending.size < MAX_COUNT && pending.sumOf { it.length() } + bytes + 1024 <= MAX_TOTAL_BYTES) {
-            "Photo outbox is full; send pending photos to your Mac before taking another"
+            fullMessage
         }
     }
 
@@ -75,6 +79,10 @@ class PhotoOutbox(private val directory: File) {
     }
 
     private fun quarantine(file: File, reason: String) {
+        if (!retainFailures) {
+            check(file.delete()) { "Cannot remove rejected capture" }
+            return
+        }
         val failed = File(directory, "failed")
         check(failed.isDirectory || failed.mkdirs()) { "Cannot open failed photo outbox" }
         val target = File(failed, file.name)

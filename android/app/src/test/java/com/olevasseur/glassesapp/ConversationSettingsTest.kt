@@ -37,6 +37,11 @@ class ConversationSettingsTest {
             assertEquals(ConversationSettings(silenceMs = 500, overSilenceSeconds = 30), settings.settings.first())
             assertEquals(5000, ConversationSettings(silenceMs = 9999).normalized().silenceMs)
             assertEquals("okay ", ConversationSettings(meetingWakePhrase = "okay ").normalized().meetingWakePhrase)
+            assertFalse(ConversationSettings().silentPageCapture)
+            assertEquals("reading notes", ConversationSettings().pageCaptureDoc)
+            assertEquals("reading notes", ConversationSettings(pageCaptureDoc = " \u0000").normalized().pageCaptureDoc)
+            assertEquals("book notes", ConversationSettings(pageCaptureDoc = " book notes ").normalized().pageCaptureDoc)
+            assertEquals(60, ConversationSettings(pageCaptureDoc = "x".repeat(61)).normalized().pageCaptureDoc.length)
             assertEquals(10, ConversationSettings().overSilenceSeconds)
             assertEquals(5, ConversationSettings(overSilenceSeconds = -1).normalized().overSilenceSeconds)
         } finally { scope.coroutineContext[Job]!!.cancelAndJoin() }
@@ -134,7 +139,7 @@ class ConversationSettingsTest {
         val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val expected = ConversationSettings(ConversationMode.OVER, 3250, "your turn", 25, idleMinutes = 42,
             translationLanguage = "fr", translationPhoneSpeaker = true, workoutSensitivity = 0.8f, coachNodNavigation = false,
-            meetingPhone = false, meetingOver = true, thinkingCue = true)
+            meetingPhone = false, meetingOver = true, thinkingCue = true, silentPageCapture = true, pageCaptureDoc = "book notes")
         try {
             val settings = ConversationSettingsStore(PreferenceDataStoreFactory.create(scope = scope) { file })
             assertEquals(0L, settings.jobCursor("backend-a"))

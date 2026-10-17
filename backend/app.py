@@ -37,6 +37,7 @@ import meeting_api
 from meetings import Meetings
 import visual_api
 import photos
+import pages
 import visual_dashboard  # Registers the extension before dashboard.install includes its router.
 from memory import MemoryConflict
 from jobs import Jobs
@@ -108,6 +109,7 @@ app.include_router(usage_api.router)
 app.include_router(memory_api.router)
 app.include_router(visual_api.router)
 app.include_router(photos.router)
+app.include_router(pages.router)
 app.include_router(workouts.router)
 meeting_api.service = Meetings(memory_api.memory, notes)
 app.include_router(meeting_api.router)

@@ -36,6 +36,7 @@ class GlassesController(
     private val onGlasses: (String) -> Unit,
     private val onInputs: (String) -> Unit,
     private val onUnclaimedCapture: () -> Unit = {},
+    private val onPageCapture: () -> Boolean = { false },
     private val onApprovalCapture: () -> Boolean = { false },
     private val onHold: () -> Unit,
     private val onInputLost: () -> Unit,
@@ -174,7 +175,7 @@ class GlassesController(
                                         }
                                         launch {
                                             inputs.events.collect { event ->
-                                                if (approvalCapture(event, onUnclaimedCapture, onApprovalCapture)) return@collect
+                                                if (approvalCapture(event, onUnclaimedCapture, onPageCapture, onApprovalCapture)) return@collect
                                                 when (glassesTrigger(event)) {
                                                     GlassesTrigger.CONVERSATION -> onHold()
                                                     GlassesTrigger.TALK_OR_MUTE -> onDoubleTap()

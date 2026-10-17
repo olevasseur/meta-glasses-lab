@@ -57,7 +57,7 @@ class SecurityBoundary:
         lane, limit = ('expensive', 30) if expensive else ('browser', 240) if browser else ('api', 240)
         if not self.allow(lane, limit):
             return await reject(429, 'Request rate exceeded; wait a minute')
-        photo = path == '/photos'
+        photo = path in {'/photos', '/pages'}
         if photo and (self.photos >= 1 or not self.allow('photos', 6)):
             return await reject(429, 'Photo rate exceeded; retry later')
         event = path == '/events'

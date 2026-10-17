@@ -310,6 +310,20 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
                 speakPendingRecap()
             })
     }
+    private val pageNotifications by lazy { PageCaptureNotifications(application) }
+    private val pageCapture by lazy {
+        PageCaptureController(PhotoOutbox(File(application.noBackupFilesDir, "page-outbox"), retainFailures = false,
+            fullMessage = "Page outbox is full; send queued pages before capturing another"),
+            capture = { vision.capturePhoto(camera::captureText) }, upload = backend::savePage,
+            cue = { pageCaptureCue(viewModelScope, it, audioReady) },
+            notice = { message, preview ->
+                mutableState.update { it.copy(lastTool = message) }
+                pageNotifications.show(message, preview)
+            })
+    }
+    private val pageRetryJob = viewModelScope.launch {
+        while (isActive) { pageCapture.retry(); delay(60_000) }
+    }
     private val photoRetryJob = viewModelScope.launch {
         while (isActive) {
             photoToMac.retry()?.let { result -> mutableState.update { it.copy(lastTool = result.optString("message")) } }
@@ -351,6 +365,16 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         onInputs = { label -> mutableState.update { it.copy(inputs = label) } },
         onApprovalCapture = { approvals.capture() },
         onUnclaimedCapture = { nothingToConfirm("capture") },
+        onPageCapture = {
+            val current = state.value
+            if (!current.settings.silentPageCapture || !current.handsFree.armed) false
+            else {
+                service?.activity()
+                val doc = current.settings.pageCaptureDoc
+                viewModelScope.launch { pageCapture.capture(doc) }
+                true
+            }
+        },
         onHold = { service?.captureHold() },
         onDoubleTap = { service?.toggleInput() },
         onInputLost = { service?.inputsAvailable(false) },

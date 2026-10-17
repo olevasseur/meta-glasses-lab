@@ -56,6 +56,7 @@ fun SettingsScreen(state: ConversationState, model: ConversationViewModel, permi
             Slider(state.idleMinutes.toFloat(), { model.setIdleMinutes(it.toInt()) }, valueRange = 1f..60f, steps = 58,
                 enabled = state.settingsLoaded, modifier = Modifier.semantics { contentDescription = "Idle timeout in minutes" })
         }
+        SilentPageSettings(state, model)
         SectionCard("Glasses & gestures") {
             Text(state.glasses)
             Text("Audio: ${state.route}", style = MaterialTheme.typography.bodySmall)
@@ -83,5 +84,22 @@ fun SettingsScreen(state: ConversationState, model: ConversationViewModel, permi
                 OutlinedButton(onClick = model.glasses::mockDoubleTap, enabled = state.connected && state.handsFree.shouldRun) { Text("Simulate double-tap") }
             }
         }
+    }
+}
+
+@Composable
+fun SilentPageSettings(state: ConversationState, model: ConversationViewModel) {
+    val enabled = !state.running && !state.stopping && state.settingsLoaded
+    var nickname by remember(state.settings.pageCaptureDoc) { mutableStateOf(state.settings.pageCaptureDoc) }
+    SectionCard("Silent page capture") {
+        LabeledSwitch("Silent page capture", state.settings.silentPageCapture, enabled) {
+            model.setSettings(state.settings.copy(silentPageCapture = it))
+        }
+        OutlinedTextField(nickname, { nickname = it.take(60) }, enabled = enabled, singleLine = true,
+            label = { Text("Target doc nickname") }, modifier = Modifier.fillMaxWidth())
+        TextButton(onClick = { model.setSettings(state.settings.copy(pageCaptureDoc = nickname)) }, enabled = enabled) {
+            Text("Save nickname")
+        }
+        Text("Create this Google Doc nickname first. Enable glasses controls, then short-press capture to save highlights and handwritten notes. Audio cues only; no conversation needed.")
     }
 }

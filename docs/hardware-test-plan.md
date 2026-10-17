@@ -571,3 +571,41 @@ Use Over with the default 10-second silence setting; retain UTC structured logs.
   no user-turn IDs). Check playback echo cannot supply a sign-off.
 
 Local automation and Live probe results: [Over stall evaluation](evals/over-stall-2026-10-09.md).
+
+## Silent page capture — 2026-10-16
+
+Feature: [Silent page capture](features/page-capture.md). Prepare an existing Doc
+nicknamed `reading notes`, allow phone notifications and DAT camera access, and
+turn on Silent page capture in Settings/Features. Do not use private test pages.
+
+1. Restart the app: confirm the toggle/nickname persist. Arm glasses controls
+   without starting a conversation. Lock the phone, short-press once at a marked
+   page, and verify shutter → result cue, notification counts/preview and Doc text.
+   No Live connection, spoken prompt or TTS should be needed. Check returned image
+   dimensions via device diagnostics without retaining the image as an artifact.
+2. Inspect Meta's gallery/native behavior: record whether the same press also
+   takes a native photo. Do not claim the DAT event consumes Meta's action.
+3. Repeat with Assistant conversation active. Verify HOLD still starts/stops,
+   DOUBLE_PRESS does not run page capture, and approval consumes capture first
+   (including HOLD). Disable the setting and check today's unclaimed feedback.
+4. Test paper, tablet and actual e-ink pages: color/gray highlights, underline,
+   bracket, mixed handwriting and anchors, faint ink, glare, dense text and columns.
+   Compare every extracted word and `[illegible]` marker with the source.
+5. Deliberately blur the page: distinct retry cue, failure notification, no upload,
+   no append. Use an unmarked page: `Nothing highlighted found`, no append. Check
+   missing nickname gives the create-first message and creates no document.
+6. Capture the same page twice; then add one mark and capture again. Confirm no
+   repeated items, only the new mark counted/appended. Try an alias for the same Doc.
+7. Sleep/disconnect the backend. Confirm queued notice/error cue and bounded private
+   storage; restart app and restore backend. Confirm one append per upload ID,
+   success notification/cue on retry and image deletion. Fill the queue (eight
+   small pages, or the 64 MB bound); next press must not evict an unsent page.
+8. Check each cue on glasses with and without active HFP, phone fallback/mock,
+   media/call volume, screen off and Bluetooth recovery. Notifications should be
+   quiet; no page result may be narrated. Check notification permission denial.
+9. Confirm no app-created Downloads/gallery/visual-memory image, no page failed
+   archive, and no backend JPEG file. Terminal failures should remove the phone
+   image; transient failures should retain only the private pending copy.
+10. In a disposable Doc, interrupt backend/Google delivery around append. A retry
+    must not append twice; an uncertain result must say to inspect the Doc. Record
+    any manual recovery needed and preserve receipts when restarting the backend.
