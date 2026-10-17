@@ -77,6 +77,9 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     internal var service: ConversationService? = null
     @Volatile private var muted = false
     private val mutableState = MutableStateFlow(ConversationState())
+    private val mutableNicknames = MutableStateFlow<List<String>>(emptyList())
+    /** Doc nicknames known to the backend, for the page-capture picker. */
+    val docNicknames = mutableNicknames.asStateFlow()
     val state = mutableState.asStateFlow()
     private val http = OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS)
         .readTimeout(25, TimeUnit.SECONDS) // Longer than the backend event poll (20 seconds).
@@ -485,6 +488,9 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         if (!granted) error("Microphone permission is required. Allow it in Android app settings.")
     }
     fun error(message: String) { mutableState.update { it.copy(error = message) } }
+    fun loadNicknames() {
+        viewModelScope.launch { runCatching { backend.nicknames() }.onSuccess { mutableNicknames.value = it } }
+    }
     fun setSettings(settings: ConversationSettings) {
         if (state.value.running || state.value.stopping || !state.value.settingsLoaded) return
         saveSettings(settings)

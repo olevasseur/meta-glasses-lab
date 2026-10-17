@@ -92,6 +92,7 @@ fun SettingsScreen(state: ConversationState, model: ConversationViewModel, permi
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun SilentPageSettings(state: ConversationState, model: ConversationViewModel) {
     val enabled = !state.running && !state.stopping && state.settingsLoaded
     var nickname by remember(state.settings.pageCaptureDoc) { mutableStateOf(state.settings.pageCaptureDoc) }
@@ -99,8 +100,24 @@ fun SilentPageSettings(state: ConversationState, model: ConversationViewModel) {
         LabeledSwitch("Silent page capture", state.settings.silentPageCapture, enabled) {
             model.setSettings(state.settings.copy(silentPageCapture = it))
         }
-        OutlinedTextField(nickname, { nickname = it.take(60) }, enabled = enabled, singleLine = true,
-            label = { Text("Target doc nickname") }, modifier = Modifier.fillMaxWidth())
+        val known by model.docNicknames.collectAsState()
+        LaunchedEffect(Unit) { model.loadNicknames() }
+        var expanded by remember { mutableStateOf(false) }
+        val matches = known.filter { it.contains(nickname.trim(), ignoreCase = true) }
+        ExposedDropdownMenuBox(expanded && enabled && matches.isNotEmpty(), { expanded = it }) {
+            OutlinedTextField(nickname, { nickname = it.take(60); expanded = true }, enabled = enabled, singleLine = true,
+                label = { Text("Target doc nickname") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable, enabled))
+            ExposedDropdownMenu(expanded && enabled && matches.isNotEmpty(), { expanded = false }) {
+                matches.forEach { name ->
+                    DropdownMenuItem(text = { Text(name) }, onClick = {
+                        nickname = name; expanded = false
+                        model.setSettings(state.settings.copy(pageCaptureDoc = name))
+                    })
+                }
+            }
+        }
         TextButton(onClick = { model.setSettings(state.settings.copy(pageCaptureDoc = nickname)) }, enabled = enabled) {
             Text("Save nickname")
         }

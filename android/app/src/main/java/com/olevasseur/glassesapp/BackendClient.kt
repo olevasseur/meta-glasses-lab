@@ -82,6 +82,11 @@ class BackendClient(
         .url(base.newBuilder().addPathSegments("ui/overview").build())
         .header("X-App-Secret", secret).get().build())
 
+    suspend fun nicknames(): List<String> = execute(Request.Builder()
+        .url(base.newBuilder().addPathSegments("ui/nicknames").build())
+        .header("X-App-Secret", secret).get().build(), notifyUnavailable = false).getJSONArray("nicknames")
+        .let { names -> List(names.length()) { names.getString(it) } }
+
     suspend fun uploadLogs(entries: JSONArray): JSONObject = post(listOf("logs"), JSONObject().put("entries", entries))
 
     suspend fun approvalStatus(id: String): JSONObject = execute(Request.Builder()
