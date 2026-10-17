@@ -287,3 +287,9 @@ def test_crash_after_google_success_keeps_uncertain_receipt(harness):
     harness.store = pages.PageStore(harness.store.receipts)
     assert save(harness, id)['status'] == 'error'
     assert len(harness.writes) == 1
+
+
+def test_render_joins_wrapped_lines():
+    note = pages.Handwritten(text='two\nlines', anchor='wrapped\n anchor')
+    text = pages.render_page(None, pages.Source(), ['what they think\nof you  afterward'], [note])
+    assert text == '“what they think of you afterward”\n✎ two lines (next to “wrapped anchor”)'
