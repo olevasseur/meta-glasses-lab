@@ -30,6 +30,8 @@ class GeminiSession(
     private val onFatal: (String) -> Unit,
     private val onEvent: (ServerEvent) -> Unit = {},
     private val onOverTurnReopen: (String) -> Unit = {},
+    private val overTranscript: () -> String = { "" },
+    private val onStallFallback: (String, String) -> Boolean = { _, _ -> false },
     private val localTool: suspend (FunctionCall) -> ToolResult = { ToolResult(toolError("Client tool is unavailable")) },
     private val onTranslationChanged: (String?) -> Unit = {},
     private val onApproval: suspend (JSONObject) -> Unit = {},
@@ -70,6 +72,13 @@ class GeminiSession(
     private var talkTimeout: Job? = null
     private val overReply = OverReplyWatchdog()
     private var overReplyJob: Job? = null
+    private var overTurn: OverTurnReplay? = null
+    private var stallJob: Job? = null
+    @Volatile var stallRecovering = false
+        private set
+    private var replaySending = false
+    private val stallRetryAllowed get() = settings.mode == ConversationMode.OVER &&
+        !meetingGate.active && !meetingInteraction && translationLanguage == null
     private var attempts = 0
     private var modelFailures = 0
     private var currentModel: String? = null
@@ -154,11 +163,12 @@ class GeminiSession(
         }
         override fun onMessage(webSocket: WebSocket, text: String) {
             val event = try { LiveProtocol.parse(text) } catch (_: Exception) {
-                scope.launch { if (webSocket === socket && active) onFatal("Invalid Gemini message; stop and retry") }
+                scope.launch { if (webSocket === socket && active) recover(GeminiFailure("Invalid Gemini message; stop and retry", fatal = true)) }
                 return
             }
             val generation = try { synchronized(sendLock) {
                 if (webSocket !== socket || !active) return
+                if (event.overProgress()) overTurn?.progress = true
                 trace(event)
                 if (event.interrupted) {
                     audio.flush()
@@ -173,7 +183,7 @@ class GeminiSession(
             scope.launch {
                 if (webSocket !== socket || !active) return@launch
                 try { receive(event, generation) }
-                catch (_: Exception) { onFatal("Invalid Gemini message or audio; stop and retry") }
+                catch (_: Exception) { recover(GeminiFailure("Invalid Gemini message or audio; stop and retry", fatal = true)) }
             }
         }
         override fun onMessage(webSocket: WebSocket, bytes: ByteString) = onMessage(webSocket, bytes.utf8())
@@ -230,8 +240,13 @@ class GeminiSession(
             it.id !in cancelledCalls && (overReply.waiting || it.id !in responses)
         })
         val reopenReason = overReply.event(replyEvent, elapsedMs())
+        if (stallRecovering && !replaySending && event.overProgress()) finishStallRetry("ok")
         if (event.calls.isNotEmpty()) ensureOverReplyJob()
         val waitingForToolReply = overReply.waiting && event.turnComplete
+        if (stallRecovering && ((event.turnComplete && !waitingForToolReply) || event.interrupted)) {
+            stallJob?.cancel(); replaySending = false
+            finishStallRetry("ok")
+        }
         if (!event.inputText.isNullOrEmpty() || !event.outputText.isNullOrEmpty() || event.audio.isNotEmpty() || event.calls.isNotEmpty()) replyPending = true
         if ((event.turnComplete && !waitingForToolReply) || event.interrupted) replyPending = false
         onEvent(event)
@@ -265,7 +280,10 @@ class GeminiSession(
                     if (dropped > 0) onTranscript("You", " [Capture gap: ${dropped / 32_000} seconds of audio lost during disconnection.] ")
                 }
             }
-            if (interruptedReply) { interruptedReply = false; onRecoveredReply() }
+            if (stallRecovering) {
+                interruptedReply = false
+                replayOverTurn()
+            } else if (interruptedReply) { interruptedReply = false; onRecoveredReply() }
             onState("Connected", true)
             pendingResponses.toList().forEach { id -> responses[id]?.let { deliver(it.first, it.second) } }
         }
@@ -319,7 +337,7 @@ class GeminiSession(
         }
         event.outputText?.takeIf { it.isNotEmpty() && meetingGate.mayRespond }?.let { recap.text("model", it); onTranscript("Gemini", it) }
         if (event.turnComplete || event.interrupted) recap.endTurn()
-        if ((event.turnComplete && !waitingForToolReply && reopenReason == null) || event.interrupted) {
+        if (!replaySending && ((event.turnComplete && !waitingForToolReply && reopenReason == null) || event.interrupted)) {
             DiagnosticMetrics.latency.reset(); onTurnEnd()
         }
         event.cancelledIds.forEach { id ->
@@ -404,7 +422,7 @@ class GeminiSession(
         var endedActivity = false
         val sent = synchronized(sendLock) {
             val ws = socket
-            if (!active || !ready || audioSuspended || meetingGate.active || translationLanguage != null ||
+            if (!active || !ready || stallRecovering || audioSuspended || meetingGate.active || translationLanguage != null ||
                 audio.translationSpeaker.playing || ws == null || ws.queueSize() > 256_000) return@synchronized false
             sendGestureTurn(text, settings.mode, talking, ws::send) {
                 talking = false
@@ -412,7 +430,7 @@ class GeminiSession(
             }
         }
         if (endedActivity) onTalking(false)
-        if (sent) { recap.text("app_event", text); recap.endTurn(); replyPending = true; watchOverReply() }
+        if (sent) { synchronized(sendLock) { overTurn = null }; recap.text("app_event", text); recap.endTurn(); replyPending = true; watchOverReply() }
         return sent
     }
 
@@ -430,10 +448,10 @@ class GeminiSession(
     private fun sendIdleText(message: String): Boolean = synchronized(sendLock) {
         val ws = socket
         // An automatic cue must not end a manual turn, interrupt a reply, or speak during a call.
-        if (!active || !ready || audioSuspended || meetingGate.active || translationLanguage != null || talking || replyPending || !audio.playbackIdle || !canAnnounce() ||
+        if (!active || !ready || stallRecovering || audioSuspended || meetingGate.active || translationLanguage != null || talking || replyPending || !audio.playbackIdle || !canAnnounce() ||
             ws == null || ws.queueSize() > 256_000) return@synchronized false
         val sent = ws.send(message)
-        if (sent) { replyPending = true; watchOverReply() }
+        if (sent) { overTurn = null; replyPending = true; watchOverReply() }
         sent
     }
 
@@ -458,7 +476,10 @@ class GeminiSession(
                 if (meetingGate.active) meetingAudio.add(pcm)
                 ready = false
                 scope.launch { if (active && socket === ws) reconnect("Audio uplink stalled") }
-            } else inputBytes += pcm.size
+            } else {
+                inputBytes += pcm.size
+                if (talking) overTurn?.append(pcm)
+            }
         }
     }
 
@@ -490,11 +511,12 @@ class GeminiSession(
 
     fun setTalking(value: Boolean) {
         val changed = synchronized(sendLock) {
-            if (!active || !ready || !ptt || (value && (audioSuspended || audio.translationSpeaker.playing ||
+            if (!active || !ready || !ptt || stallRecovering || (value && (audioSuspended || audio.translationSpeaker.playing ||
                     (settings.mode == ConversationMode.OVER && overReply.waiting))) || talking == value) false
             else if (socket?.send(LiveProtocol.activity(value)) == true) {
                 talking = value
                 if (value) {
+                    overTurn = if (stallRetryAllowed) OverTurnReplay() else null
                     replyPending = false
                     diagnosticTurn++
                     firstInputLogged = false; firstModelLogged = false; firstAudioLogged = false
@@ -530,13 +552,14 @@ class GeminiSession(
     }
 
     private fun ensureOverReplyJob() {
-        if (settings.mode != ConversationMode.OVER || meetingGate.active || overReplyJob?.isActive == true) return
+        if (settings.mode != ConversationMode.OVER || meetingGate.active || replaySending || overReplyJob?.isActive == true) return
         overReplyJob = scope.launch {
             while (overReply.waiting) {
                 delay(100)
                 if (!audioSuspended) overReply.expired(elapsedMs())?.let {
-                    reopenOverTurn(it)
-                    return@launch
+                    if (it == "no_reply_watchdog" && !overReply.progress &&
+                        synchronized(sendLock) { overTurn?.progress == false }) recoverOverStall()
+                    else reopenOverTurn(it)
                 }
             }
         }
@@ -562,7 +585,108 @@ class GeminiSession(
         onOverTurnReopen(reason)
     }
 
+    private fun recoverOverStall() {
+        val turn = synchronized(sendLock) {
+            val current = overTurn ?: return
+            // Socket arrival marks progress before Main dispatch, including before activityEnd.
+            if (current.progress) return
+            current
+        }
+        if (turn.retryStartedMs != null) { fallbackOverStall("stalled"); return }
+        turn.transcript = overTranscript()
+        val retry = synchronized(sendLock) {
+            if (turn.progress) return
+            val retry = turn.beginRetry(elapsedMs())
+            socket?.cancel(); socket = null; ready = false
+            retry
+        }
+        if (!retry) { fallbackOverStall(null); return }
+        stallRecovering = true
+        DiagnosticLog.add("over", "turn=$diagnosticTurn stall_retry started bytes=${turn.size}")
+        // A resumed checkpoint could contain the abandoned turn. Restore only our known recap.
+        token = null; handle = null; handleReceivedAt = null
+        reconnect("Retrying unanswered turn", stallRetry = true)
+        onRecoveredReply() // Reconnect flushes playback; enqueue the cue afterwards.
+        stallJob = scope.launch {
+            delay(25_000) // Includes token fetch, WebSocket connect and setup.
+            if (stallRecovering) fallbackOverStall("failed")
+        }
+    }
+
+    private fun replayOverTurn() {
+        val turn = overTurn ?: return
+        val ws = socket ?: return
+        stallJob?.cancel()
+        replaySending = true
+        replyPending = true
+        overReply.begin(elapsedMs())
+        stallJob = scope.launch {
+            try {
+                while (audioSuspended) delay(100)
+                check(ws === socket && ws.send(LiveProtocol.activity(true)))
+                var offset = 0
+                while (offset < turn.size) {
+                    while (audioSuspended) delay(100)
+                    val chunk = turn.chunk(offset)
+                    check(ws === socket && ws.queueSize() <= 1_000_000 && ws.send(LiveProtocol.audio(chunk)))
+                    offset += chunk.size
+                    delay(10)
+                }
+                while (audioSuspended) delay(100)
+                check(ws === socket && ws.send(LiveProtocol.activity(false)))
+                activityEndedMs = elapsedMs()
+                replaySending = false
+                if (!overReply.progress && overReply.waiting) overReply.begin(elapsedMs())
+                if (synchronized(sendLock) { turn.progress }) finishStallRetry("ok")
+                ensureOverReplyJob()
+                if (!overReply.waiting) onTurnEnd()
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { fallbackOverStall("failed") }
+        }
+    }
+
+    private fun finishStallRetry(outcome: String) {
+        overTurn?.retryStartedMs?.let {
+            DiagnosticLog.add("over", "turn=$diagnosticTurn stall_retry outcome=$outcome latency_ms=${elapsedMs() - it}")
+        }
+        stallRecovering = false
+        synchronized(sendLock) { overTurn = null }
+    }
+
+    private fun fallbackOverStall(outcome: String?) {
+        val turn = overTurn ?: return
+        if (synchronized(sendLock) { turn.progress }) {
+            // A tool may already have executed. A failure after progress is ordinary recovery.
+            stallJob?.cancel(); stallJob = null; replaySending = false
+            finishStallRetry("ok")
+            reconnect("Connection lost after reply progress")
+            return
+        }
+        if (audioSuspended) {
+            stallJob?.cancel()
+            stallJob = scope.launch {
+                while (audioSuspended) delay(100)
+                fallbackOverStall(outcome)
+            }
+            return
+        }
+        // Retire this socket too: a late retry must not append after the Inbox fallback.
+        synchronized(sendLock) { socket?.cancel(); socket = null; ready = false }
+        stallJob?.cancel(); stallJob = null; replaySending = false
+        reconnectJob?.cancel(); setupTimeout?.cancel()
+        if (outcome != null) finishStallRetry(outcome)
+        val saved = onStallFallback(turn.receiptId, turn.transcript)
+        DiagnosticLog.add("over", "turn=$diagnosticTurn stall_fallback saved=${if (saved) "inbox" else "empty"}")
+        synchronized(sendLock) { overTurn = null }
+        stallRecovering = false
+        reopenOverTurn("stall_fallback")
+        token = null; handle = null; handleReceivedAt = null
+        reconnect("Restoring connection after unanswered turn", announceOutage = false)
+        interruptedReply = false
+    }
+
     private fun recover(failure: GeminiFailure) {
+        if (stallRecovering) { fallbackOverStall("failed"); return }
         if (failure.fatal) { onFatal(failure.message); return }
         if (failure.refreshToken) token = null
         if (failure.clearHandle) { handle = null; handleReceivedAt = null }
@@ -580,8 +704,11 @@ class GeminiSession(
             "category=${category.message}")
     }
 
-    private fun reconnect(reason: String, countModelFailure: Boolean = true) {
+    private fun reconnect(reason: String, countModelFailure: Boolean = true, stallRetry: Boolean = false,
+        announceOutage: Boolean = true) {
         if (!active) return
+        if (stallRecovering && !stallRetry) { fallbackOverStall("failed"); return }
+        if (!stallRetry) synchronized(sendLock) { overTurn = null }
         interruptedReply = interruptedReply || replyPending || !audio.playbackIdle
         recap.endTurn()
         cancelOverReply()
@@ -605,7 +732,7 @@ class GeminiSession(
             token = null; handle = null; handleReceivedAt = null; modelFailures = 0
         }
         val waitMs = retryDelay(attempts)
-        onState("$reason · retry in ${(waitMs + 999) / 1000}s", false)
+        onState(if (stallRetry || !announceOutage) "$reason…" else "$reason · retry in ${(waitMs + 999) / 1000}s", false)
         reconnectJob?.cancel()
         reconnectJob = scope.launch {
             delay(waitMs)
@@ -614,6 +741,8 @@ class GeminiSession(
     }
 
     fun stop() {
+        stallJob?.cancel(); stallJob = null; stallRecovering = false; replaySending = false
+        synchronized(sendLock) { overTurn = null }
         recap.clear(); interruptedReply = false; resumePolicyCloses = 0; resumedConnection = false
         cancelOverReply()
         usageReporter.stop()

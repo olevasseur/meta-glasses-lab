@@ -1,6 +1,6 @@
 # Over mode and configurable patience
 
-Updated **2026-10-09** after the Pixel 10 Pro / Ray-Ban Meta latency and stalled-turn reports. Runtime conversation AI remains Gemini Live.
+Updated **2026-10-17** with one retry and Inbox fallback for silent Gemini stalls. Runtime conversation AI remains Gemini Live.
 
 ## Use
 
@@ -105,10 +105,44 @@ After `activityEnd`, Over waits at most **8 seconds without a relevant event**
 (input transcription, model content, tool call or completion). With input-only
 progress it allows up to **45 seconds from End** for a reply. Active model output
 refreshes a 45-second stall deadline; this imposes no user speaking limit.
-An empty non-tool `turnComplete` immediately reopens the user turn. Recovery logs
-`turn_reopen reason=no_reply_watchdog` or `empty_turn_complete`, clears the reply
-gate and sends a new `activityStart`; microphone uplink and the warm recognizer
-resume. These recoveries are silent.
+A **pure stall** (no input transcription, model content or tool call for this
+turn) now retries once instead of discarding the request. The phone retains the
+exact PCM accepted by the socket between activityStart/activityEnd, up to **3
+minutes / 5.76 MB**. Exceeding this cap disables replay for that turn; it does not
+end speech or replay truncated audio. Local final recognition segments plus the
+last partial are retained separately, with the trailing sign-off removed.
+
+At the 8-second watchdog, play one recovery cue (no TTS), retire the socket, and
+open a fresh Live session using the existing bounded context recap. Do not resume
+the stalled checkpoint. After setup, send activityStart, **200 ms / 6,400-byte
+PCM chunks every 10 ms**, then activityEnd and a fresh 8-second watchdog. Keep
+microphone uplink and recognition paused throughout replay. All old-socket events,
+including already queued callbacks, are ignored before tool execution.
+
+If the retry also has a pure stall, the audio cannot be replayed, or reconnect/
+replay fails, atomically queue the on-device text for **Inbox**, prefixed
+`[Gemini didn't answer] `. The stable receipt uses the existing offline delivery
+path; it never grammar-parses this item into a different command. Local TTS says
+**“Gemini didn't answer. I saved what I heard to your inbox.”** If there is no
+text (or the phone cannot persist it), say **“Gemini didn't answer. Please say
+that again.”** Reopen listening after the announcement and connection recovery.
+The note is durable on the phone before this confirmation; actual Docs delivery
+can remain pending while the backend is unavailable. Inbox must already exist.
+The failed retry socket is retired too, preventing a late tool from executing
+after fallback. Connection setup has a 25-second overall recovery budget.
+
+Any received transcript/content/tool excludes automatic replay and fallback;
+existing 45-second and tool watchdog handling remains. An empty non-tool
+`turnComplete` still immediately reopens silently. Auto, PTT, meeting and
+translator behavior is unchanged. Stop cancels replay; audio suspension pauses
+replay and defers fallback speech until resume.
+
+Diagnostics contain no PCM or speech text:
+`turn=N stall_retry started bytes=…`,
+`turn=N stall_retry outcome=ok|stalled|failed latency_ms=…`, and
+`turn=N stall_fallback saved=inbox|empty`. `ok` means reply progress was received,
+not that a tool succeeded; latency is measured from retry start. A non-replayable
+turn goes directly to fallback without a retry-start log.
 
 A tool call starts a **45-second execution deadline** for its pending batch.
 After the last toolResponse is sent, a fresh **8-second no-reply deadline** starts;
@@ -157,6 +191,29 @@ prompt treats trailing sign-offs as turn control and never acknowledges them.
 No new backend secrets or environment variables are required.
 
 ## Verification
+
+- **2026-10-17 stall retry:** JVM regressions cover bounded exact PCM, pure versus
+  input-only stalls, one retry, fresh context, old-socket suppression, retry failure,
+  durable fallback receipts, sign-off stripping and mode exclusions. Hardware:
+  use a debug socket/proxy to withhold all relevant responses on the first session
+  only; speak a disposable Inbox note ending in “over”. Expect one cue, one fresh
+  setup/replay and one note append. Then withhold both replies: expect the local
+  fallback phrase, one prefixed Inbox note and resumed listening. Kill/restart the
+  app while delivery is pending and check no duplicate append. Repeat with empty
+  recognition, >3 minutes of continuous speech, call/focus suspension and Stop.
+  Deliver a late old-socket tool call and confirm it cannot execute. A transcript
+  arriving before timeout must retain the existing 45-second handling without
+  replay. See [hardware plan](../hardware-test-plan.md#over-stall-retry--2026-10-17).
+  Physical replay pacing, recognizer accuracy, cue/TTS routing and real Docs writes
+  remain unverified in this change; the service-side evidence is in
+  [Gemini Live stalls](../research/gemini-live-stalls.md).
+  Validation: backend `UV_CACHE_DIR=/tmp/meta-stallretry-uv uv run pytest -q`:
+  **888 passed, 3 warnings**. All production/test Kotlin compiled using the cached
+  compiler; **65 focused JVM tests passed** via JUnitCore. An earlier direct full
+  run passed 314 tests; 26 MockWebServer tests could not bind sockets in the
+  sandbox. `./gradlew testDebugUnitTest` could not start (cache permissions, then
+  `FileLockContentionHandler` socket restriction with writable caches); the
+  orchestrator must run the Gradle task outside this sandbox.
 
 - **2026-10-09 stall fix:** JVM socket tests cover no-event recovery, empty
   completion, delayed tools/results, the overall tool deadline, suspension and

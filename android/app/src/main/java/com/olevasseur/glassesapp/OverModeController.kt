@@ -44,7 +44,19 @@ class OverModeController(
     private var turn = 0L
     private var speechLogged = false
     private var lastActivityMs: Long? = null
+    private val finalSegments = mutableListOf<String>()
+    private var partial = ""
+    private var turnKeyword = "over"
+    fun transcript(): String {
+        val text = (finalSegments + partial).filter { it.isNotBlank() }.joinToString(" ").trim()
+        val suffix = turnKeyword.split(" ").joinToString("[\\p{P}\\s]+") { Regex.escape(it) }
+        return text.replace(Regex("(?i)(?<![\\p{L}\\p{N}])(?:over[\\p{P}\\s]+and[\\p{P}\\s]+out|$suffix)[\\p{P}\\s]*$"), "").trim()
+    }
     private val speech = createSpeech({ text, final ->
+        if (listening) {
+            if (final) { if (text.isNotBlank()) finalSegments += text.trim(); partial = "" }
+            else partial = text.trim()
+        }
         val end = detector?.transcript(text, final, clock())
         logFirstSpeech()
         if (end != null) finish(end)
@@ -60,6 +72,7 @@ class OverModeController(
     fun start(settings: ConversationSettings) {
         if (listening) return
         turnSettings = settings
+        finalSegments.clear(); partial = ""; turnKeyword = settings.keyword
         turn++; speechLogged = false; lastActivityMs = null
         detector = OverTurnDetector(settings.keyword, settings.overSilenceSeconds)
         transcriptionDetector = OverTurnDetector(settings.keyword, settings.overSilenceSeconds)

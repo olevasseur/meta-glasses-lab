@@ -52,6 +52,18 @@ class OfflineCapture(context: Context, scope: CoroutineScope, sessions: StateFlo
         if (!active) voice.stop()
     }
     fun backendUnavailable(message: String) { if (enabled) voice.say(message) }
+    fun stallFallback(receiptId: String, transcript: String): Boolean {
+        var saved = false
+        if (transcript.isNotBlank()) {
+            try {
+                outbox.captureStallFallback(receiptId, transcript)
+                saved = true
+                status("Unanswered turn saved on phone for Inbox; delivery pending")
+            } catch (_: Exception) { status("Unanswered turn could not be saved; please repeat it") }
+        }
+        voice.say(stallFallbackAnnouncement(saved), rateLimit = false)
+        return saved
+    }
     fun audio(pcm: ByteArray) { if (listening && !voice.speaking) speech.audio(pcm) }
     fun review() = outbox.review()
     fun sendPendingRecap() {

@@ -119,6 +119,43 @@ are explicitly marked already handled. Interrupted recaps remain pending until
 recovery. Utterances are limited to 2,000 characters; `remember` text over 500
 characters is deferred to Gemini instead of sent as an invalid tool request.
 
+## Over silent-stall recovery — 2026-10-17
+
+An unanswered Over audio turn now has one retry on a fresh context-restored Live
+session, signalled by one recovery cue without outage TTS. The phone keeps up to
+three minutes of exact sent PCM; replay uses 200 ms chunks every 10 ms, with a
+fresh eight-second no-progress deadline after activityEnd. No replay occurs once
+any transcription, model content or tool call has arrived. Auto/PTT, meetings,
+translation and tool deadlines retain their existing behavior.
+
+If replay also stalls, audio exceeds the cap or reconnection fails, the on-device
+transcript (final segments plus last partial, minus sign-off) becomes an explicit
+`stall_fallback` outbox item. It always appends `[Gemini didn't answer] …` to the
+existing Inbox through the unchanged `/tools` + `X-Offline-Id` receipt boundary.
+This item bypasses OfflineGrammar, including text starting with “remember”.
+Exceptionally long turns use stable per-part receipts within the backend's
+100,000-character append limit, preserving all captured text. Recaps remain bounded.
+
+Persistence precedes local TTS: “Gemini didn't answer. I saved what I heard to
+your inbox.” Empty recognition or failed local persistence instead asks the user
+to repeat. Delivery remains pending on the phone when the backend is unavailable;
+unknown external outcomes retain the existing needs-review behavior and are never
+repeated automatically. The fallback announcement is not suppressed by the
+ordinary once-per-minute outage limit. Both abandoned sockets reject late events.
+
+On hardware, force one silent turn and verify successful single replay, then two
+silent turns and verify the fallback phrase, one prefixed Inbox append, and a
+usable next turn. Restart the phone/app while delivery is pending, restore the
+backend and check the same receipt does not append twice. Also test missing local
+transcription, Stop, a call during recovery and a normal input-only 45-second wait.
+See [Over behavior](over.md#reply-recovery) and the
+[hardware checklist](../hardware-test-plan.md#over-stall-retry--2026-10-17).
+Validation for this change: backend **888 passed**; all Kotlin sources compiled
+and **65 focused JVM tests passed** using the cached compiler/JUnitCore. Gradle
+startup and 26 existing socket-based tests remain blocked by sandbox networking;
+see [Over verification](over.md#verification). No live Docs writes or hardware
+checks were performed.
+
 ## Validation, sources and remaining checks
 
 The backend suite passes **484 tests** (three existing dependency warnings);

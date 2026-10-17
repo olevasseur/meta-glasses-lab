@@ -8,6 +8,36 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class OverModeControllerTest {
+    @Test fun fallbackTranscriptJoinsFinalSegmentsAndLatestPartialWithoutSignOff() {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        lateinit var result: (String, Boolean) -> Unit
+        val controller = OverModeController(scope, { callback, _ ->
+            result = callback
+            object : OverSpeechInput {
+                override fun startOnDevice() = Unit
+                override fun audio(pcm: ByteArray) = Unit
+                override fun stop() = Unit
+            }
+        }, {}, {})
+        try {
+            controller.start(ConversationSettings(mode = ConversationMode.OVER))
+            result("Buy", false); result("Buy milk.", true)
+            result("And", false); result("And eggs, OVER!", false)
+            assertEquals("Buy milk. And eggs,", controller.transcript())
+            controller.pause()
+            result("model echo", true)
+            assertEquals("Buy milk. And eggs,", controller.transcript())
+            controller.stop()
+            assertEquals("Buy milk. And eggs,", controller.transcript())
+            controller.start(ConversationSettings(mode = ConversationMode.OVER, keyword = "go ahead"))
+            assertEquals("", controller.transcript())
+            result("Keep the clover. Go", true); result("ahead!", false)
+            assertEquals("Keep the clover.", controller.transcript())
+            result("ahead!", true)
+            assertEquals("Keep the clover.", controller.transcript())
+        } finally { controller.stop(); scope.cancel() }
+    }
+
     @Test fun partialSpeechArmsSilenceAndLogsTimesWithoutTranscriptContent() {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         var now = 0L

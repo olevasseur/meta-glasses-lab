@@ -59,8 +59,9 @@ class GeminiSessionTest {
     private class Fixture(scope: CoroutineScope, local: suspend (FunctionCall) -> ToolResult = { ToolResult(JSONObject()) },
         action: (GeminiSession) -> Unit = {}, canAnnounce: () -> Boolean = { true },
         event: (ServerEvent) -> Unit = {}, clock: () -> Long = { 0L },
-        intercept: (Request) -> Unit = {}, end: (GeminiSession) -> Unit = {}) : Closeable {
+        intercept: (Request) -> Unit = {}, transcript: () -> String = { "" }, end: (GeminiSession) -> Unit = {}) : Closeable {
         val reopens = mutableListOf<String>()
+        val fallbacks = mutableListOf<Pair<String, String>>()
         var ended = 0
         var recoveredReplies = 0
         val audio = Audio()
@@ -84,6 +85,7 @@ class GeminiSessionTest {
             onClientTool = { _, _ -> action(sessionRef()) }, onEvent = event,
             canAnnounce = canAnnounce, onRecoveredReply = { recoveredReplies++ },
             onOverTurnReopen = { reopens += it; sessionRef().setTalking(true) },
+            overTranscript = transcript, onStallFallback = { id, text -> fallbacks += id to text; text.isNotBlank() },
             elapsedMs = clock, retryDelay = { 1L },
             sockets = WebSocket.Factory { request, listener -> Socket(request, listener).also { created.trySend(it) } })
         private fun sessionRef() = session
@@ -237,12 +239,17 @@ class GeminiSessionTest {
         }
     }
 
-    @Test fun overNoServerEventsReopensAfterEightSecondsAndResumesPcm() = runBlocking {
+    @Test fun pureStallRetriesExactPcmOnceOnFreshSocketWithContextAndIgnoresOldEvents() = runBlocking {
         var now = 0L
+        val cursor = DiagnosticLog.ring.after(0, 500).lastOrNull()?.sequence ?: 0
         Fixture(this, clock = { now }).use { f ->
             val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            socket.receive("""{"serverContent":{"inputTranscription":{"text":"earlier topic"},"turnComplete":true}}""")
+            socket.receive("""{"sessionResumptionUpdate":{"resumable":true,"newHandle":"abandoned"}}"""); yield()
+            f.reopens.clear()
             f.session.setTalking(true)
-            f.session.sendAudio(ByteArray(640))
+            val pcm = ByteArray(12_802) { it.toByte() }
+            f.session.sendAudio(pcm)
             f.session.setTalking(false)
             val afterEnd = socket.sent.size
             f.session.sendAudio(ByteArray(640))
@@ -251,14 +258,172 @@ class GeminiSessionTest {
             kotlinx.coroutines.delay(120)
             assertTrue(f.reopens.isEmpty())
             now = 8_000
-            withTimeout(1_000) { while (f.reopens.isEmpty()) kotlinx.coroutines.delay(10) }
+            val retry = f.nextSocket()
+            assertTrue(socket.cancelled)
+            assertFalse(retry.sent.first().contains("abandoned"))
+            assertTrue(f.tokenRequests.last().getString("reconnect_context").contains("earlier topic"))
+            f.session.setTalking(true) // Ready/UI callbacks cannot open a new user turn during replay.
+            withTimeout(1_000) { while (retry.sent.none { it.contains("activityEnd") }) kotlinx.coroutines.delay(1) }
+            assertEquals(1, retry.sent.count { it.contains("activityStart") })
+            val chunks = retry.sent.filter { it.contains("audio/pcm") }.map {
+                java.util.Base64.getDecoder().decode(JSONObject(it).getJSONObject("realtimeInput").getJSONObject("audio").getString("data"))
+            }
+            assertEquals(listOf(6400, 6400, 2), chunks.map { it.size })
+            assertArrayEquals(pcm, chunks.fold(ByteArray(0)) { all, chunk -> all + chunk })
+            socket.receive(tool(name = "append_to_doc")); socket.receive(audioMessage)
+            socket.receive("""{"serverContent":{"inputTranscription":{"text":"late private speech"},"turnComplete":true}}""")
+            socket.listener.onFailure(socket, java.io.IOException("late"), null)
+            yield()
+            assertTrue(f.audio.chunks.isEmpty())
+            assertEquals(0, f.backendCalls.get())
+            retry.receive(tool(name = "append_to_doc")); yield()
+            withTimeout(1_000) { while (f.backendCalls.get() == 0) kotlinx.coroutines.delay(1) }
+            assertEquals(1, f.backendCalls.get())
+            assertEquals(1, f.recoveredReplies)
+            assertFalse(f.session.stallRecovering)
+            assertTrue(f.fallbacks.isEmpty())
+            val logs = DiagnosticLog.ring.after(cursor).map { it.event }
+            assertTrue(logs.any { it.contains("stall_retry started bytes=12802") })
+            assertTrue(logs.any { it.contains("stall_retry outcome=ok latency_ms=") })
+            assertFalse(logs.any { it.contains("late private speech") })
+        }
+    }
+
+    @Test fun secondPureStallFallsBackOnceAndRetiresRetrySocket() = runBlocking {
+        var now = 0L
+        Fixture(this, clock = { now }, transcript = { "buy milk" }).use { f ->
+            f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            f.session.setTalking(true); f.session.sendAudio(ByteArray(640)); f.session.setTalking(false)
+            now = 8_000
+            val retry = f.nextSocket()
+            withTimeout(1_000) { while (retry.sent.none { it.contains("activityEnd") }) kotlinx.coroutines.delay(1) }
+            now = 16_000
+            withTimeout(1_000) { while (f.fallbacks.isEmpty()) kotlinx.coroutines.delay(1) }
+            assertEquals("buy milk", f.fallbacks.single().second)
+            assertEquals(listOf("stall_fallback"), f.reopens)
+            assertTrue(retry.cancelled)
+            retry.receive(tool(name = "append_to_doc")); yield()
+            assertEquals(0, f.backendCalls.get())
+            val next = f.nextSocket()
+            assertFalse(next.sent.any { it.contains("audio/pcm") })
+            assertEquals(1, f.recoveredReplies)
+            now = 100_000; kotlinx.coroutines.delay(120)
+            assertEquals(1, f.fallbacks.size)
+        }
+    }
+
+    @Test fun nonReplayableTurnAndFailedReconnectSaveTranscriptWithoutAnotherReplay() = runBlocking {
+        for (overflow in listOf(false, true)) {
+            var now = 0L
+            Fixture(this, clock = { now }, transcript = { "save this thought" }).use { f ->
+                f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+                f.session.setTalking(true)
+                f.session.sendAudio(ByteArray(if (overflow) 5_760_002 else 640))
+                f.session.setTalking(false)
+                now = 8_000
+                if (!overflow) {
+                    val retry = f.nextSocket(completeSetup = false)
+                    retry.listener.onFailure(retry, java.io.IOException("failed reconnect"), null)
+                }
+                withTimeout(1_000) { while (f.fallbacks.isEmpty()) kotlinx.coroutines.delay(1) }
+                assertEquals("save this thought", f.fallbacks.single().second)
+                val next = f.nextSocket()
+                assertFalse(next.sent.any { it.contains("audio/pcm") })
+                assertEquals(if (overflow) 0 else 1, f.recoveredReplies)
+            }
+        }
+    }
+
+    @Test fun retryTranscriptKeepsFortyFiveSecondWaitAndNeverFallsBack() = runBlocking {
+        var now = 0L
+        Fixture(this, clock = { now }).use { f ->
+            f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            f.session.setTalking(true); f.session.sendAudio(ByteArray(640)); f.session.setTalking(false)
+            now = 8_000
+            val retry = f.nextSocket()
+            withTimeout(1_000) { while (retry.sent.none { it.contains("activityEnd") }) kotlinx.coroutines.delay(1) }
+            retry.receive("""{"serverContent":{"inputTranscription":{"text":"heard on retry"}}}"""); yield()
+            now = 16_000; kotlinx.coroutines.delay(120)
+            assertTrue(f.reopens.isEmpty())
+            now = 53_000
+            withTimeout(1_000) { while (f.reopens.isEmpty()) kotlinx.coroutines.delay(1) }
             assertEquals(listOf("no_reply_watchdog"), f.reopens)
-            assertTrue(socket.sent.last().contains("activityStart"))
-            f.session.sendAudio(ByteArray(640))
-            assertTrue(socket.sent.last().contains("audio"))
-            now = 100_000
-            kotlinx.coroutines.delay(120)
-            assertEquals(1, f.reopens.size)
+            assertTrue(f.fallbacks.isEmpty())
+            assertFalse(retry.cancelled)
+        }
+    }
+
+    @Test fun stopCancelsReplayAndSuspensionDefersItUntilResume() = runBlocking {
+        for (stop in listOf(false, true)) {
+            var now = 0L
+            Fixture(this, clock = { now }).use { f ->
+                f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+                f.session.setTalking(true); f.session.sendAudio(ByteArray(12_800)); f.session.setTalking(false)
+                now = 8_000
+                val retry = f.nextSocket(completeSetup = false)
+                f.session.suspendAudio(true)
+                retry.receive("""{"setupComplete":{}}"""); yield()
+                kotlinx.coroutines.delay(120)
+                assertFalse(retry.sent.any { it.contains("activityStart") })
+                if (stop) f.session.stop() else f.session.suspendAudio(false)
+                if (stop) {
+                    kotlinx.coroutines.delay(120)
+                    assertFalse(retry.sent.any { it.contains("activityStart") })
+                    assertTrue(f.fallbacks.isEmpty())
+                    assertTrue(retry.cancelled)
+                } else {
+                    withTimeout(1_000) { while (retry.sent.none { it.contains("activityEnd") }) kotlinx.coroutines.delay(1) }
+                    assertEquals(2, retry.sent.count { it.contains("audio/pcm") })
+                }
+            }
+        }
+    }
+
+    @Test fun malformedRetrySetupSavesEmptyTranscriptInsteadOfDroppingTurn() = runBlocking {
+        var now = 0L
+        Fixture(this, clock = { now }).use { f ->
+            f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            f.session.setTalking(true); f.session.sendAudio(ByteArray(640)); f.session.setTalking(false)
+            now = 8_000
+            val retry = f.nextSocket(completeSetup = false)
+            retry.receive("invalid json"); yield()
+            assertEquals("", f.fallbacks.single().second)
+            assertEquals(listOf("stall_fallback"), f.reopens)
+            assertTrue(f.errors.isEmpty())
+        }
+    }
+
+    @Test fun progressBeforeActivityEndAlsoPreventsRetry() = runBlocking {
+        var now = 0L
+        Fixture(this, clock = { now }).use { f ->
+            val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            f.session.setTalking(true); f.session.sendAudio(ByteArray(640))
+            socket.receive("""{"serverContent":{"inputTranscription":{"text":"heard early"}}}"""); yield()
+            f.session.setTalking(false)
+            now = 45_000
+            withTimeout(1_000) { while (f.reopens.isEmpty()) kotlinx.coroutines.delay(1) }
+            assertFalse(socket.cancelled)
+            assertTrue(f.fallbacks.isEmpty())
+            assertEquals(0, f.recoveredReplies)
+        }
+    }
+
+    @Test fun autoPttMeetingAndTranslatorNeverReplayOrSaveStalls() = runBlocking {
+        for ((settings, meeting) in listOf(
+            ConversationSettings(mode = ConversationMode.AUTO) to false,
+            ConversationSettings(mode = ConversationMode.PTT) to false,
+            ConversationSettings(mode = ConversationMode.OVER) to true,
+            ConversationSettings(mode = ConversationMode.OVER, translationLanguage = "fr") to false,
+        )) {
+            var now = 0L
+            Fixture(this, clock = { now }).use { f ->
+                val socket = f.connected(settings = settings, meeting = meeting)
+                f.session.setTalking(true); f.session.sendAudio(ByteArray(640)); f.session.setTalking(false)
+                now = 100_000; kotlinx.coroutines.delay(120)
+                assertFalse(socket.cancelled)
+                assertTrue(f.fallbacks.isEmpty())
+                assertEquals(0, f.recoveredReplies)
+            }
         }
     }
 

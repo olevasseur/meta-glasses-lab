@@ -227,6 +227,8 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             }
             beginOverTurn()
         },
+        overTranscript = { over.transcript() },
+        onStallFallback = { id, text -> offline.stallFallback(id, text) },
         onTalking = { value ->
             if (!value) { screenTalking = false; glassesTalking = false }
             mutableState.update { it.copy(talking = value) }
@@ -654,7 +656,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     }
     private fun beginOverTurn() {
         if (state.value.meeting || !state.value.running || state.value.stopping || !state.value.connected ||
-            !state.value.handsFree.shouldRun || !audioReady || overAwaitingReply || voiceStop.pending ||
+            !state.value.handsFree.shouldRun || !audioReady || overAwaitingReply || gemini.stallRecovering || voiceStop.pending ||
             state.value.settings.mode != ConversationMode.OVER) return
         if (offline.speaking) {
             overResumeJob?.cancel()

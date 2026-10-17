@@ -9,6 +9,8 @@ internal class OverReplyWatchdog {
     private var startedMs = 0L
     private var deadlineMs = 0L
     private var replyContent = false
+    var progress = false
+        private set
 
     fun begin(nowMs: Long) {
         reset()
@@ -21,6 +23,7 @@ internal class OverReplyWatchdog {
         // Tools can follow app-generated text or arrive without an activityEnd.
         if (!waiting && event.calls.isNotEmpty()) begin(nowMs)
         if (!waiting) return null
+        if (event.overProgress()) progress = true
         val newCalls = event.calls.map { it.id }.filter { it !in calls }
         if (newCalls.isNotEmpty()) {
             if (pendingCalls.isEmpty()) deadlineMs = nowMs + 45_000
@@ -62,5 +65,6 @@ internal class OverReplyWatchdog {
         waiting = false
         calls.clear(); pendingCalls.clear()
         replyContent = false
+        progress = false
     }
 }
