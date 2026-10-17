@@ -117,3 +117,4 @@ All research done 2026-10-06 by parallel subagents. Re-verify anything marked **
 - [study-mode.md](study-mode.md) — **2026-10-10**: single-Doc study, heading/tab parsing, revision cache, local BM25, passage concepts and durable Leitner practice; corrected tabs-only fixtures, stable paragraph IDs, unlocked fetching, smart-chip fields and local-midnight scheduling; no extra inference calls.
 
 - [Silent page capture](page-capture.md) — **2026-10-16**: installed SHORT_PRESS enum, non-Live structured extraction, existing-Doc plain-text append, durable receipts/dedup, image retention boundary and hardware uncertainties.
+- [Gemini Live stalls after activityEnd](gemini-live-stalls.md) — 2026-10-17 A/B: service-side silent/slow turns at ~5–10%, independent of our config.
