@@ -22,6 +22,15 @@ handwritten notes without speaking or opening a Gemini Live conversation.
    a failure reason; a separate empty-result cue accompanies **Nothing highlighted found**.
    Nothing is read aloud by TTS or sent to Live for spoken confirmation.
 
+**Stop keeps the button (2026-10-19).** While this setting is on, the Talk screen and
+notification **Stop** end only the conversation; glasses controls stay armed so the
+next short press still captures a page instead of going to Meta AI. The idle timeout
+is at least 60 minutes while no conversation runs (each capture counts as activity).
+Tap **Release glasses to Meta AI** on the Talk screen, Stop in the notification
+again, or **Stop service and glasses controls** in Settings to give the button back.
+Swiping the app away also releases it. Before this, every Stop released the button,
+so presses between notes went to Meta AI and nothing reached the backend.
+
 Pending device approval consumes any capture press first, including HOLD. Otherwise
 only DAT `SHORT_PRESS` captures a page; `DOUBLE_PRESS` remains unclaimed and HOLD
 retains conversation start/stop. Turning this setting off preserves existing feedback.

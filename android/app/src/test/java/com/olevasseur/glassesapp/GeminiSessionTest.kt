@@ -334,7 +334,7 @@ class GeminiSessionTest {
         }
     }
 
-    @Test fun retryTranscriptKeepsFortyFiveSecondWaitAndNeverFallsBack() = runBlocking {
+    @Test fun retryTranscriptAloneFallsBackWithGeminiTextAfterTenSeconds() = runBlocking {
         var now = 0L
         Fixture(this, clock = { now }).use { f ->
             f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
@@ -345,11 +345,12 @@ class GeminiSessionTest {
             retry.receive("""{"serverContent":{"inputTranscription":{"text":"heard on retry"}}}"""); yield()
             now = 16_000; kotlinx.coroutines.delay(120)
             assertTrue(f.reopens.isEmpty())
-            now = 53_000
+            // 2026-10-19: Gemini transcribed the note, then never replied or called a tool.
+            now = 18_100
             withTimeout(1_000) { while (f.reopens.isEmpty()) kotlinx.coroutines.delay(1) }
-            assertEquals(listOf("no_reply_watchdog"), f.reopens)
-            assertTrue(f.fallbacks.isEmpty())
-            assertFalse(retry.cancelled)
+            assertEquals(listOf("stall_fallback"), f.reopens)
+            assertEquals("heard on retry", f.fallbacks.single().second)
+            assertTrue(retry.cancelled)
         }
     }
 
@@ -398,13 +399,27 @@ class GeminiSessionTest {
         Fixture(this, clock = { now }).use { f ->
             val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
             f.session.setTalking(true); f.session.sendAudio(ByteArray(640))
-            socket.receive("""{"serverContent":{"inputTranscription":{"text":"heard early"}}}"""); yield()
+            socket.receive("""{"serverContent":{"outputTranscription":{"text":"replying early"}}}"""); yield()
             f.session.setTalking(false)
             now = 45_000
             withTimeout(1_000) { while (f.reopens.isEmpty()) kotlinx.coroutines.delay(1) }
             assertFalse(socket.cancelled)
             assertTrue(f.fallbacks.isEmpty())
             assertEquals(0, f.recoveredReplies)
+        }
+    }
+
+    @Test fun earlyTranscriptAloneIsNotProgressAndStillRetries() = runBlocking {
+        var now = 0L
+        Fixture(this, clock = { now }).use { f ->
+            val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            f.session.setTalking(true); f.session.sendAudio(ByteArray(640))
+            socket.receive("""{"serverContent":{"inputTranscription":{"text":"heard early"}}}"""); yield()
+            f.session.setTalking(false)
+            now = 8_000
+            withTimeout(1_000) { while (!socket.cancelled) kotlinx.coroutines.delay(1) }
+            assertTrue(f.reopens.isEmpty())
+            assertEquals(1, f.recoveredReplies)
         }
     }
 
@@ -427,14 +442,27 @@ class GeminiSessionTest {
         }
     }
 
-    @Test fun emptyCompleteReopensImmediatelyButInputTranscriptIsNotAReply() = runBlocking {
+    @Test fun emptyCompleteWithoutSpeechReopensImmediately() = runBlocking {
         Fixture(this).use { f ->
             val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
-            f.session.setTalking(true); f.session.setTalking(false)
-            socket.receive("""{"serverContent":{"inputTranscription":{"text":"heard"},"turnComplete":true}}""")
+            f.session.setTalking(true); f.session.sendAudio(ByteArray(640)); f.session.setTalking(false)
+            socket.receive("""{"serverContent":{"turnComplete":true}}""")
             yield()
             assertEquals(listOf("empty_turn_complete"), f.reopens)
             assertTrue(socket.sent.last().contains("activityStart"))
+            assertEquals(0, f.ended)
+        }
+    }
+
+    @Test fun emptyCompleteAfterHeardSpeechRetriesInsteadOfDroppingTurn() = runBlocking {
+        Fixture(this).use { f ->
+            val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
+            f.session.setTalking(true); f.session.sendAudio(ByteArray(640)); f.session.setTalking(false)
+            socket.receive("""{"serverContent":{"inputTranscription":{"text":"heard"},"turnComplete":true}}""")
+            yield()
+            assertTrue(f.reopens.isEmpty())
+            assertTrue(socket.cancelled)
+            assertEquals(1, f.recoveredReplies)
             assertEquals(0, f.ended)
         }
     }
@@ -514,7 +542,7 @@ class GeminiSessionTest {
         var now = 0L
         Fixture(this, clock = { now }).use { f ->
             val socket = f.connected(settings = ConversationSettings(mode = ConversationMode.OVER))
-            f.session.setTalking(true); f.session.setTalking(false)
+            f.session.setTalking(true); f.session.sendAudio(ByteArray(640)); f.session.setTalking(false)
             socket.receive("""{"serverContent":{"inputTranscription":{"text":"heard"}}}"""); yield()
             now = 8_000
             kotlinx.coroutines.delay(120)
@@ -524,8 +552,9 @@ class GeminiSessionTest {
             kotlinx.coroutines.delay(120)
             assertTrue(f.reopens.isEmpty())
             f.session.suspendAudio(false)
-            withTimeout(1_000) { while (f.reopens.isEmpty()) kotlinx.coroutines.delay(10) }
-            assertEquals(listOf("no_reply_watchdog"), f.reopens)
+            // Heard but never answered: recover through the stall retry, not a silent reopen.
+            withTimeout(1_000) { while (!socket.cancelled) kotlinx.coroutines.delay(10) }
+            assertTrue(f.reopens.isEmpty())
         }
     }
 

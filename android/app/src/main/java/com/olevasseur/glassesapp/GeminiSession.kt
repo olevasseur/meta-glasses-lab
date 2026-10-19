@@ -168,7 +168,10 @@ class GeminiSession(
             }
             val generation = try { synchronized(sendLock) {
                 if (webSocket !== socket || !active) return
-                if (event.overProgress()) overTurn?.progress = true
+                overTurn?.let { turn ->
+                    if (event.overProgress()) turn.progress = true
+                    event.inputText?.let { turn.heard += it }
+                }
                 trace(event)
                 if (event.interrupted) {
                     audio.flush()
@@ -240,10 +243,14 @@ class GeminiSession(
             it.id !in cancelledCalls && (overReply.waiting || it.id !in responses)
         })
         val reopenReason = overReply.event(replyEvent, elapsedMs())
+        // Gemini heard speech but completed the turn without a reply or tool: same as a stall.
+        val emptyStall = reopenReason == "empty_turn_complete" && stallRetryAllowed && synchronized(sendLock) {
+            overTurn?.let { !it.progress && it.heard.isNotBlank() } == true
+        }
         if (stallRecovering && !replaySending && event.overProgress()) finishStallRetry("ok")
         if (event.calls.isNotEmpty()) ensureOverReplyJob()
         val waitingForToolReply = overReply.waiting && event.turnComplete
-        if (stallRecovering && ((event.turnComplete && !waitingForToolReply) || event.interrupted)) {
+        if (stallRecovering && !emptyStall && ((event.turnComplete && !waitingForToolReply) || event.interrupted)) {
             stallJob?.cancel(); replaySending = false
             finishStallRetry("ok")
         }
@@ -357,6 +364,7 @@ class GeminiSession(
         }
         if (event.turnComplete && !replayingWake) meetingGate.endTurn()
         if (event.goAway) reconnect("Gemini is renewing the connection")
+        else if (emptyStall) recoverOverStall()
         else if (reopenReason != null) reopenOverTurn(reopenReason)
     }
 
@@ -675,7 +683,7 @@ class GeminiSession(
         stallJob?.cancel(); stallJob = null; replaySending = false
         reconnectJob?.cancel(); setupTimeout?.cancel()
         if (outcome != null) finishStallRetry(outcome)
-        val saved = onStallFallback(turn.receiptId, turn.transcript)
+        val saved = onStallFallback(turn.receiptId, turn.fallbackText())
         DiagnosticLog.add("over", "turn=$diagnosticTurn stall_fallback saved=${if (saved) "inbox" else "empty"}")
         synchronized(sendLock) { overTurn = null }
         stallRecovering = false

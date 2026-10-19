@@ -97,7 +97,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
                 delay(1_000)
                 if (controls.shouldRun && (model.workout.state.value.active || model.state.value.meeting ||
                     model.state.value.visualCapturing || (model.state.value.running && !model.state.value.connected))) activity()
-                if (controls.expired(now(), model.state.value.idleMinutes * 60_000L)) stopAll()
+                if (controls.expired(now(), idleTimeoutMs())) stopAll()
             }
         }
     }
@@ -105,7 +105,7 @@ class ConversationService : Service(), ViewModelStoreOwner {
     override fun onBind(intent: Intent) = LocalBinder()
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            STOP -> stopAll()
+            STOP -> stopConversation()
             MODE -> if (controls.armed) setMode(controls.toggleMode(now()).mode)
             INPUT -> if (controls.armed) {
                 if (controls.ptt && model.state.value.talking) { model.finishTalking(); activity() }
@@ -213,6 +213,24 @@ class ConversationService : Service(), ViewModelStoreOwner {
             update(controls.captureHold(now()))
             activity()
         }
+    }
+
+    /** Silent page capture keeps the capture button claimed after a conversation ends. */
+    private val keepControls get() = model.state.value.settings.silentPageCapture
+
+    private fun idleTimeoutMs(): Long {
+        val minutes = model.state.value.idleMinutes
+        // Reading sessions go minutes between pages; a press counts as activity.
+        return (if (keepControls && !controls.conversation) maxOf(minutes, 60) else minutes) * 60_000L
+    }
+
+    /** Stop ends the conversation; with page capture on, a second Stop releases the glasses. */
+    fun stopConversation() {
+        if (keepControls && controls.conversation && !model.state.value.meeting) {
+            if (controls.shouldRun && hasFocus) chime(false)
+            endConversation()
+            activity()
+        } else stopAll()
     }
 
     fun endConversation() {
@@ -324,7 +342,9 @@ class ConversationService : Service(), ViewModelStoreOwner {
         val state = model.state.value
         val status = when {
             controls.pauses.isNotEmpty() && controls.conversation -> "Paused: ${controls.pauses.joinToString()}. Open to resume."
-            !controls.conversation -> if (controls.inputsAvailable) "Glasses controls ready · hold capture to start" else "Open app to start"
+            !controls.conversation -> if (!controls.inputsAvailable) "Open app to start"
+                else if (keepControls) "Page capture ready · press capture for a page, hold to talk · Stop releases glasses"
+                else "Glasses controls ready · hold capture to start"
             state.meeting -> "Meeting capture · ${state.gemini} · say ${state.settings.meetingWakePhrase}"
             !state.connected -> state.gemini
             controls.muted -> "Microphone muted · double-tap to unmute"

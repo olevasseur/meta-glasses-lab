@@ -36,7 +36,8 @@ internal class OverReplyWatchdog {
         if (pendingCalls.isEmpty()) {
             if (event.audio.any { it.isNotEmpty() } || !event.outputText.isNullOrBlank()) replyContent = true
             if (content) deadlineMs = nowMs + 45_000 // Healthy long replies can keep streaming.
-            else if (!event.inputText.isNullOrBlank()) deadlineMs = startedMs + 45_000
+            // Heard but not acted on yet: allow a little longer, then treat it as a stall.
+            else if (!event.inputText.isNullOrBlank()) deadlineMs = maxOf(deadlineMs, startedMs + 10_000)
         }
         if (event.interrupted) { reset(); return null }
         if (event.turnComplete && pendingCalls.isEmpty()) {

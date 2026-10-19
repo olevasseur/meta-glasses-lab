@@ -57,7 +57,7 @@ fun TalkScreen(state: ConversationState, model: ConversationViewModel, approval:
             ModeSelector(state.settings.mode, !state.meeting && !state.stopping && state.settingsLoaded, model::changeMode)
         }
         Button(
-            onClick = { if (state.handsFree.conversation && state.handsFree.pauses.isEmpty()) model.stop() else model.start() },
+            onClick = { if (state.handsFree.conversation && state.handsFree.pauses.isEmpty()) model.stopConversation() else model.start() },
             enabled = !state.stopping && state.permissions && state.settingsLoaded,
             modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).testTag(UiTags.START_STOP),
         ) {
@@ -65,6 +65,11 @@ fun TalkScreen(state: ConversationState, model: ConversationViewModel, approval:
                 else if (state.handsFree.conversation) "Stop" else "Start", style = MaterialTheme.typography.titleLarge)
         }
         if (approval == null) {
+            if (state.settings.silentPageCapture && state.handsFree.armed && !state.handsFree.conversation) {
+                Text(if (state.handsFree.inputsAvailable) "Page capture ready: press the glasses capture button to save a page."
+                    else "Page capture waiting for the glasses…")
+                TextButton(onClick = model::stop) { Text("Release glasses to Meta AI") }
+            }
             if (!state.permissions) TextButton(onClick = setup) { Text("Set up microphone access") }
             if (state.handsFree.pauses.isNotEmpty() && state.handsFree.conversation)
                 Text("Paused: ${state.handsFree.pauses.joinToString()}", color = MaterialTheme.colorScheme.error)

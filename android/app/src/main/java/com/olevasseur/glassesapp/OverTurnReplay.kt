@@ -13,6 +13,13 @@ internal class OverTurnReplay(private val cap: Int = 5_760_000) {
     var progress = false
     var retryStartedMs: Long? = null
     var transcript = ""
+    /** Gemini's own inputTranscription for the current attempt; better than on-device text. */
+    var heard = ""
+    private var heardBefore = ""
+
+    /** Best text to save when Gemini never acts: Gemini's transcript, else on-device speech. */
+    fun fallbackText(): String = listOf(heard, heardBefore, transcript)
+        .map { it.withoutSignOff() }.firstOrNull { it.isNotBlank() }.orEmpty()
 
     fun append(bytes: ByteArray) {
         if (!replayable) return
@@ -32,12 +39,18 @@ internal class OverTurnReplay(private val cap: Int = 5_760_000) {
     fun beginRetry(nowMs: Long): Boolean {
         if (progress || !replayable || size == 0 || retryStartedMs != null) return false
         retryStartedMs = nowMs
+        if (heard.isNotBlank()) heardBefore = heard
+        heard = ""
         return true
     }
 }
 
-internal fun ServerEvent.overProgress(): Boolean = inputText != null || modelContent ||
+/** Gemini acted on the turn. A transcript alone is not progress: it can arrive and then nothing. */
+internal fun ServerEvent.overProgress(): Boolean = modelContent ||
     outputText != null || audio.isNotEmpty() || calls.isNotEmpty()
+
+private val trailingSignOff = Regex("""(?i)[\s,]*\bover[\s.!]*$""")
+internal fun String.withoutSignOff() = replace(trailingSignOff, "").trim()
 
 internal fun stallFallbackAnnouncement(saved: Boolean) = if (saved)
     "Gemini didn't answer. I saved what I heard to your inbox."
