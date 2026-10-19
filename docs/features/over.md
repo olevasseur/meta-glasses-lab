@@ -102,11 +102,14 @@ wearer speech still need hardware checks. Other features retain 700/450.
 ## Reply recovery
 
 After `activityEnd`, Over waits at most **8 seconds without a relevant event**
-(input transcription, model content, tool call or completion). With input-only
-progress it allows up to **45 seconds from End** for a reply. Active model output
-refreshes a 45-second stall deadline; this imposes no user speaking limit.
-A **pure stall** (no input transcription, model content or tool call for this
-turn) now retries once instead of discarding the request. The phone retains the
+(model content, tool call or completion). When only input transcription has arrived
+it allows **10 seconds from End**. Active model output refreshes a 45-second
+deadline; this imposes no user speaking limit.
+A **stall** (no model content or tool call for this turn, whether or not Gemini
+sent an input transcription) retries once instead of discarding the request.
+Updated **2026-10-19**: hardware logs showed Gemini transcribing a note and then
+never replying, three times in a row; a replay of the same speech reproduced it in
+1 of 8 attempts. Input transcription therefore no longer counts as progress. The phone retains the
 exact PCM accepted by the socket between activityStart/activityEnd, up to **3
 minutes / 5.76 MB**. Exceeding this cap disables replay for that turn; it does not
 end speech or replay truncated audio. Local final recognition segments plus the
@@ -119,8 +122,9 @@ PCM chunks every 10 ms**, then activityEnd and a fresh 8-second watchdog. Keep
 microphone uplink and recognition paused throughout replay. All old-socket events,
 including already queued callbacks, are ignored before tool execution.
 
-If the retry also has a pure stall, the audio cannot be replayed, or reconnect/
-replay fails, atomically queue the on-device text for **Inbox**, prefixed
+If the retry also stalls, the audio cannot be replayed, or reconnect/
+replay fails, atomically queue Gemini's own input transcription (else the
+on-device text), sign-off removed, for **Inbox**, prefixed
 `[Gemini didn't answer] `. The stable receipt uses the existing offline delivery
 path; it never grammar-parses this item into a different command. Local TTS says
 **“Gemini didn't answer. I saved what I heard to your inbox.”** If there is no
@@ -131,9 +135,10 @@ can remain pending while the backend is unavailable. Inbox must already exist.
 The failed retry socket is retired too, preventing a late tool from executing
 after fallback. Connection setup has a 25-second overall recovery budget.
 
-Any received transcript/content/tool excludes automatic replay and fallback;
+Any received model content or tool call excludes automatic replay and fallback;
 existing 45-second and tool watchdog handling remains. An empty non-tool
-`turnComplete` still immediately reopens silently. Auto, PTT, meeting and
+`turnComplete` after Gemini transcribed speech is treated as a stall (retry, then
+Inbox); without any transcribed speech it still reopens silently. Auto, PTT, meeting and
 translator behavior is unchanged. Stop cancels replay; audio suspension pauses
 replay and defers fallback speech until resume.
 

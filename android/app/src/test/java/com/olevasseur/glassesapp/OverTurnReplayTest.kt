@@ -35,4 +35,17 @@ class OverTurnReplayTest {
         assertEquals("Gemini didn't answer. Please say that again.", stallFallbackAnnouncement(false))
         assertEquals("Gemini didn't answer. I saved what I heard to your inbox.", stallFallbackAnnouncement(true))
     }
+
+    @Test fun fallbackPrefersGeminiTranscriptAndStripsSignOff() {
+        val turn = OverTurnReplay().apply { append(byteArrayOf(1, 2)); transcript = "add a note on device" }
+        assertEquals("add a note on device", turn.fallbackText())
+        turn.heard = "Add a note to Fast and Slow. Gilbert says belief comes first. Over."
+        assertEquals("Add a note to Fast and Slow. Gilbert says belief comes first.", turn.fallbackText())
+        assertTrue(turn.beginRetry(8_000))
+        assertEquals("", turn.heard)
+        assertEquals("Add a note to Fast and Slow. Gilbert says belief comes first.", turn.fallbackText())
+        assertEquals("The game is over.", "The game is over. Over.".withoutSignOff())
+        assertFalse(ServerEvent(inputText = "heard").overProgress())
+        assertTrue(ServerEvent(calls = listOf(FunctionCall("1", "append_to_doc", org.json.JSONObject()))).overProgress())
+    }
 }

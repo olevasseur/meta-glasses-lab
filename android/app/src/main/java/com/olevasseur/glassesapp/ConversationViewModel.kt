@@ -538,6 +538,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
     fun toggleInput() { service?.toggleInput() }
     fun start() { service?.startConversation() }
     fun stop() { service?.stopAll() }
+    fun stopConversation() { service?.stopConversation() }
     fun setTranslation(language: String?) {
         if (!canChangeTranslation()) return
         require(language == null || language in Translation.languages)
@@ -848,7 +849,8 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             try { backend.visualStatus(false) } catch (_: Exception) { /* Status expires if offline. */ }
             memory.flush()
             workout.flush()
-            http.dispatcher.executorService.shutdown(); http.connectionPool.evictAll()
+            // Closing TLS sockets writes to the network; never on the main thread.
+            withContext(Dispatchers.IO) { http.dispatcher.executorService.shutdown(); http.connectionPool.evictAll() }
             cleanup.cancel()
         }
         super.onCleared()
