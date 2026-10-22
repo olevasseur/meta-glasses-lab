@@ -20,11 +20,11 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from gemini_resilience import generate_content, models
 from jpeg_images import decode_jpeg
 from meeting_summary import response_schema
-from memory_summary import DEFAULT_SUMMARY_MODEL
 from photos import MAX_BYTES, MAX_PIXELS
 from usage import meter
 
 router = APIRouter()
+PAGE_MODEL = "gemini-2.5-flash"
 DEDUP_SECONDS = 7 * 24 * 60 * 60
 Text = Annotated[str, Field(min_length=1, max_length=4000)]
 
@@ -65,7 +65,9 @@ Do not invent a title, page number, highlight, note or anchor. No tools or actio
 
 
 def extract_page(jpeg: bytes) -> PageExtraction:
-    model = os.getenv("GEMINI_PAGE_MODEL") or DEFAULT_SUMMARY_MODEL
+    # 2026-10-22: flash-lite took 20-65 s on page images (past the 20 s deadline);
+    # 2.5 Flash answered the same image in ~2 s. Text models remain the fallback.
+    model = os.getenv("GEMINI_PAGE_MODEL") or PAGE_MODEL
     report = meter.snapshot()
     candidates = models("TEXT", model)
     if (any(report["today"][k] >= report["soft_caps"][k] for k in ("text_calls", "total_tokens")) or
