@@ -79,7 +79,7 @@ Unknown query fields, invalid JPEGs and naive timestamps are rejected.
 
 Non-Live Gemini `generateContent` uses the same bounded retries, model fallback,
 structured-schema validation and usage metering as meeting summaries. Optional
-`GEMINI_PAGE_MODEL` selects the preferred model (default summary model); the existing
+`GEMINI_PAGE_MODEL` selects the preferred model (default `gemini-2.5-flash` since 2026-10-22: flash-lite took 20–65 s per page image, past the 20 s deadline); the existing
 explicit `GEMINI_TEXT_MODELS` list takes precedence as in other text features.
 Local text-call/token caps and configured candidate-model daily quotas guard inference.
 No new runtime AI provider, Google OAuth scope, approval tool or Live tool is added.
