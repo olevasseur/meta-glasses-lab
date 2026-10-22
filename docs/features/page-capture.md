@@ -16,6 +16,10 @@ handwritten notes without speaking or opening a Gemini Live conversation.
 4. Look squarely at a tablet, e-reader or paper page and **short-press capture once**.
    Marked means colored/gray shading, underline or bracket. Handwritten notes may
    include nearby printed text as an anchor. Keep still in good light.
+   With **Say the doc name when capturing** on (default, 2026-10-22), the phone's
+   offline voice says **“Taking picture for <nickname>”** right after the press,
+   through the glasses (media route, or the call route during a conversation).
+   Turn it off in Settings for cues only. No Live or network voice is used.
 5. Listen for the shutter and then a success cue. The notification says
    **Saved N highlights, M handwritten notes to <doc>**, with a short preview.
    A double-beep retry cue means blur: nothing was uploaded. An error cue accompanies

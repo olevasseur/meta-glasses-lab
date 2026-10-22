@@ -227,3 +227,10 @@ class PageCaptureTest {
         } finally { http.dispatcher.executorService.shutdown(); http.connectionPool.evictAll() }
     }
 }
+
+class PageCaptureVoiceTest {
+    @org.junit.Test fun phraseNamesTheTargetDocAndAnnouncingIsOnByDefault() {
+        org.junit.Assert.assertEquals("Taking picture for never eat alone", pageCapturePhrase(" never eat alone "))
+        org.junit.Assert.assertTrue(ConversationSettings().pageCaptureAnnounce)
+    }
+}

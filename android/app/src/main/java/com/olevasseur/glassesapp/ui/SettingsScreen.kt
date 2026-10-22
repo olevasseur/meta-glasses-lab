@@ -100,6 +100,9 @@ fun SilentPageSettings(state: ConversationState, model: ConversationViewModel) {
         LabeledSwitch("Silent page capture", state.settings.silentPageCapture, enabled) {
             model.setSettings(state.settings.copy(silentPageCapture = it))
         }
+        LabeledSwitch("Say the doc name when capturing", state.settings.pageCaptureAnnounce, enabled) {
+            model.setSettings(state.settings.copy(pageCaptureAnnounce = it))
+        }
         val known by model.docNicknames.collectAsState()
         LaunchedEffect(Unit) { model.loadNicknames() }
         var expanded by remember { mutableStateOf(false) }
