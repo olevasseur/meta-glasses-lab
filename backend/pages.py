@@ -131,6 +131,7 @@ class PageStore:
                         raise HTTPException(409, "Upload ID already used with different page metadata")
                     return json.loads(row[1])
                 image = decode_jpeg(raw, max_bytes=MAX_BYTES, max_pixels=MAX_PIXELS)
+                size = image.size
                 try:
                     output = io.BytesIO()
                     image.save(output, format="JPEG", quality=95, subsampling=0)
@@ -143,7 +144,6 @@ class PageStore:
                                         else f"Nickname '{doc}' is ambiguous; assign it to one existing doc first")
                 document = resolved["document"]
                 extracted = extract_page(jpeg)
-                del jpeg
                 db.execute("DELETE FROM page_items WHERE saved_at < ? AND uncertain=0", (self.clock() - DEDUP_SECONDS,))
                 source = digest([normalized(extracted.source.title or ""), normalized(extracted.source.page or "")])
                 seen = {r[0]: r[1] for r in db.execute("SELECT hash, uncertain FROM page_items WHERE doc=? AND source=?",
@@ -179,6 +179,7 @@ class PageStore:
                                   message="Already saved to " + document["title"] if extracted.highlights or extracted.handwritten
                                   else "Nothing highlighted found")
                 else:
+                    del jpeg
                     text = render_page(captured_at, extracted.source, highlights, handwritten)
                     result.update(preview="\n".join(text.splitlines()[1:])[:240],
                                   message=f"Saved {len(highlights)} highlights, {len(handwritten)} handwritten notes to {document['title']}")
@@ -203,8 +204,28 @@ class PageStore:
                         raise HTTPException(422, f"Could not append to '{doc}'; check its nickname")
                     db.execute("UPDATE page_items SET uncertain=0 WHERE doc=? AND source=? AND hash IN (" +
                                ",".join("?" for _ in hashes) + ")", (document["id"], source, *hashes))
+                if result["status"] != "ok":
+                    try:
+                        keep_debug(upload_id, jpeg, size, extracted, result)
+                    except OSError:
+                        pass  # Debugging must never change the page result.
                 db.execute("INSERT OR REPLACE INTO pages VALUES (?,?,?)", (str(upload_id), fingerprint, json.dumps(result)))
                 return result
+
+
+def keep_debug(upload_id: UUID, jpeg: bytes, size: tuple[int, int], extracted, result: dict) -> None:
+    """Opt-in (PAGE_DEBUG_KEEP_FAILED=1): keep failed pages privately to diagnose capture quality."""
+    if os.environ.get("PAGE_DEBUG_KEEP_FAILED") != "1" or result.get("status") == "ok":
+        return
+    folder = Path(__file__).resolve().parent / "data" / "page-debug"
+    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+    for name, data in ((f"{upload_id}.jpg", jpeg), (f"{upload_id}.json", json.dumps({
+            "width": size[0], "height": size[1], "bytes": len(jpeg), "result": result,
+            "extraction": extracted.model_dump() if extracted else None}, indent=2).encode())):
+        path = folder / name
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
 
 
 store = PageStore()
