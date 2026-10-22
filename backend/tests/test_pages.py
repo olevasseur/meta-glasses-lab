@@ -293,3 +293,20 @@ def test_render_joins_wrapped_lines():
     note = pages.Handwritten(text='two\nlines', anchor='wrapped\n anchor')
     text = pages.render_page(None, pages.Source(), ['what they think\nof you  afterward'], [note])
     assert text == '“what they think of you afterward”\n✎ two lines (next to “wrapped anchor”)'
+
+
+def test_debug_keeps_failed_page_only_when_enabled(monkeypatch, tmp_path):
+    import pages
+    from types import SimpleNamespace
+    monkeypatch.setattr(pages, "__file__", str(tmp_path / "pages.py"))
+    extracted = SimpleNamespace(model_dump=lambda: {"legible": False})
+    upload = uuid4()
+    pages.keep_debug(upload, b"jpeg", (10, 20), extracted, {"status": "error"})
+    assert not (tmp_path / "data").exists()
+    monkeypatch.setenv("PAGE_DEBUG_KEEP_FAILED", "1")
+    pages.keep_debug(upload, b"jpeg", (10, 20), extracted, {"status": "ok"})
+    assert not (tmp_path / "data").exists()
+    pages.keep_debug(upload, b"jpeg", (10, 20), extracted, {"status": "error"})
+    saved = tmp_path / "data" / "page-debug" / f"{upload}.jpg"
+    assert saved.read_bytes() == b"jpeg" and oct(saved.stat().st_mode & 0o777) == "0o600"
+    assert '"width": 10' in (saved.with_suffix(".json")).read_text()

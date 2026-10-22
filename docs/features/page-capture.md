@@ -124,6 +124,14 @@ doc before capturing again** once, and clears those reservations so the next cap
 (after checking the doc) appends them. A definite non-write (doc no longer resolves)
 clears the reservations and receipt immediately and returns 422, so a retry can append. Run the personal backend with one worker, as for photos.
 
+## Debugging failed pages (2026-10-22)
+
+Start the backend with `PAGE_DEBUG_KEEP_FAILED=1` to keep every non-ok page
+(unreadable, nothing found, errors) in `backend/data/page-debug/` (git-ignored,
+owner-only): `<upload_id>.jpg` plus `.json` with dimensions, the result and the raw
+extraction. Successful pages are never kept. Turn it off and delete the folder once
+done. Added after two real captures were judged unreadable with no way to see why.
+
 ## Verification and hardware steps
 
 Automated tests mock Gemini/Google and use temporary storage. They cover trigger
