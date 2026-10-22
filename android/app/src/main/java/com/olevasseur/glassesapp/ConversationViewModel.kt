@@ -316,6 +316,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             })
     }
     private val pageNotifications by lazy { PageCaptureNotifications(application) }
+    private val pageVoice by lazy { PageCaptureVoice(application) }
     private val pageCapture by lazy {
         PageCaptureController(PhotoOutbox(File(application.noBackupFilesDir, "page-outbox"), retainFailures = false,
             fullMessage = "Page outbox is full; send queued pages before capturing another"),
@@ -376,6 +377,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             else {
                 service?.activity()
                 val doc = current.settings.pageCaptureDoc
+                if (current.settings.pageCaptureAnnounce) runCatching { pageVoice.say(pageCapturePhrase(doc), audioReady) }
                 viewModelScope.launch { pageCapture.capture(doc) }
                 true
             }
@@ -836,7 +838,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         reading.clear()
         service = null
         workout.stop(interrupted = true)
-        gemini.close(); glasses.close()
+        gemini.close(); glasses.close(); pageVoice.close()
         memory.stop()
         // viewModelScope is already cancelled; finish releasing platform audio on a cleanup scope.
         val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)

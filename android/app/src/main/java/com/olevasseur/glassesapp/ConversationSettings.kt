@@ -35,6 +35,7 @@ data class ConversationSettings(
     val thinkingCue: Boolean = false,
     val silentPageCapture: Boolean = false,
     val pageCaptureDoc: String = "reading notes",
+    val pageCaptureAnnounce: Boolean = true,
 ) {
     fun normalized() = copy(
         pageCaptureDoc = pageCaptureDoc.filterNot { it.isISOControl() }.trim().take(60).ifBlank { "reading notes" },
@@ -62,6 +63,7 @@ val Context.conversationSettingsStore by preferencesDataStore(
 class ConversationSettingsStore(private val store: DataStore<Preferences>) {
     private val silentPageCaptureKey = booleanPreferencesKey("silent_page_capture")
     private val pageCaptureDocKey = stringPreferencesKey("page_capture_doc")
+    private val pageCaptureAnnounceKey = booleanPreferencesKey("page_capture_announce")
     private val thinkingCueKey = booleanPreferencesKey("thinking_cue")
     private val meetingPhoneKey = booleanPreferencesKey("meeting_phone")
     private val meetingWakeKey = stringPreferencesKey("meeting_wake_phrase")
@@ -107,6 +109,7 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
             thinkingCue = prefs[thinkingCueKey] ?: false,
             silentPageCapture = prefs[silentPageCaptureKey] ?: false,
             pageCaptureDoc = prefs[pageCaptureDocKey] ?: "reading notes",
+            pageCaptureAnnounce = prefs[pageCaptureAnnounceKey] ?: true,
         ).normalized()
     }
 
@@ -126,6 +129,7 @@ class ConversationSettingsStore(private val store: DataStore<Preferences>) {
             it[thinkingCueKey] = value.thinkingCue
             it[silentPageCaptureKey] = value.silentPageCapture
             it[pageCaptureDocKey] = value.pageCaptureDoc
+            it[pageCaptureAnnounceKey] = value.pageCaptureAnnounce
             it[workoutKey] = value.workoutSensitivity
             it[coachNavigationKey] = value.coachNodNavigation
             it.remove(legacyWorkoutKey)
