@@ -45,6 +45,8 @@ Cues use the existing generated shutter/tool tones: the communication route whil
 conversation audio is active, otherwise the media route (Bluetooth/A2DP when routed
 to the glasses, phone in fallback/mock mode). No microphone or Live session is
 started for a cue. Actual glasses routing and audibility require the hardware check.
+Update 2026-10-24: on a physical Pixel with Meta glasses, the capture press reached
+the app and pages were saved to a Doc; cue audibility on the glasses is still unconfirmed.
 Phone notifications use a quiet channel, private lock-screen visibility and the latest
 result; allow notifications in Android settings to see them.
 
@@ -149,6 +151,9 @@ confirm one short press, active/no conversation, native-photo coexistence, every
 and notification, blur, e-ink/tablet/paper highlights, handwriting, duplicates,
 missing nicknames, sleeping backend/retry and no retained images. Returned resolution
 and extraction accuracy remain hardware/live-service acceptance checks.
+On 2026-10-22 a real glasses photo was extracted (4 highlights saved) once pages
+used `gemini-2.5-flash`; earlier attempts with flash-lite timed out. Accuracy across
+many pages has not been measured.
 
 ### Local validation (2026-10-16)
 

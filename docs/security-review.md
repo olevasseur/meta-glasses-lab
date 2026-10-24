@@ -34,6 +34,12 @@ writes and Codex execution remain unverified. The shared secret authenticates th
 app; it is not remote hardware attestation. Notification truncation/permissions
 force screen/dashboard review when hardware presentation is unavailable.
 
+**Update 2026-10-24:** the app has since run on a physical Pixel with Meta
+glasses: voice conversations, spoken notes and silent page capture, with real
+Google Docs appends through the configured OAuth token. Device approval cards,
+nod/button approvals and Codex jobs have still not been exercised on hardware,
+so the unverified items below remain open for those flows.
+
 ## Findings and fixes
 
 Locations below refer to the resulting source, including new enforcement points.

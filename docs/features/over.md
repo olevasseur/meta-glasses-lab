@@ -301,7 +301,8 @@ Android SDK, with writable Gradle/Android-user/uv caches under `/tmp`.
 - Quiet speech below the energy threshold may be classified as silence. Loud
   tonal noise, wind or nearby voices may count as speech and delay the timeout.
   Synthetic tests cover low noise, breath-like energy, DC, clicks and broadband
-  phone/HFP hiss; real Pixel/glasses recordings remain unverified. There is no
+  phone/HFP hiss. Over mode has since been used with real speech on a Pixel and
+Meta glasses (2026-10), but thresholds were not measured on recordings. There is no
   fallback speech-duration cap. Validate thresholds on those recordings.
 - A text-only manual-activity probe closed after `activityEnd`; PCM is the
   verified path and the committed smoke script uses PCM. The text-only failure
