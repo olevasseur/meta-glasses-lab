@@ -492,6 +492,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
         if (!granted) error("Microphone permission is required. Allow it in Android app settings.")
     }
     fun error(message: String) { mutableState.update { it.copy(error = message) } }
+    fun clearError() { mutableState.update { it.copy(error = null) } }
     fun loadNicknames() {
         viewModelScope.launch { runCatching { backend.nicknames() }.onSuccess { mutableNicknames.value = it } }
     }
@@ -738,6 +739,7 @@ class ConversationViewModel(application: Application) : AndroidViewModel(applica
             workout.flush()
             mutableState.update { it.copy(running = false, stopping = false, meeting = false,
                 gemini = "Stopped", route = "No audio session",
+                lastTool = if (it.lastTool.endsWith(": running…")) "None" else it.lastTool,
                 meetingResult = if (wasMeeting) "Preparing minutes; keep the app open to finish." else it.meetingResult) }
             // Upload loop polls the durable meeting job; don't hold Start behind map/reduce.
             viewModelScope.launch { memory.flush() }

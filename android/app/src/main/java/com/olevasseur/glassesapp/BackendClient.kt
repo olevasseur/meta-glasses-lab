@@ -55,7 +55,7 @@ class BackendClient(
     suspend fun events(after: Long): JSONObject {
         val url = base.newBuilder().addPathSegment("events")
             .addQueryParameter("after", after.toString()).addQueryParameter("wait", "20").build()
-        return execute(Request.Builder().url(url).header("X-App-Secret", secret).get().build())
+        return execute(Request.Builder().url(url).header("X-App-Secret", secret).get().build(), notifyUnavailable = false, timeoutSeconds = 25)
     }
 
     suspend fun usage(): JSONObject = execute(Request.Builder()
@@ -71,23 +71,23 @@ class BackendClient(
     suspend fun offlineTool(id: String, call: FunctionCall): JSONObject {
         val url = base.newBuilder().addPathSegment("tools").addPathSegment(call.name).build()
         return execute(Request.Builder().url(url).header("X-App-Secret", secret).header("X-Offline-Id", id)
-            .post(call.args.toString().toRequestBody("application/json".toMediaType())).build())
+            .post(call.args.toString().toRequestBody("application/json".toMediaType())).build(), notifyUnavailable = false)
     }
 
     suspend fun diagnosticHealth(): JSONObject = execute(Request.Builder()
         .url(base.newBuilder().addPathSegments("diagnostics/health").build())
-        .header("X-App-Secret", secret).get().build())
+        .header("X-App-Secret", secret).get().build(), notifyUnavailable = false)
 
     suspend fun overview(): JSONObject = execute(Request.Builder()
         .url(base.newBuilder().addPathSegments("ui/overview").build())
-        .header("X-App-Secret", secret).get().build())
+        .header("X-App-Secret", secret).get().build(), notifyUnavailable = false)
 
     suspend fun nicknames(): List<String> = execute(Request.Builder()
         .url(base.newBuilder().addPathSegments("ui/nicknames").build())
         .header("X-App-Secret", secret).get().build(), notifyUnavailable = false).getJSONArray("nicknames")
         .let { names -> List(names.length()) { names.getString(it) } }
 
-    suspend fun uploadLogs(entries: JSONArray): JSONObject = post(listOf("logs"), JSONObject().put("entries", entries))
+    suspend fun uploadLogs(entries: JSONArray): JSONObject = post(listOf("logs"), JSONObject().put("entries", entries), notifyUnavailable = false)
 
     suspend fun approvalStatus(id: String): JSONObject = execute(Request.Builder()
         .url(base.newBuilder().addPathSegment("approvals").addPathSegment(id).build())
@@ -145,14 +145,14 @@ class BackendClient(
     )
 
     suspend fun visualStatus(on: Boolean): JSONObject = post(
-        listOf("visual", "status"), JSONObject().put("on", on),
+        listOf("visual", "status"), JSONObject().put("on", on), notifyUnavailable = false,
     )
 
-    private suspend fun post(path: List<String>, body: JSONObject): JSONObject {
+    private suspend fun post(path: List<String>, body: JSONObject, notifyUnavailable: Boolean = true): JSONObject {
         val url = base.newBuilder().apply { path.forEach { addPathSegment(it) } }.build()
         val request = Request.Builder().url(url).header("X-App-Secret", secret)
             .post(body.toString().toRequestBody("application/json".toMediaType())).build()
-        return execute(request)
+        return execute(request, notifyUnavailable = notifyUnavailable)
     }
 
     private suspend fun execute(request: Request, notifyUnavailable: Boolean = true, timeoutSeconds: Long = 20): JSONObject {

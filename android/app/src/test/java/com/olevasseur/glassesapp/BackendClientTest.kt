@@ -17,7 +17,7 @@ class BackendClientTest {
             try {
                 val backend = BackendClient(http, "https://example.test/", "test", notices::add)
                 val requests: List<suspend () -> Any> = listOf(
-                    { backend.token(false) }, { backend.tool(FunctionCall("1", "append_to_doc", JSONObject())) }, { backend.overview() })
+                    { backend.token(false) }, { backend.tool(FunctionCall("1", "append_to_doc", JSONObject())) }, { backend.usage() })
                 for (request in requests) {
                     try { request(); fail("Expected connection failure") }
                     catch (e: BackendConnectionException) {

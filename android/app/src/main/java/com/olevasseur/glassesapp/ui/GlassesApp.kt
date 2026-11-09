@@ -36,7 +36,10 @@ fun GlassesApp(state: ConversationState, model: ConversationViewModel, permissio
     val backend = remember {
         BackendClient(OkHttpClient.Builder().callTimeout(10, TimeUnit.SECONDS)
             .retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).build(),
-            BuildConfig.BACKEND_URL, BuildConfig.APP_SHARED_SECRET, model::backendUnavailable)
+            BuildConfig.BACKEND_URL, BuildConfig.APP_SHARED_SECRET)
+    }
+    LaunchedEffect(status, state.error) {
+        if (status == "Connected" && state.error == "Can't reach your Mac") model.clearError()
     }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     // UI-only reads stop when the Activity is not visible. Controllers keep their service lifetime.
@@ -46,6 +49,7 @@ fun GlassesApp(state: ConversationState, model: ConversationViewModel, permissio
                 while (isActive) {
                     try {
                         backend.diagnosticHealth(); status = "Connected"
+                        if (state.error == "Can't reach your Mac") model.clearError()
                         try {
                             overview = Overview.parse(backend.overview())
                             reviewStatus = "Recent snapshot · refreshes every 15 seconds"
