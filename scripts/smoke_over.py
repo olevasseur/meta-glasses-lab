@@ -13,7 +13,7 @@ from pathlib import Path
 import wave
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
-import app  # Loads root .env without replacing explicit environment variables.
+import app  # Loads the secrets .env without replacing explicit environment variables.
 from fastapi.testclient import TestClient
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed

@@ -18,8 +18,9 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'backend'))
+from secret_paths import ENV_PATH
 from dotenv import load_dotenv
-load_dotenv(ROOT / '.env')
+load_dotenv(ENV_PATH)
 from google.genai import models
 from gemini_resilience import GeminiUnavailable
 from memory import Memory

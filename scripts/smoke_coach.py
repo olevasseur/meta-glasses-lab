@@ -7,8 +7,9 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 from coach import extract_project
+from secret_paths import ENV_PATH
 
-load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+load_dotenv(ENV_PATH)
 
 
 def main():

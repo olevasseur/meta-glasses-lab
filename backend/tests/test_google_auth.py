@@ -12,7 +12,7 @@ def oauth(monkeypatch, tmp_path):
     secret_dir.mkdir()
     (secret_dir / "client_secret.json").write_text("{}")
     token_path = secret_dir / "token.json"
-    monkeypatch.setattr(google_auth, "BACKEND_DIR", tmp_path)
+    monkeypatch.setattr(google_auth, "CLIENT_SECRET_PATH", secret_dir / "client_secret.json")
     monkeypatch.setattr(google_auth, "TOKEN_PATH", token_path)
     credentials = Mock(refresh_token="fake-refresh-token")
     credentials.has_scopes.return_value = True

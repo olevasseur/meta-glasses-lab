@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'backend'))
 from dotenv import load_dotenv
+from secret_paths import ENV_PATH
 from .audio import MODEL, assemble, cached_path, read, insert_pause, mix_noise
 from .client import evaluate
 from .metrics import aggregate, render, score
@@ -20,7 +21,7 @@ from .quota import reserve_live
 
 
 def run_case(case, prompt, tts_model, timeout, tools_file=None):
-    load_dotenv(ROOT/'.env')
+    load_dotenv(ENV_PATH)
     result={'id':case['id'],'feature':case['feature'],'mode':case['mode'],'calls':[],
             'complete':False,'error':None}
     try:
@@ -75,7 +76,7 @@ def main():
     parser.add_argument('--tts-model',default=MODEL)
     parser.add_argument('--output',default=str(ROOT/'docs/evals'/f'voice-eval-{datetime.now().date()}.json'))
     args=parser.parse_args()
-    load_dotenv(ROOT/'.env')
+    load_dotenv(ENV_PATH)
     cases=json.loads(Path(args.cases).read_text())
     if args.case:
         unknown=set(args.case)-{c['id'] for c in cases}

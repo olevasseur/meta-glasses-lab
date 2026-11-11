@@ -55,7 +55,7 @@ records the canonical path, alias, and instruction. An approval binds that store
 Repeated approval submissions cannot execute again.
 The allowlist is checked again immediately before worktree creation.
 
-Optional repo-root `.env` settings (restart after changes):
+Optional `~/.config/meta-glasses-lab/.env` settings (restart after changes):
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
@@ -63,7 +63,7 @@ Optional repo-root `.env` settings (restart after changes):
 | `CODEX_JOB_TIMEOUT_SECONDS` | `3600` | Active coding job deadline, including worktree setup. |
 | `RESEARCH_JOB_TIMEOUT_SECONDS` | `1800` | Active research deadline, including Docs save. |
 
-Google credentials use the existing `backend/secrets/token.json` setup. The default
+Google credentials use the existing `~/.config/meta-glasses-lab/token.json` setup. The default
 **Glasses Research** document is found by exact title or created if absent;
 duplicate exact titles need attention. Other names use the existing alias/fuzzy
 matching. Missing credentials skip Docs and clearly report that the result is

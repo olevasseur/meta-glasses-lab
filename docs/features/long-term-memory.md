@@ -31,7 +31,7 @@ A new Start gets a new UUID; Gemini WebSocket reconnections keep the same UUID.
 ## Backend and configuration
 
 Run the backend from `backend/` using the existing `uv run uvicorn app:app --port
-8787` command, **one worker**. Dependencies are unchanged. Repo-root `.env`:
+8787` command, **one worker**. Dependencies are unchanged. `~/.config/meta-glasses-lab/.env`:
 
 ```dotenv
 GEMINI_API_KEY=<backend only>

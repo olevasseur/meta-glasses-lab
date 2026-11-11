@@ -12,10 +12,11 @@ cd backend
 uv sync
 ```
 
-Set these in **repo-root `.env`** (one directory above `backend/`) or export them
-in the server's environment. The service uses `python-dotenv` with an absolute
-path; exported values take precedence. Root `.env.example` is not updated by this
-milestone.
+Set these in **`~/.config/meta-glasses-lab/.env`**, outside the repository so a
+copy or zip of it never includes secrets (set `GLASSES_SECRETS_DIR` to use another
+folder; see `secret_paths.py`), or export them in the server's environment.
+Exported values take precedence. The Android debug build reads `APP_SHARED_SECRET`
+from the same file.
 
 | Variable | Required | Meaning |
 | --- | --- | --- |
@@ -61,8 +62,7 @@ request.
    See [Google's refresh-token rules](https://developers.google.com/identity/protocols/oauth2#expiration)
    and [personal-use verification exceptions](https://support.google.com/cloud/answer/13464323).
 5. Create an OAuth client of type **Desktop app**. Save the downloaded client JSON
-   at `backend/secrets/client_secret.json` (`mkdir -p backend/secrets` from the
-   repository root).
+   at `~/.config/meta-glasses-lab/client_secret.json`.
 6. From `backend/`, run:
 
    ```sh
@@ -71,8 +71,8 @@ request.
 
 7. Grant both `https://www.googleapis.com/auth/documents` and
    `https://www.googleapis.com/auth/drive.metadata.readonly`. The script opens a
-   local browser flow and writes `backend/secrets/token.json` with owner-only
-   permissions. Both files are ignored by Git.
+   local browser flow and writes `~/.config/meta-glasses-lab/token.json` with
+   owner-only permissions. Both files live outside the repository.
 8. **Re-consent after publishing** if you previously authorized in Testing:
    re-run the script, then restart the backend. Publishing does not guarantee a
    permanent refresh token; revocation and other expiration rules still apply.
@@ -182,7 +182,7 @@ uv run python ../scripts/smoke_token.py
 Tests mock Google clients and Gemini's network boundary; they exercise both
 the configuration objects and real SDK HTTP serialization. The smoke script calls
 the real `/token` handler in-process only when `GEMINI_API_KEY` is present in the
-environment or root `.env`; otherwise it reports a skip. It never prints tokens
+environment or `~/.config/meta-glasses-lab/.env`; otherwise it reports a skip. It never prints tokens
 and never calls Docs. If necessary, it uses a temporary in-process app secret.
 
 Current known dependency warnings: Google marks token creation experimental, and

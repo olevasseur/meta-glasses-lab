@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
-import app  # Loads the ignored root .env.
+import app  # Loads the secrets .env outside the repository.
 from fastapi.testclient import TestClient
 from websockets.asyncio.client import connect
 

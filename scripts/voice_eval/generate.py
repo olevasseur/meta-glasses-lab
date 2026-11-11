@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai.errors import APIError
 from .audio import MODEL, synthesize
+from .secret_env import ENV_PATH
 
 
 def main():
@@ -20,7 +21,7 @@ def main():
     parser.add_argument('--model', default=MODEL)
     parser.add_argument('--workers', type=int, default=1)
     args = parser.parse_args()
-    load_dotenv(Path(__file__).resolve().parents[2] / '.env')
+    load_dotenv(ENV_PATH)
     cases = json.loads(Path(args.cases).read_text())
     tasks = {(segment, case['voice']) for case in cases if not args.case or case['id'] in args.case
              for segment in case['segments']}

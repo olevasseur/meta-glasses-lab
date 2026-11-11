@@ -24,7 +24,7 @@ append until you inspect its destination.
 ## 1. Setup and observers — 10–15 minutes
 
 - [ ] **1.1 Mac prerequisites.** Install JDK 17, Android SDK Platform/Build Tools 36
-  and platform-tools, plus `uv`. Configure root `.env` with existing Gemini key
+  and platform-tools, plus `uv`. Configure `~/.config/meta-glasses-lab/.env` with existing Gemini key
   and shared secret. Run `./scripts/dev_up.sh` from the repo root. **Expect:** clear
   prerequisite messages, then backend, reverse, APK installation, launch and log
   tail. **If failing:** terminal message; `JAVA_HOME`, `ANDROID_HOME`, `.env` presence
@@ -347,14 +347,14 @@ account policy/Console UI variations and actual consent remain hardware-session 
   [token lifetime](https://developers.google.com/identity/protocols/oauth2#expiration).
 - [ ] **10.4 Desktop credential.** **Google Auth platform → Clients → Create Client
   → Application type: Desktop app**; name “Glasses Mac” → **Create**. Download JSON
-  from the created client and save locally as `backend/secrets/client_secret.json`.
+  from the created client and save locally as `~/.config/meta-glasses-lab/client_secret.json`.
   **Expect:** Desktop client file only on Mac; no Android OAuth client needed for
   this backend flow. **If failing:** selected client type/download path. Never
   commit it. [Official client creation](https://developers.google.com/workspace/guides/create-credentials).
 - [ ] **10.5 Offline consent.** From `backend/`, run `uv run python
   ../scripts/google_auth.py`. In browser select your account; for your own known
   personal unverified app, use **Advanced → Go to …** if shown, grant all requested
-  access, Continue. **Expect:** owner-only `backend/secrets/token.json`, script
+  access, Continue. **Expect:** owner-only `~/.config/meta-glasses-lab/token.json`, script
   confirms completion. Restart backend (and dev_up/reverse if needed). **If failing:**
   script's scope/offline-access message, dashboard Google status. If previously
   consented in Testing or with only two scopes, run again after publishing; no

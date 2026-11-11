@@ -13,6 +13,8 @@ from urllib.request import Request
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "backend"))
+from secret_paths import ENV_PATH
 
 
 def request(path, url="http://127.0.0.1:8787"):
@@ -23,7 +25,7 @@ def request(path, url="http://127.0.0.1:8787"):
         raise ValueError("Use HTTPS or local loopback HTTP")
     secret = os.getenv("APP_SHARED_SECRET", "")
     if not secret:
-        raise ValueError("Set APP_SHARED_SECRET in repo-root .env")
+        raise ValueError(f"Set APP_SHARED_SECRET in {ENV_PATH}")
     # Reject redirects so a remote redirect cannot forward the shared secret.
     from urllib.request import HTTPRedirectHandler, build_opener
 
@@ -44,7 +46,7 @@ def main():
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--health", action="store_true")
     args = parser.parse_args()
-    load_dotenv(ROOT / ".env")
+    load_dotenv(ENV_PATH)
     if args.health:
         try:
             return 0 if request("/diagnostics/health", args.url).get("status") == "ok" else 1

@@ -55,7 +55,7 @@ From the repository root:
 ```
 
 Requires JDK 17, Android SDK 36/platform-tools, `uv`, a USB-authorized phone, and
-root `.env` with `GEMINI_API_KEY` and `APP_SHARED_SECRET`. Defaults match this Mac:
+`~/.config/meta-glasses-lab/.env` with `GEMINI_API_KEY` and `APP_SHARED_SECRET`. Defaults match this Mac:
 `JAVA_HOME=/opt/homebrew/opt/openjdk@17`, `ANDROID_HOME=$HOME/Library/Android/sdk`.
 Set `ANDROID_SERIAL` for multiple attached devices. The script prepares ignored
 `android/local.properties` (preserving unrelated settings), starts/reuses an

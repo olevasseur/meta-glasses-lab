@@ -30,4 +30,4 @@ A personal voice assistant for Meta smart glasses that **doesn't cut you off**, 
 - Backend 889 tests, Android 349 tests passing. Real Gemini / Codex checks passed per feature (see each doc).
 - **Emulator smoke PASS** on main: real APK on Android 16 emulator + DAT mock glasses + real Gemini (`scripts/emulator_smoke.sh`, screenshots in `docs/evals/emulator/`).
 - Voice eval: 68/68 tool selection, 0/10 false triggers (`docs/evals/`). Security review + tiered hardware approvals (`docs/security-review.md`).
-- **Tested on a physical Pixel and Meta glasses (Oct 2026).** Start with `scripts/dev_up.sh` and follow `docs/hardware-test-plan.md`. Google OAuth is configured (`scripts/google_auth.py`; credentials stay in the gitignored `backend/secrets/`).
+- **Tested on a physical Pixel and Meta glasses (Oct 2026).** Start with `scripts/dev_up.sh` and follow `docs/hardware-test-plan.md`. Google OAuth is configured (`scripts/google_auth.py`; secrets live outside the repo in `~/.config/meta-glasses-lab/`).
