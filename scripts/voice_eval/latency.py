@@ -15,7 +15,7 @@ from unittest.mock import patch
 from .audio import cached_path, read
 from .client import evaluate
 from .quota import reserve_live
-from .runner import ROOT
+from .runner import ENV_PATH, ROOT
 from .simulator import backend
 
 
@@ -47,7 +47,7 @@ def waterfall(result):
 def main():
     from dotenv import load_dotenv
     from google.genai.tokens import Tokens
-    load_dotenv(ROOT / '.env')
+    load_dotenv(ENV_PATH)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--label', required=True)
     parser.add_argument('--cold-transport', action='store_true', help='Reproduce the original per-request Google client')

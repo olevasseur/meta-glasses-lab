@@ -9,7 +9,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from .hfp import CONDITIONS, simulate
 from .hfp_ablation import fir_upsample
-from .hfp_runner import ROOT, cases_and_audio, evaluate_one, save
+from .hfp_runner import ENV_PATH, ROOT, cases_and_audio, evaluate_one, save
 from .metrics import score
 from .quota import reserve_live
 
@@ -34,7 +34,7 @@ def main():
     rows, chatter = cases_and_audio()
     cases = {case['id']: (case, pcm) for case, pcm in rows}
     conditions = {c.name: c for c in CONDITIONS}
-    load_dotenv(ROOT / '.env')
+    load_dotenv(ENV_PATH)
     try:
         reserve_live([cases[id][0] for _, id in PAIRS], 30)
     except ValueError as exc:

@@ -7,13 +7,13 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
-import app  # Loads the repo-root .env, preserving explicit environment values.
+import app  # Loads the secrets .env, preserving explicit environment values.
 from fastapi.testclient import TestClient
 
 
 def main() -> None:
     if not os.getenv("GEMINI_API_KEY"):
-        print("SKIPPED: GEMINI_API_KEY is absent from the environment and repo-root .env.")
+        print("SKIPPED: GEMINI_API_KEY is absent from the environment and the secrets .env.")
         return
     if not os.getenv("APP_SHARED_SECRET"):
         os.environ["APP_SHARED_SECRET"] = secrets.token_urlsafe(32)

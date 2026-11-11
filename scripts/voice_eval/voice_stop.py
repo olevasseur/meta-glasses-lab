@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / 'backend'), str(ROOT / 'scripts')]
+from secret_paths import ENV_PATH  # noqa: E402
 
 
 def main():
@@ -32,7 +33,7 @@ def main():
         parser.error('Use 1–5 repeats and at most 75 text calls (reserve 5 for TTS).')
     if args.output.exists():
         parser.error('Output exists; choose a new path to preserve earlier evidence.')
-    load_dotenv(ROOT / '.env')
+    load_dotenv(ENV_PATH)
     model = os.getenv('VOICE_STOP_EVAL_MODEL', 'gemini-3.5-flash-lite')
     prompt = assistant_instruction('auto')
     report = {'model': model, 'kind': 'text tool selection, not audio/hardware',

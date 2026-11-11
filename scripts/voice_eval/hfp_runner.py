@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'backend'))
 from dotenv import load_dotenv
+from secret_paths import ENV_PATH
 from .audio import assemble, cached_path, insert_pause, read
 from .hfp import CONDITIONS, simulate
 from .hfp_keywords import replay, transcribe
@@ -70,7 +71,7 @@ def main():
         parser.error('Use a disposable model copy with --allow-upsample=true in conf/mfcc.conf')
     model = Model(str(args.vosk_model))
     rows, chatter = cases_and_audio()  # Fail missing fixtures before spending any quota.
-    load_dotenv(ROOT / '.env')
+    load_dotenv(ENV_PATH)
     report = {'date': '2026-10-08', 'conditions': [asdict(c) for c in CONDITIONS],
               'cases': [c for c, _ in rows], 'live_attempts': 0, 'max_attempts': 42,
               'vosk_model': args.vosk_model.name, 'vosk_input_rate': 8000,

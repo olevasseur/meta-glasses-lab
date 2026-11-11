@@ -46,7 +46,7 @@ is sent only while opted in, and is not sent to Gemini's caption request.
 
 ## Configuration and storage
 
-Repo-root `.env` (existing secret values stay backend-only):
+`~/.config/meta-glasses-lab/.env` (existing secret values stay backend-only):
 
 ```dotenv
 GEMINI_VISUAL_MODEL=gemini-3.5-flash-lite

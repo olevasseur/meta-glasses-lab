@@ -51,7 +51,7 @@ it does not change the app's authorization boundary.
 
 ## Reproduce the evaluation
 
-From the repository root, with the existing root `.env` configured:
+From the repository root, with the existing `~/.config/meta-glasses-lab/.env` configured:
 
 ```sh
 UV_CACHE_DIR=/tmp/memory-eval-uv uv run --project backend python scripts/memory_eval generate \

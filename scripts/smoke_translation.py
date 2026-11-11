@@ -1,7 +1,7 @@
 """Real /token + constrained Live translation check; prints only fixed test transcripts.
 
 Run from backend/: uv run python ../scripts/smoke_translation.py
-Uses the gitignored root .env; never logs keys or ephemeral credentials.
+Uses the secrets .env outside the repository; never logs keys or ephemeral credentials.
 """
 
 import asyncio
@@ -74,7 +74,7 @@ async def turn(ws, text, expected_tool=None):
 
 
 async def main():
-    assert os.getenv("GEMINI_API_KEY") and os.getenv("APP_SHARED_SECRET"), "Configure root .env"
+    assert os.getenv("GEMINI_API_KEY") and os.getenv("APP_SHARED_SECRET"), "Configure the secrets .env (backend/secret_paths.py)"
     token = get_token("assistant")
     async with asyncio.timeout(60), connect(ENDPOINT, additional_headers={"Authorization": f"Token {token['token']}"}) as ws:
         await setup(ws, token)

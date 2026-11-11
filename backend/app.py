@@ -43,10 +43,11 @@ from memory import MemoryConflict
 from jobs import Jobs
 from coach import Projects
 from notes import BACKEND_DIR, Notes
+from secret_paths import ENV_PATH
 from tools import REGISTRY
 from study import Study
 
-load_dotenv(BACKEND_DIR.parent / ".env")  # Explicit environment values take precedence.
+load_dotenv(ENV_PATH)  # Explicit environment values take precedence.
 
 
 def journal_service():

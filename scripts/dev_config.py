@@ -1,9 +1,12 @@
 """Prepare ignored debug properties without exposing secrets in shell arguments."""
 import os
 from pathlib import Path
+import sys
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "backend"))
+from secret_paths import ENV_PATH
 
 
 def property_value(value):
@@ -23,20 +26,22 @@ def property_value(value):
 
 
 def configure(root=ROOT):
-    load_dotenv(root / ".env")
+    load_dotenv(ENV_PATH)
     secret = os.getenv("APP_SHARED_SECRET", "")
     if not secret or not os.getenv("GEMINI_API_KEY"):
-        raise SystemExit("Set APP_SHARED_SECRET and GEMINI_API_KEY in repo-root .env first.")
+        raise SystemExit(f"Set APP_SHARED_SECRET and GEMINI_API_KEY in {ENV_PATH} first.")
     path = root / "android" / "local.properties"
-    values = {"sdk.dir": os.environ["ANDROID_HOME"], "BACKEND_URL": "http://127.0.0.1:8787", "APP_SHARED_SECRET": secret}
+    # Gradle reads APP_SHARED_SECRET from ENV_PATH; drop any copy left in the repository folder.
+    values = {"sdk.dir": os.environ["ANDROID_HOME"], "BACKEND_URL": "http://127.0.0.1:8787"}
     lines = path.read_text().splitlines() if path.exists() else []
-    lines = [line for line in lines if line.lstrip().split("=", 1)[0].split(":", 1)[0].strip() not in values]
+    lines = [line for line in lines
+             if line.lstrip().split("=", 1)[0].split(":", 1)[0].strip() not in {*values, "APP_SHARED_SECRET"}]
     lines += [f"{key}={property_value(value)}" for key, value in values.items()]
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as output:
         os.fchmod(output.fileno(), 0o600)
         output.write("\n".join(lines) + "\n")
-    print("Prepared ignored android/local.properties for localhost debugging (secret not printed).")
+    print("Prepared ignored android/local.properties for localhost debugging (no secrets written).")
 
 
 if __name__ == "__main__":

@@ -8,6 +8,14 @@ plugins {
 val local = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
+// Secrets live outside the repository (see backend/secret_paths.py) so copies of it never include them.
+val secretsDir = File(System.getenv("GLASSES_SECRETS_DIR")
+    ?: "${System.getProperty("user.home")}/.config/meta-glasses-lab")
+fun secretEnv(key: String): String? = File(secretsDir, ".env").takeIf { it.isFile }?.readLines()
+    ?.map { it.trim().removePrefix("export ").trim() }
+    ?.firstOrNull { it.startsWith("$key=") }?.substringAfter("=")?.trim()?.removeSurrounding("\"")?.removeSurrounding("'")
+val appSharedSecret = System.getenv("APP_SHARED_SECRET")
+    ?: local.getProperty("APP_SHARED_SECRET") ?: secretEnv("APP_SHARED_SECRET") ?: ""
 fun quoted(value: String) = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"")
     .replace("\n", "\\n").replace("\r", "\\r") + "\""
 android {
@@ -25,7 +33,7 @@ android {
     }
     buildTypes {
         debug {
-            buildConfigField("String", "APP_SHARED_SECRET", quoted(local.getProperty("APP_SHARED_SECRET", "")))
+            buildConfigField("String", "APP_SHARED_SECRET", quoted(appSharedSecret))
         }
         release { buildConfigField("String", "APP_SHARED_SECRET", "\"\"") }
     }

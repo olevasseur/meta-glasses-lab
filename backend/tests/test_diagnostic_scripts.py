@@ -35,7 +35,7 @@ def test_debug_config_preserves_other_properties_and_escapes(monkeypatch, tmp_pa
     config.configure(tmp_path)
     value = path.read_text()
     assert 'custom=true' in value and 'backend-only-key' not in value
-    assert 'new\\=secret\\\\value' in value
+    assert 'APP_SHARED_SECRET' not in value and 'secret' not in value  # Gradle reads it from the secrets .env.
     assert 'sdk.dir=/sdk\\ path' in value and 'old' not in value
     assert path.stat().st_mode & 0o777 == 0o600
 

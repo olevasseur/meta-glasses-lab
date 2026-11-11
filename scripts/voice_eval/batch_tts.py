@@ -14,6 +14,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from google import genai
+from .secret_env import ENV_PATH
 from .audio import CACHE, MODEL, RATE, cached_path, read, specification, synthesize
 
 
@@ -46,7 +47,7 @@ def main():
     args=parser.parse_args()
     if not 1<=args.size<=8 or args.gap<0:
         parser.error('Batch size must be 1–8 and gap nonnegative')
-    load_dotenv(Path(__file__).resolve().parents[2]/'.env')
+    load_dotenv(ENV_PATH)
     cases=json.loads(Path(__file__).with_name('cases.json').read_text())
     failures=0
     with genai.Client(api_key=os.environ['GEMINI_API_KEY'],vertexai=False,

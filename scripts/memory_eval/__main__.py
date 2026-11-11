@@ -15,7 +15,8 @@ sys.path.insert(0, str(ROOT / "backend"))
 if os.getenv("MEMORY_EVAL_BASELINE"):
     sys.path.insert(0, os.environ["MEMORY_EVAL_BASELINE"])
 from dotenv import load_dotenv
-load_dotenv(ROOT / ".env")
+from secret_paths import ENV_PATH
+load_dotenv(ENV_PATH)
 
 import gemini
 import memory

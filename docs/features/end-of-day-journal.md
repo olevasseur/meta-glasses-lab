@@ -36,7 +36,7 @@ cd backend
 uv run uvicorn app:app --port 8787
 ```
 
-Repo-root `.env` (alongside the existing backend-only credentials):
+`~/.config/meta-glasses-lab/.env` (alongside the existing backend-only credentials):
 
 ```dotenv
 JOURNAL_ENABLED=true

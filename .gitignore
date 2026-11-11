@@ -16,3 +16,28 @@ client_secret*.json
 
 # Private conversation memory and SQLite sidecars
 backend/data/
+
+# Python envs, caches, and build artifacts
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.uv-cache/
+*.py[cod]
+dist/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Android/Kotlin build output
+.kotlin/
+*.apk
+*.aab
+
+# Local secrets and agent state
+backend/secrets/
+.claude/
+*.log
+
+# Local page-capture sample photos (book pages; keep out of the public repo)
+backend/tests/fixtures/page_capture/

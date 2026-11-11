@@ -13,6 +13,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 from doc_nicknames import find_alias, read_aliases, write_aliases
+from secret_paths import TOKEN_PATH
 
 BACKEND_DIR = Path(__file__).resolve().parent
 SCOPES = [
@@ -20,7 +21,6 @@ SCOPES = [
     "https://www.googleapis.com/auth/documents",
     "https://www.googleapis.com/auth/drive.metadata.readonly",
 ]
-TOKEN_PATH = BACKEND_DIR / "secrets" / "token.json"
 INBOX_TITLE = "Glasses Inbox"
 CACHE_SECONDS = 300
 CREATE_INBOX = "__glasses_create_inbox__"

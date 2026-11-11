@@ -87,14 +87,17 @@ from pathlib import Path
 from dotenv import dotenv_values
 import os, sys
 root, sdk, port = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
-config = {**dotenv_values(root / '.env'), **os.environ}
+sys.path.insert(0, str(root / 'backend'))
+from secret_paths import ENV_PATH
+config = {**dotenv_values(ENV_PATH), **os.environ}
 assert config.get('GEMINI_API_KEY'), 'GEMINI_API_KEY missing'
 secret = config.get('APP_SHARED_SECRET')
 assert secret, 'APP_SHARED_SECRET missing'
 def prop(value):
     return value.replace('\\', '\\\\').replace('\n', '\\n').replace('\r', '\\r').replace('=', '\\=').replace(':', '\\:').replace(' ', '\\ ')
 path = root / 'android/local.properties'
-path.write_text(f'sdk.dir={prop(sdk)}\nBACKEND_URL=http://127.0.0.1:{port}\nAPP_SHARED_SECRET={prop(secret)}\n')
+# Gradle reads APP_SHARED_SECRET from ENV_PATH; keep it out of the repository folder.
+path.write_text(f'sdk.dir={prop(sdk)}\nBACKEND_URL=http://127.0.0.1:{port}\n')
 path.chmod(0o600)
 PY
 (cd "$ROOT/android" && ./gradlew assembleDebug testDebugUnitTest assembleDebugAndroidTest) > "$OUT/build.log" 2>&1
@@ -103,10 +106,16 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os, shutil, sys
 root, run, port = Path(sys.argv[1]), Path(sys.argv[2]), int(sys.argv[3])
-load_dotenv(root / '.env')
+sys.path.insert(0, str(root / 'backend'))
+from secret_paths import ENV_PATH
+load_dotenv(ENV_PATH)
 # Never bring personal DBs, OAuth credentials, or Codex repo allowlists into a smoke run.
 target = run / 'backend'
 target.mkdir()
+(run / 'secrets').mkdir(mode=0o700)
+os.environ['GLASSES_SECRETS_DIR'] = str(run / 'secrets')
+sys.path.remove(str(root / 'backend'))
+del sys.modules['secret_paths']  # The copied app must resolve the empty secrets folder.
 for source in (root / 'backend').iterdir():
     if source.suffix == '.py': shutil.copy2(source, target / source.name)
 for folder in ('prompts', 'templates', 'tools'):

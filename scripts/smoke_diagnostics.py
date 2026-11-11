@@ -37,7 +37,7 @@ def main():
     args = parser.parse_args()
     secret = os.getenv('APP_SHARED_SECRET')
     if not secret:
-        raise SystemExit('APP_SHARED_SECRET required in root .env')
+        raise SystemExit('APP_SHARED_SECRET required in the secrets .env (backend/secret_paths.py)')
     with tempfile.TemporaryDirectory() as directory:
         diagnostic_logs.store = diagnostic_logs.LogStore(Path(directory) / 'logs')
         memory_api.memory = Memory(Path(directory) / 'memory.db')

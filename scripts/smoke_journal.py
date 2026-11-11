@@ -18,6 +18,7 @@ from journal import Journal
 from journal_data import record_event
 from memory import Memory
 from notes import Notes
+from secret_paths import ENV_PATH
 from tools import REGISTRY
 
 
@@ -36,7 +37,7 @@ async def live_setup(memory):
 
 
 def main():
-    load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+    load_dotenv(ENV_PATH)
     if not os.getenv("GEMINI_API_KEY"):
         raise SystemExit("SKIPPED: GEMINI_API_KEY is not configured; no value printed.")
     try:
